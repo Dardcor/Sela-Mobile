@@ -36,6 +36,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.9
+  pinput: ^3.0.1
+  supabase_flutter: ^2.8.0
+  flutter_dotenv: ^5.1.0
+  intl: ^0.19.0
+  flutter_launcher_icons: ^0.14.2
 
 dev_dependencies:
   flutter_test:
@@ -61,7 +66,15 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/
+    - assets/images/App_Logo.png
+    - assets/images/logo.png
+    - assets/images/forgot_pass.png
+    - assets/images/otp.png
+    - assets/images/new_pass.png
+    - assets/images/success.png
+    - assets/images/avatar.png
+    - assets/images/work_in_group.png
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -88,3 +101,15 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/images/App_Logo.png'
+  min_sdk_android: 21
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
