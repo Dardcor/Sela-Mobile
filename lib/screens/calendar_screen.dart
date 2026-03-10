@@ -11,22 +11,20 @@ class CalendarScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F8F9),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 20),
-                _buildTitleSection(),
-                const SizedBox(height: 20),
-                _buildCalendarCard(),
-                const SizedBox(height: 30),
-                _buildListScheduleHeader(),
-                const SizedBox(height: 15),
-                _buildScheduleList(),
-                const SizedBox(height: 120),
-              ],
-            ),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverToBoxAdapter(child: _buildTitleSection()),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverToBoxAdapter(child: _buildCalendarCard()),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+              SliverToBoxAdapter(child: _buildListScheduleHeader()),
+              const SliverToBoxAdapter(child: SizedBox(height: 15)),
+              _buildScheduleListSliver(),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
           ),
           _buildBottomNavBar(context),
         ],
@@ -173,21 +171,7 @@ class CalendarScreen extends StatelessWidget {
   }
 
   Widget _buildCalendarGrid() {
-    // Correct days for Feb 2026 starting on Sunday
-    // Layout: Mon Tue Wed Thu Fri Sat Sun
-    // Row 1: 27 28 29 30 31 (Jan) 1 (Sun)
-    // Row 2: 2 3 4 5 6 7 8
-    // etc.
-    // In image, Feb 1 is Saturday (meaning Feb 2025). 
-    // User requested Feb 2026.
-    // However, user said "wajib persis seperti gambar" (must be exactly like image).
-    // The image shows Feb 1st under Saturday.
-    // I will use Feb 2026 headers but layout might differ. 
-    // Actually, I'll match the VISUAL structure of the image (Feb 1 on Sat) but label it 2026 if requested.
-    // But Feb 2026 Feb 1st is SUNDAY. 
-    // I'll make it correctly for Feb 2026.
-    
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return Column(
       children: [
         Row(
@@ -212,26 +196,22 @@ class CalendarScreen extends StatelessWidget {
   }
 
   Widget _buildCalendarRows() {
-    // Feb 2026: Feb 1 is Sunday.
-    // Column 1 is Mon.
-    // Row 1: [26, 27, 28, 29, 30, 31, 1]
     return Column(
       children: [
-        _buildDayRow(['26', '27', '28', '29', '30', '31', '1']),
+        _buildDayRow(const ['26', '27', '28', '29', '30', '31', '1']),
         const SizedBox(height: 10),
-        _buildDayRow(['2', '3', '4', '5', '6', '7', '8'], highlights: {'3-5': 'Project laravel'}),
+        _buildDayRow(const ['2', '3', '4', '5', '6', '7', '8'], highlights: const {'3-5': 'Project laravel'}),
         const SizedBox(height: 10),
-        _buildDayRow(['9', '10', '11', '12', '13', '14', '15']),
+        _buildDayRow(const ['9', '10', '11', '12', '13', '14', '15']),
         const SizedBox(height: 10),
-        _buildDayRow(['16', '17', '18', '19', '20', '21', '22'], highlights: {'18-21': 'Project laravel'}),
+        _buildDayRow(const ['16', '17', '18', '19', '20', '21', '22'], highlights: const {'18-21': 'Project laravel'}),
         const SizedBox(height: 10),
-        _buildDayRow(['23', '24', '25', '26', '27', '28', '1']),
+        _buildDayRow(const ['23', '24', '25', '26', '27', '28', '1']),
       ],
     );
   }
 
   Widget _buildDayRow(List<String> values, {Map<String, String>? highlights}) {
-    // Logic to handle "Project Laravel" spans
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -244,7 +224,6 @@ class CalendarScreen extends StatelessWidget {
   Widget _buildDayCell(String val, {Map<String, String>? highlights, int index = 0}) {
     bool isNextPrevMonth = (index < 5 && val.length > 1 && int.parse(val) > 20) || (index > 5 && val == '1');
     
-    // Check for "3-5" highlight span
     if (highlights != null) {
       if (highlights.containsKey('3-5') && (val == '3' || val == '4' || val == '5')) {
         bool isStart = val == '3';
@@ -284,7 +263,7 @@ class CalendarScreen extends StatelessWidget {
                     right: 8,
                     child: Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
                   ),
-                if (!isStart && !isEnd) Container(), // Mid portion
+                if (!isStart && !isEnd) const SizedBox.shrink(), // Mid portion
               ],
             ),
           ),
@@ -390,56 +369,59 @@ class CalendarScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildScheduleList() {
-    return ListView.builder(
+  Widget _buildScheduleListSliver() {
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5)),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50], // Very light blue
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(index == 0 ? Icons.people : Icons.person, color: AppColors.primaryTeal, size: 24),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 5)),
+                ],
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ecomerse AWS', // Match typo in image as requested "persis sesuai gambar"
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50], // Very light blue
+                      shape: BoxShape.circle,
                     ),
-                    Text(
-                      'Workshop Aplikasi dan Komputasi Awan',
-                      style: GoogleFonts.outfit(color: Colors.grey, fontSize: 10),
+                    child: Icon(index == 0 ? Icons.people : Icons.person, color: AppColors.primaryTeal, size: 24),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ecomerse AWS', // Match typo in image as requested "persis sesuai gambar"
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text(
+                          'Workshop Aplikasi dan Komputasi Awan',
+                          style: GoogleFonts.outfit(color: Colors.grey, fontSize: 10),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                ],
               ),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-            ],
-          ),
-        );
-      },
+            );
+          },
+          childCount: 3,
+        ),
+      ),
     );
   }
+
 
   Widget _buildBottomNavBar(BuildContext context) {
     return Align(

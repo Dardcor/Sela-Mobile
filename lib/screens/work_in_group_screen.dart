@@ -119,21 +119,18 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
           RefreshIndicator(
             onRefresh: _fetchTasks,
             color: AppColors.primaryTeal,
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context),
-                  const SizedBox(height: 20),
-                  _buildSearchBar(),
-                  const SizedBox(height: 25),
-                  _isLoading
-                      ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal)))
-                      : _buildTaskList(),
-                  const SizedBox(height: 100),
-                ],
-              ),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader(context)),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                _isLoading
+                    ? const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal))))
+                    : _buildTaskListSliver(),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
             ),
           ),
           _buildBottomNavBar(context),
@@ -202,27 +199,31 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
     );
   }
 
-  Widget _buildTaskList() {
+  Widget _buildTaskListSliver() {
     if (_filteredTasks.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(50),
-          child: Column(children: [
-            Icon(Icons.assignment_outlined, color: Colors.grey[300], size: 60),
-            const SizedBox(height: 16),
-            Text('No group tasks yet', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16)),
-            const SizedBox(height: 8),
-            Text('Add a task using the + button', style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 12)),
-          ]),
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(50),
+            child: Column(children: [
+              Icon(Icons.assignment_outlined, color: Colors.grey[300], size: 60),
+              const SizedBox(height: 16),
+              Text('No group tasks yet', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16)),
+              const SizedBox(height: 8),
+              Text('Add a task using the + button', style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 12)),
+            ]),
+          ),
         ),
       );
     }
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
-      itemCount: _filteredTasks.length,
-      itemBuilder: (context, index) => _buildTaskCard(_filteredTasks[index]),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildTaskCard(_filteredTasks[index]),
+          childCount: _filteredTasks.length,
+        ),
+      ),
     );
   }
 

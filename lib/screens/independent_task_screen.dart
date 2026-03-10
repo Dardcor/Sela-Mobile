@@ -47,21 +47,18 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
           RefreshIndicator(
             onRefresh: _fetchTasks,
             color: AppColors.primaryTeal,
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context),
-                  const SizedBox(height: 20),
-                  _buildSearchBar(),
-                  const SizedBox(height: 25),
-                  _isLoading 
-                    ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal)))
-                    : _buildTaskList(),
-                  const SizedBox(height: 100),
-                ],
-              ),
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader(context)),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                _isLoading 
+                  ? const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal))))
+                  : _buildTaskListSliver(),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
             ),
           ),
           _buildBottomNavBar(context),
@@ -118,16 +115,18 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
     );
   }
 
-  Widget _buildTaskList() {
+  Widget _buildTaskListSliver() {
     if (_tasks.isEmpty) {
-      return Center(child: Padding(padding: const EdgeInsets.all(50), child: Text('No independent tasks available', style: GoogleFonts.outfit(color: Colors.grey))));
+      return SliverToBoxAdapter(child: Center(child: Padding(padding: const EdgeInsets.all(50), child: Text('No independent tasks available', style: GoogleFonts.outfit(color: Colors.grey)))));
     }
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
-      itemCount: _tasks.length,
-      itemBuilder: (context, index) => _buildTaskCard(_tasks[index]),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildTaskCard(_tasks[index]),
+          childCount: _tasks.length,
+        ),
+      ),
     );
   }
 

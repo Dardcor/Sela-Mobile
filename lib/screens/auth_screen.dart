@@ -295,7 +295,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(15),
                                   onTap: () {
-                                    if (mounted) setState(() => isLogin = true);
+                                    if (mounted && !isLogin) setState(() => isLogin = true);
                                   },
                                   child: _buildToggleButton('Login', isLogin),
                                 ),
@@ -304,7 +304,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(15),
                                   onTap: () {
-                                    if (mounted) setState(() => isLogin = false);
+                                    if (mounted && isLogin) setState(() => isLogin = false);
                                   },
                                   child: _buildToggleButton('Register', !isLogin),
                                 ),
@@ -704,4 +704,5 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
+
 }

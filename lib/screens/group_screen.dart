@@ -261,31 +261,44 @@ class _GroupScreenState extends State<GroupScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F8F9),
       body: Stack(children: [
-        SingleChildScrollView(child: Column(children: [
-          _headerUI(),
-          const SizedBox(height: 30),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25), 
-            child: RichText(
-              text: TextSpan(
-                style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black, height: 1.1), 
-                children: [
-                  const TextSpan(text: 'create your '), 
-                  TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)), 
-                  const TextSpan(text: ',\nadd your '), 
-                  TextSpan(text: 'friends', style: TextStyle(color: AppColors.primaryTeal))
-                ]
-              )
-            )
-          ),
-          const SizedBox(height: 25),
-          _searchUI(),
-          const SizedBox(height: 25),
-          isLoading 
-            ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal))) 
-            : ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), padding: const EdgeInsets.symmetric(horizontal: 22), itemCount: teams.length, itemBuilder: (_, i) => _groupItem(teams[i])),
-          const SizedBox(height: 120),
-        ])),
+        CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _headerUI()),
+            const SliverToBoxAdapter(child: SizedBox(height: 30)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25), 
+                child: RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black, height: 1.1), 
+                    children: [
+                      const TextSpan(text: 'create your '), 
+                      TextSpan(text: 'group', style: const TextStyle(color: AppColors.primaryTeal)), 
+                      const TextSpan(text: ',\nadd your '), 
+                      TextSpan(text: 'friends', style: const TextStyle(color: AppColors.primaryTeal))
+                    ]
+                  )
+                )
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 25)),
+            SliverToBoxAdapter(child: _searchUI()),
+            const SliverToBoxAdapter(child: SizedBox(height: 25)),
+            isLoading 
+              ? const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: AppColors.primaryTeal)))) 
+              : SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _groupItem(teams[index]),
+                      childCount: teams.length,
+                    ),
+                  ),
+                ),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
         _bottomNavUI(),
       ]),
     );
@@ -294,10 +307,21 @@ class _GroupScreenState extends State<GroupScreen> {
   Widget _headerUI() => Padding(
     padding: const EdgeInsets.fromLTRB(25, 55, 25, 0), 
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      GestureDetector(onTap: () => Navigator.pop(context), child: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.arrow_back, size: 20))), 
+      GestureDetector(
+          onTap: () => Navigator.pop(context), 
+          child: Container(
+              padding: const EdgeInsets.all(8), 
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), 
+              child: const Icon(Icons.arrow_back, size: 20)
+          )
+      ), 
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10), 
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]), 
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(30), 
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]
+        ), 
         child: Text('Group', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryTeal))
       ), 
       const SizedBox(width: 36)
@@ -309,8 +333,20 @@ class _GroupScreenState extends State<GroupScreen> {
     child: Row(children: [
       Expanded(
         child: Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))]), 
-          child: TextField(controller: _searchCtrl, decoration: InputDecoration(hintText: 'Search', border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15), hintStyle: GoogleFonts.outfit(color: Colors.grey[300])))
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            borderRadius: BorderRadius.circular(15), 
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))]
+          ), 
+          child: TextField(
+            controller: _searchCtrl, 
+            decoration: InputDecoration(
+              hintText: 'Search', 
+              border: InputBorder.none, 
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15), 
+              hintStyle: GoogleFonts.outfit(color: Colors.grey[300])
+            )
+          )
         )
       ), 
       const SizedBox(width: 12), 
@@ -322,14 +358,29 @@ class _GroupScreenState extends State<GroupScreen> {
     ])
   );
   
-  Widget _iconBox(IconData i, VoidCallback tap) => GestureDetector(onTap: tap, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: AppColors.primaryTeal, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: AppColors.primaryTeal.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))]), child: Icon(i, color: Colors.white, size: 28)));
+  Widget _iconBox(IconData i, VoidCallback tap) => GestureDetector(
+    onTap: tap, 
+    child: Container(
+      padding: const EdgeInsets.all(12), 
+      decoration: BoxDecoration(
+        color: AppColors.primaryTeal, 
+        borderRadius: BorderRadius.circular(12), 
+        boxShadow: [BoxShadow(color: AppColors.primaryTeal.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))]
+      ), 
+      child: Icon(i, color: Colors.white, size: 28)
+    )
+  );
   
   Widget _groupItem(dynamic t) {
     final members = (t['group_members'] as List?) ?? [];
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 10))]),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(25), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 10))]
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
           height: 40, 
@@ -347,6 +398,7 @@ class _GroupScreenState extends State<GroupScreen> {
       ]),
     );
   }
+
 
   Widget _codeSec(String label, String? code) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text(label, style: GoogleFonts.outfit(color: AppColors.primaryTeal, fontWeight: FontWeight.w600, fontSize: 14)),

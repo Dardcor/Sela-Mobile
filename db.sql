@@ -1,8 +1,4 @@
--- ============================================================
--- SELA APP - DATABASE SCHEMA
--- ============================================================
 
--- 1. PROFILES (Penyimpanan Data User & Avatar)
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
     "username" text UNIQUE,
@@ -12,7 +8,6 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "updated_at" timestamp with time zone DEFAULT now()
 );
 
--- 2. GROUPS (Data Kelompok & Kode Join)
 CREATE TABLE IF NOT EXISTS "public"."groups" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "name" text NOT NULL,
@@ -26,7 +21,6 @@ CREATE TABLE IF NOT EXISTS "public"."groups" (
     "created_at" timestamp with time zone DEFAULT now()
 );
 
--- 3. GROUP MEMBERS (Relasi User ke Grup)
 CREATE TABLE IF NOT EXISTS "public"."group_members" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "group_id" uuid REFERENCES "public"."groups"(id) ON DELETE CASCADE,
@@ -36,7 +30,6 @@ CREATE TABLE IF NOT EXISTS "public"."group_members" (
     UNIQUE("group_id", "user_id")
 );
 
--- 4. TASKS (Data Tugas Individual & Group)
 CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "title" text NOT NULL,
@@ -55,7 +48,6 @@ CREATE TABLE IF NOT EXISTS "public"."tasks" (
     "created_at" timestamp with time zone DEFAULT now()
 );
 
--- 5. SUBTASKS
 CREATE TABLE IF NOT EXISTS "public"."subtasks" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "task_id" uuid REFERENCES "public"."tasks"(id) ON DELETE CASCADE,
@@ -63,7 +55,6 @@ CREATE TABLE IF NOT EXISTS "public"."subtasks" (
     "created_at" timestamp with time zone DEFAULT now()
 );
 
--- 6. USER SUBTASK PROGRESS
 CREATE TABLE IF NOT EXISTS "public"."subtask_progress" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "subtask_id" uuid REFERENCES "public"."subtasks"(id) ON DELETE CASCADE,
@@ -73,7 +64,6 @@ CREATE TABLE IF NOT EXISTS "public"."subtask_progress" (
     UNIQUE("subtask_id", "user_id")
 );
 
--- 7. TASK LINKS
 CREATE TABLE IF NOT EXISTS "public"."task_links" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "task_id" uuid REFERENCES "public"."tasks"(id) ON DELETE CASCADE,
@@ -82,9 +72,6 @@ CREATE TABLE IF NOT EXISTS "public"."task_links" (
     "created_at" timestamp with time zone DEFAULT now()
 );
 
--- ============================================================
--- AKTIFKAN RLS
--- ============================================================
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."groups" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."group_members" ENABLE ROW LEVEL SECURITY;
@@ -92,12 +79,6 @@ ALTER TABLE "public"."tasks" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."subtasks" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."subtask_progress" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."task_links" ENABLE ROW LEVEL SECURITY;
-
--- ============================================================
--- SECURITY DEFINER FUNCTION — KUNCI UNTUK MEMUTUS REKURSI
--- Fungsi ini berjalan dengan hak akses SUPERUSER (bukan user biasa)
--- sehingga policy bisa menggunakannya tanpa rekursi.
--- ============================================================
 
 CREATE OR REPLACE FUNCTION public.is_group_member(p_group_id uuid, p_user_id uuid)
 RETURNS boolean
@@ -113,8 +94,6 @@ AS $$
     );
 $$;
 
--- Fungsi ini dipakai untuk mencari grup via invite code (bypass RLS)
--- sehingga user yang belum menjadi member pun bisa join.
 CREATE OR REPLACE FUNCTION public.find_group_by_invite_code(p_code text)
 RETURNS TABLE (
     id uuid,
@@ -140,13 +119,9 @@ AS $$
     LIMIT 1;
 $$;
 
--- ============================================================
--- POLICIES
--- ============================================================
 DO $$
 BEGIN
 
-    -- ---------- PROFILES ----------
     DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
     CREATE POLICY "Public profiles are viewable by everyone"
         ON profiles FOR SELECT USING (true);
@@ -159,8 +134,6 @@ BEGIN
     CREATE POLICY "Users can insert own profile"
         ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
-    -- ---------- GROUPS ----------
-    -- Gunakan fungsi SECURITY DEFINER agar tidak rekursi!
     DROP POLICY IF EXISTS "Anyone can view groups" ON groups;
     DROP POLICY IF EXISTS "Users can view groups they are in" ON groups;
     CREATE POLICY "Users can view groups they are in"
@@ -177,8 +150,6 @@ BEGIN
     CREATE POLICY "Users can update own group"
         ON groups FOR UPDATE USING (auth.uid() = created_by);
 
-    -- ---------- GROUP MEMBERS ----------
-    -- Gunakan fungsi SECURITY DEFINER agar tidak rekursi!
     DROP POLICY IF EXISTS "Anyone can view member list" ON group_members;
     DROP POLICY IF EXISTS "Members can view group members" ON group_members;
     CREATE POLICY "Members can view group members"
@@ -195,7 +166,6 @@ BEGIN
     CREATE POLICY "Users can leave groups"
         ON group_members FOR DELETE USING (auth.uid() = user_id);
 
-    -- ---------- TASKS ----------
     DROP POLICY IF EXISTS "Users can view their tasks" ON tasks;
     CREATE POLICY "Users can view their tasks"
         ON tasks FOR SELECT USING (
@@ -219,7 +189,6 @@ BEGIN
     CREATE POLICY "Users can delete their tasks"
         ON tasks FOR DELETE USING (auth.uid() = created_by);
 
-    -- ---------- SUBTASKS ----------
     DROP POLICY IF EXISTS "Anyone can view subtasks" ON subtasks;
     CREATE POLICY "Anyone can view subtasks"
         ON subtasks FOR SELECT USING (true);
@@ -234,7 +203,6 @@ BEGIN
             )
         );
 
-    -- ---------- SUBTASK PROGRESS ----------
     DROP POLICY IF EXISTS "Users can view subtask progress" ON subtask_progress;
     CREATE POLICY "Users can view subtask progress"
         ON subtask_progress FOR SELECT USING (true);
@@ -243,7 +211,6 @@ BEGIN
     CREATE POLICY "Users can update their own subtask progress"
         ON subtask_progress FOR ALL USING (auth.uid() = user_id);
 
-    -- ---------- TASK LINKS ----------
     DROP POLICY IF EXISTS "Anyone can view task links" ON task_links;
     CREATE POLICY "Anyone can view task links"
         ON task_links FOR SELECT USING (true);

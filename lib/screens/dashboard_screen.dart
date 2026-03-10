@@ -134,26 +134,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           RefreshIndicator(
             onRefresh: _fetchData,
             color: AppColors.primaryTeal,
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 20),
-                  _buildSearchBar(),
-                  const SizedBox(height: 25),
-                  _buildSectionHeader('Work in Group',
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                SliverToBoxAdapter(child: _buildSearchBar()),
+                const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader('Work in Group',
                       () => Navigator.pushNamed(context, '/work_in_group').then((_) => _fetchData())),
-                  const SizedBox(height: 15),
-                  _buildWorkInGroupList(),
-                  const SizedBox(height: 25),
-                  _buildSectionHeader('Independent Task',
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 15)),
+                SliverToBoxAdapter(child: _buildWorkInGroupList()),
+                const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader('Independent Task',
                       () => Navigator.pushNamed(context, '/independent_task').then((_) => _fetchData())),
-                  const SizedBox(height: 15),
-                  _buildIndependentTaskList(),
-                  const SizedBox(height: 110),
-                ],
-              ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 15)),
+                _buildIndependentTaskListSliver(),
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
+              ],
             ),
           ),
           _buildGlobalNav(context, 0),
@@ -167,13 +169,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final name = profile?['full_name'] ?? profile?['username'] ?? 'User';
     final role = profile?['class_name'] ?? 'Mahasiswa';
 
-    final allTasks = (_cachedGroups?.length ?? 0) + (_cachedIndependent?.length ?? 0);
-    final doneTasks = (_cachedGroups?.where((t) => t['status'] == 'Done').length ?? 0) +
-        (_cachedIndependent?.where((t) => t['status'] == 'Done').length ?? 0);
-    final inProgress = (_cachedGroups?.where((t) => t['status'] == 'In Progress').length ?? 0) +
-        (_cachedIndependent?.where((t) => t['status'] == 'In Progress').length ?? 0);
-    final upcoming = (_cachedGroups?.where((t) => t['status'] == 'Upcoming').length ?? 0) +
-        (_cachedIndependent?.where((t) => t['status'] == 'Upcoming').length ?? 0);
+    final groups = _cachedGroups ?? [];
+    final independent = _cachedIndependent ?? [];
+
+    final allTasksCount = groups.length + independent.length;
+    final doneTasksCount = (groups.where((t) => t['status'] == 'Done').length) +
+        (independent.where((t) => t['status'] == 'Done').length);
+    final inProgressCount = (groups.where((t) => t['status'] == 'In Progress').length) +
+        (independent.where((t) => t['status'] == 'In Progress').length);
+    final upcomingCount = (groups.where((t) => t['status'] == 'Upcoming').length) +
+        (independent.where((t) => t['status'] == 'Upcoming').length);
 
     return Container(
       width: double.infinity,
@@ -232,11 +237,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 15),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(children: [
-              _overviewCard('$allTasks', 'All tasks'),
-              _overviewCard('$doneTasks', 'Done'),
-              _overviewCard('$inProgress', 'In progress'),
-              _overviewCard('$upcoming', 'Upcoming'),
+              _overviewCard('$allTasksCount', 'All tasks'),
+              _overviewCard('$doneTasksCount', 'Done'),
+              _overviewCard('$inProgressCount', 'In progress'),
+              _overviewCard('$upcomingCount', 'Upcoming'),
             ]),
           ),
         ],
@@ -305,6 +311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 25),
+        physics: const BouncingScrollPhysics(),
         itemCount: _cachedGroups!.length,
         itemBuilder: (context, index) => _groupCard(_cachedGroups![index]),
       ),
@@ -385,19 +392,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Independent Tasks
-  Widget _buildIndependentTaskList() {
+  Widget _buildIndependentTaskListSliver() {
     if (_cachedIndependent == null || _cachedIndependent!.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Container(
-          height: 80, alignment: Alignment.center,
-          child: Text('No independent tasks yet', style: GoogleFonts.outfit(color: Colors.grey)),
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25),
+          child: Container(
+            height: 80, alignment: Alignment.center,
+            child: Text('No independent tasks yet', style: GoogleFonts.outfit(color: Colors.grey)),
+          ),
         ),
       );
     }
-    return Padding(
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: Column(children: _cachedIndependent!.map((t) => _independentTaskItem(t)).toList()),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _independentTaskItem(_cachedIndependent![index]),
+          childCount: _cachedIndependent!.length,
+        ),
+      ),
     );
   }
 
@@ -437,7 +451,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _formatDate(DateTime d) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
@@ -468,4 +482,5 @@ class _DashboardScreenState extends State<DashboardScreen> {
     onTap: active ? null : () => Navigator.pushReplacementNamed(context, route),
     child: Icon(icon, color: active ? AppColors.primaryTeal : Colors.grey[400], size: 32),
   );
+
 }
