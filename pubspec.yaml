@@ -74,6 +74,7 @@ flutter:
     - assets/images/success.png
     - assets/images/avatar.png
     - assets/images/work_in_group.png
+    - assets/images/google_icon.png
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import '../constants/colors.dart';
+﻿import 'package:flutter/material.dart';
+import '../../../core/constants/colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,8 +25,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Logo muncul dari bawah layar ke tengah
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 6), // jauh di bawah layar
-      end: const Offset(0, 0),   // tepat di tengah
+      begin: const Offset(0, 6),
+      end: const Offset(0, 0),
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOutCubic,
@@ -40,10 +40,8 @@ class _SplashScreenState extends State<SplashScreen>
       curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
     ));
 
-    // Mulai animasi
     _controller.forward();
 
-    // Setelah animasi selesai + sedikit jeda, baru pindah ke halaman login
     Future.delayed(const Duration(milliseconds: 2800), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/auth');
@@ -58,8 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -80,5 +77,4 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ),
     );
-  }
 }

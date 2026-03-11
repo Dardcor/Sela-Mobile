@@ -1,0 +1,42 @@
+﻿Resolving dependencies...
+Downloading packages...
+  app_links 6.4.1 (7.0.0 available)
+  flutter_dotenv 5.2.1 (6.0.0 available)
+  flutter_svg 2.2.3 (2.2.4 available)
+  google_fonts 6.3.3 (8.0.2 available)
+  hooks 1.0.1 (1.0.2 available)
+  intl 0.19.0 (0.20.2 available)
+  meta 1.17.0 (1.18.1 available)
+  native_toolchain_c 0.17.4 (0.17.5 available)
+  pinput 3.0.1 (6.0.2 available)
+  smart_auth 1.1.1 (3.2.0 available)
+Got dependencies!
+10 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing Sela-Mobile...                                        
+
+   info - Empty catch block - lib\features\auth\screens\auth_screen.dart:121:22 - empty_catches
+warning - Unused import: '../../../core/constants/colors.dart' - lib\features\groups\screens\group_detail_screen.dart:3:8 - unused_import
+warning - Unused import: '../../../core/shared_widgets/task_progress_indicator.dart' - lib\features\groups\screens\group_detail_screen.dart:4:8 - unused_import
+warning - Unused import: '../../../core/shared_widgets/search_bar_with_button.dart' - lib\features\groups\screens\group_screen.dart:7:8 - unused_import
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\groups\screens\group_screen.dart:143:41 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\groups\screens\group_screen.dart:270:47 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\groups\screens\group_screen.dart:472:49 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\screens\group_screen.dart:569:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\screens\group_screen.dart:617:44 - deprecated_member_use
+  error - Expected to find ';' - lib\features\groups\screens\work_in_group_screen.dart:238:8 - expected_token
+  error - Expected to find ')' - lib\features\groups\screens\work_in_group_screen.dart:239:3 - expected_token
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\widgets\group_widgets.dart:33:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\widgets\group_widgets.dart:220:44 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\groups\widgets\group_widgets.dart:494:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\groups\widgets\group_widgets.dart:494:35 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\widgets\group_widgets.dart:532:33 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\groups\widgets\group_widgets.dart:778:35 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\groups\widgets\group_widgets.dart:778:39 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\groups\widgets\group_widgets.dart:782:50 - deprecated_member_use
+warning - Unused import: 'dart:math' - lib\features\home\screens\dashboard_screen.dart:1:8 - unused_import
+   info - Empty catch block - lib\features\home\screens\profile_screen.dart:38:17 - empty_catches
+warning - Unnecessary cast - lib\features\home\widgets\profile_widgets.dart:125:25 - unnecessary_cast
+warning - Unused import: '../../../core/constants/colors.dart' - lib\features\tasks\screens\calendar_screen.dart:2:8 - unused_import
+warning - Unused import: '../../../core/constants/colors.dart' - lib\features\tasks\screens\independent_task_detail_screen.dart:2:8 - unused_import
+
