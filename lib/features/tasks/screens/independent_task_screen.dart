@@ -52,7 +52,7 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
           RefreshIndicator(
@@ -61,16 +61,107 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                // âœ… Header generik dari shared_widgets
+                // âœHeader dengan Background Putih (Kotak) & Gambar
                 SliverToBoxAdapter(
-                  child: ScreenHeaderBar(title: 'Independent Task'),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 5, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryTeal,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Independent\nTask',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryTeal,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                            // Gambar digeser sedikit agar pas (offset negatif)
+                            Transform.translate(
+                              offset: const Offset(-20, -10),
+                              child: Image.asset(
+                                'assets/images/independent_task.png', 
+                                height: 95,
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, e, s) => const SizedBox(height: 95),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                // âœ… Search bar generik dari shared_widgets
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                // âœSearch Bar sesuai Gambar 1
                 SliverToBoxAdapter(
-                  child: SearchBarWithButton(controller: _searchCtrl),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _searchCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Search',
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                                hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          height: 52,
+                          width: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(Icons.search, color: Colors.white, size: 28),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 25)),
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
                 _isLoading
                     ? const SliverToBoxAdapter(
                         child: Center(

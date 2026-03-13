@@ -88,6 +88,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       final st = await supabase.from('subtasks').insert({
         'task_id': _taskData['id'],
         'title': title,
+        'description': description,
       }).select().single();
 
       await supabase.from('subtask_progress').insert({
@@ -156,7 +157,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final currentUserId = supabase.auth.currentUser?.id ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

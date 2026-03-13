@@ -313,16 +313,6 @@ class _LoginForm extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         AuthSubmitButton(label: 'Login', isLoading: isLoading, onPressed: onLogin),
-        const SizedBox(height: 30),
-        const AuthDivider(text: 'Or login with'),
-        const SizedBox(height: 30),
-        Row(
-          children: [
-            Expanded(child: AuthSocialButton(label: 'Google', iconAsset: 'assets/images/google_icon.png')),
-            const SizedBox(width: 15),
-            const Expanded(child: AuthEthalButton()),
-          ],
-        ),
         const SizedBox(height: 20),
       ],
     );
@@ -377,13 +367,6 @@ class _RegisterForm extends StatelessWidget {
         ),
         const SizedBox(height: 40),
         AuthSubmitButton(label: 'Register', isLoading: isLoading, onPressed: onRegister),
-        const SizedBox(height: 30),
-        const AuthDivider(text: 'Or Continue with'),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: AuthSocialButton(label: 'Google', iconAsset: 'assets/images/google_icon.png'),
-        ),
         const SizedBox(height: 20),
       ],
     );

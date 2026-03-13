@@ -108,7 +108,7 @@ class _NavIcon extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         decoration: isProfile && active
             ? BoxDecoration(
-                color: const Color(0xFFE2EFF1),
+                color: AppColors.lightTealBg,
                 shape: BoxShape.circle,
               )
             : null,

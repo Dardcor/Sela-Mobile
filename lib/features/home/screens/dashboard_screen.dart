@@ -23,6 +23,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static Map<String, dynamic>? _cachedProfile;
   static List<dynamic>? _cachedGroups;
   static List<dynamic>? _cachedIndependent;
+  
+  // Realtime subscription
+  RealtimeChannel? _profileSubscription;
 
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
@@ -31,11 +34,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchData();
+    _setupRealtimeListener();
+  }
+
+  void _setupRealtimeListener() {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    _profileSubscription = supabase
+        .channel('public:profiles:${user.id}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'profiles',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: user.id,
+          ),
+          callback: (payload) {
+            if (mounted) {
+              setState(() {
+                _cachedProfile = payload.newRecord;
+              });
+            }
+          },
+        )
+        .subscribe();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    if (_profileSubscription != null) {
+      supabase.removeChannel(_profileSubscription!);
+    }
     super.dispose();
   }
 
@@ -130,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     if (_isLoading && _cachedProfile == null) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF1F8F9),
+        backgroundColor: AppColors.bgLight,
         body: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)),
       );
     }
@@ -147,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         independent.where((t) => t['status'] == 'Upcoming').length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
           RefreshIndicator(

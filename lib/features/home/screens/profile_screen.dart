@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/profile_widgets.dart';
@@ -16,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? profile;
   List<String> abilities = [];
   bool isLoading = true;
+  bool isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -59,7 +62,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _fetchProfile();
     } catch (e) {
-      // error handling
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateProfilePhoto(String imagePath) async {
+    try {
+      setState(() => isUploadingPhoto = true);
+      
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final avatarUrl = await _uploadAvatar(imagePath, userId);
+      if (avatarUrl == null) {
+        throw Exception('Upload failed. Pastikan Storage Bucket "profiles" sudah dibuat di Supabase.');
+      }
+
+      await supabase.from('profiles').update({
+        'avatar_url': avatarUrl,
+      }).eq('id', userId);
+
+      await _fetchProfile();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isUploadingPhoto = false);
+    }
+  }
+
+  Future<String?> _uploadAvatar(String path, String userId) async {
+    try {
+      final file = File(path);
+      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storagePath = 'avatars/$fileName';
+
+      await supabase.storage.from('profiles').upload(
+        storagePath,
+        file,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+      );
+
+      return supabase.storage.from('profiles').getPublicUrl(storagePath);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -90,6 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => EditProfileModal(
         profile: profile,
         onSave: _updateProfile,
+        onPhotoChange: _updateProfilePhoto,
       ),
     );
   }
@@ -106,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF1F8F9),
+        backgroundColor: AppColors.bgLight,
         body: Stack(
           children: [
             // Dark Teal Header with Curved Bottom Effect
@@ -144,6 +204,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const AppBottomNavBar(currentIndex: 4),
+            if (isUploadingPhoto)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
           ],
         ),
       );

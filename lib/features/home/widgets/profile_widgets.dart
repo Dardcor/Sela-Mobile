@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,16 +77,16 @@ class UserInfoCard extends StatelessWidget {
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE2EFF1), width: 1),
+              border: Border.all(color: AppColors.lightTealBg, width: 1),
             ),
             child: CircleAvatar(
               radius: 40,
-              backgroundColor: const Color(0xFFC7DEE2),
+              backgroundColor: AppColors.lightTealBg,
               backgroundImage: profile?['avatar_url'] != null
                   ? NetworkImage(profile!['avatar_url'])
                   : null,
               child: profile?['avatar_url'] == null
-                  ? const Icon(Icons.person, size: 45, color: Color(0xFF5A8D99))
+                  ? const Icon(Icons.person, size: 45, color: AppColors.primaryTeal)
                   : null,
             ),
           ),
@@ -134,7 +135,7 @@ class AbilitiesCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 35, 20, 25),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(40),
-              border: Border.all(color: const Color(0xFF5A8D99), width: 1.2),
+              border: Border.all(color: AppColors.primaryTeal, width: 1.2),
             ),
             child: Column(
               children: [
@@ -158,13 +159,13 @@ class AbilitiesCard extends StatelessWidget {
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                color: const Color(0xFFF1F8F9), // Match screen background
+                color: AppColors.bgLight, // Match screen background
                 child: Text(
                   'Your ability',
                   style: GoogleFonts.outfit(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF2C5F6D),
+                    color: AppColors.primaryTeal,
                   ),
                 ),
               ),
@@ -220,7 +221,7 @@ class _AbilityTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _DashPainter(color: const Color(0xFF5A8D99), strokeWidth: 1.2, dash: 4, gap: 3),
+      painter: _DashPainter(color: AppColors.primaryTeal, strokeWidth: 1.2, dash: 4, gap: 3),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -229,7 +230,7 @@ class _AbilityTag extends StatelessWidget {
         child: Text(
           label,
           style: GoogleFonts.outfit(
-            color: const Color(0xFF2C5F6D),
+            color: AppColors.primaryTeal,
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -285,8 +286,14 @@ class _DashPainter extends CustomPainter {
 class EditProfileModal extends StatefulWidget {
   final Map<String, dynamic>? profile;
   final Function(String name, String className) onSave;
+  final Function(String path) onPhotoChange;
 
-  const EditProfileModal({super.key, required this.profile, required this.onSave});
+  const EditProfileModal({
+    super.key, 
+    required this.profile, 
+    required this.onSave,
+    required this.onPhotoChange,
+  });
 
   @override
   State<EditProfileModal> createState() => _EditProfileModalState();
@@ -317,30 +324,56 @@ class _EditProfileModalState extends State<EditProfileModal> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFE2EFF1), width: 1),
-                ),
-                child: CircleAvatar(
-                  radius: 45,
-                  backgroundColor: const Color(0xFFC7DEE2),
-                  backgroundImage: widget.profile?['avatar_url'] != null
-                      ? NetworkImage(widget.profile!['avatar_url'])
-                      : null,
-                  child: widget.profile?['avatar_url'] == null
-                      ? const Icon(Icons.person, size: 50, color: Color(0xFF5A8D99))
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Edit Photo Profile',
-                style: GoogleFonts.outfit(
-                  color: AppColors.primaryTeal,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  try {
+                    final ImagePicker picker = ImagePicker();
+                    final XFile? image = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 70, // Optimize image size
+                    );
+                    if (image != null && mounted) {
+                      widget.onPhotoChange(image.path);
+                      Navigator.pop(context); // Close modal after selection
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Gagal membuka galeri: $e')),
+                      );
+                    }
+                  }
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.lightTealBg, width: 1),
+                      ),
+                      child: CircleAvatar(
+                        radius: 45,
+                        backgroundColor: AppColors.lightTealBg,
+                        backgroundImage: widget.profile?['avatar_url'] != null
+                            ? NetworkImage(widget.profile!['avatar_url'])
+                            : null,
+                        child: widget.profile?['avatar_url'] == null
+                            ? const Icon(Icons.person, size: 50, color: AppColors.primaryTeal)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Edit Photo Profile',
+                      style: GoogleFonts.outfit(
+                        color: AppColors.primaryTeal,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 30),

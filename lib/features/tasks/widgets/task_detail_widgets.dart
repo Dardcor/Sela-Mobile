@@ -39,7 +39,7 @@ class TaskDetailCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -53,12 +53,12 @@ class TaskDetailCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.book_outlined,
+                  Icons.menu_book_rounded,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -75,53 +75,69 @@ class TaskDetailCard extends StatelessWidget {
           Text(
             task['title'] ?? '',
             style: GoogleFonts.outfit(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            task['description'] ?? '',
-            style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[600]),
+            task['description'] ?? 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+            style: GoogleFonts.outfit(
+              fontSize: 11, 
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 15),
           if (task['link'] != null && task['link'].toString().isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 15),
-              child: Text(
-                task['link'],
-                style: GoogleFonts.outfit(
-                  fontSize: 10,
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task['link'],
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  task['link'], // Tampilkan link kedua jika ada di gambar
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
             ),
+          const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
-                  '$dateRange | ${task['category'] ?? ''} | ${task['subject'] ?? ''}',
+                  '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
                   style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Report',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Report',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -137,8 +153,15 @@ class TaskDetailCard extends StatelessWidget {
 /// Diisolasi sehingga hanya bagian ini yang di-rebuild saat data subtask berubah.
 class TaskProgressCard extends StatelessWidget {
   final List subtasks;
+  final String userId;
+  final Function(String, int) onStatusChanged;
 
-  const TaskProgressCard({super.key, required this.subtasks});
+  const TaskProgressCard({
+    super.key, 
+    required this.subtasks,
+    required this.userId,
+    required this.onStatusChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -150,22 +173,53 @@ class TaskProgressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 15,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your Progres',
-            style: GoogleFonts.outfit(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryTeal,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Your Progres',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+              // Ilustrasi progres (menggantikan google icon)
+              Container(
+                width: 80,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 50, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 4),
+                    Container(width: 50, height: 6, decoration: BoxDecoration(color: AppColors.accentTeal, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 4),
+                    Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(2))),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           if (subtasks.isEmpty)
@@ -177,17 +231,265 @@ class TaskProgressCard extends StatelessWidget {
             )
           else
             ...subtasks.map((st) {
-              final progressList = st['subtask_progress'] as List;
-              final prog = progressList.isNotEmpty
-                  ? (progressList[0]['progress'] as num).toDouble()
-                  : 0.0;
-              return _ProgressRow(
-                title: st['title'],
-                value: prog,
+              final progressList = st['subtask_progress'] as List?;
+              final progressData = progressList?.firstWhere(
+                (p) => p['user_id'] == userId,
+                orElse: () => null,
+              );
+              final prog = (progressData?['progress'] as num?)?.toInt() ?? 0;
+              
+              String statusText = 'Upcoming';
+              if (prog >= 100) statusText = 'Done';
+              else if (prog > 0) statusText = 'In Progress';
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      st['title'],
+                      style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    PopupMenuButton<int>(
+                      onSelected: (val) => onStatusChanged(st['id'], val),
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(value: 0, child: Text('Upcoming')),
+                        const PopupMenuItem(value: 50, child: Text('In progress')),
+                        const PopupMenuItem(value: 100, child: Text('Done')),
+                      ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentTeal,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              statusText,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.expand_more_rounded, color: Colors.white, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               );
             }),
         ],
       ),
+    );
+  }
+}
+
+class IndependentCreateSubtaskSection extends StatefulWidget {
+  final List members;
+  final Function(String, String?, String) onCreateManual;
+  final VoidCallback onCreateAutomatic;
+
+  const IndependentCreateSubtaskSection({
+    super.key,
+    required this.members,
+    required this.onCreateManual,
+    required this.onCreateAutomatic,
+  });
+
+  @override
+  State<IndependentCreateSubtaskSection> createState() => _IndependentCreateSubtaskSectionState();
+}
+
+class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubtaskSection> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  String? _selectedMember;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Create Subtask',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TabBar(
+            controller: _tabController,
+            labelColor: AppColors.primaryTeal,
+            unselectedLabelColor: Colors.grey[400],
+            indicatorColor: AppColors.primaryTeal,
+            indicatorWeight: 3,
+            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15),
+            dividerColor: Colors.grey[200],
+            tabs: const [
+              Tab(text: 'Automatic'),
+              Tab(text: 'Manual'),
+            ],
+          ),
+          SizedBox(
+            height: _tabController.index == 0 ? 150 : 300,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Automatic Tab
+                Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    children: [
+                      Text(
+                        '*tasks will be automatically divided according to your abilities',
+                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: widget.onCreateAutomatic,
+                          icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                          label: Text(
+                            'Create',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryTeal,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Manual Tab
+                Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    children: [
+                      _CreateSubtaskField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
+                      const SizedBox(height: 20),
+                      _CreateSubtaskField(label: 'Description', hint: 'description', controller: _descCtrl, lines: 3),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // User ID for independent task is current user
+                            widget.onCreateManual(_titleCtrl.text, null, _descCtrl.text);
+                            _titleCtrl.clear();
+                            _descCtrl.clear();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryTeal,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            'Create',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreateSubtaskField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final int lines;
+
+  const _CreateSubtaskField({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    this.lines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+          ),
+          child: TextField(
+            controller: controller,
+            maxLines: lines,
+            decoration: InputDecoration(
+              hintText: hint,
+              border: InputBorder.none,
+              hintStyle: GoogleFonts.outfit(color: Colors.grey[300]),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 14,
+          top: -10,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: AppColors.primaryTeal,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -359,7 +661,7 @@ class LabeledInputField extends StatelessWidget {
     this.icon,
     this.onTap,
     this.lines = 1,
-    this.bgColor = const Color(0xFFF1F8F9),
+    this.bgColor = AppColors.bgLight,
   });
 
   @override
@@ -512,7 +814,7 @@ class AddTaskGroupDropdown extends StatelessWidget {
     required this.userGroups,
     required this.selectedGroup,
     required this.onChanged,
-    this.bgColor = const Color(0xFFF1F8F9),
+    this.bgColor = AppColors.bgLight,
   });
 
   @override
@@ -583,45 +885,52 @@ class IndependentTaskDetailHeader extends StatelessWidget {
   const IndependentTaskDetailHeader({super.key});
 
   @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.fromLTRB(25, 50, 25, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget build(BuildContext context) => Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+      ),
+      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 5, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryTeal,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
+              Expanded(
+                child: Text(
+                  'Independent\nTask',
+                  style: GoogleFonts.outfit(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.primaryTeal,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                    size: 18,
+                    height: 1.1,
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Independent\nTask',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTeal,
-                  height: 1.1,
+              Transform.translate(
+                offset: const Offset(-20, -10),
+                child: Image.asset(
+                  'assets/images/independent_task.png', 
+                  height: 95,
+                  fit: BoxFit.contain,
+                  errorBuilder: (ctx, e, s) => const SizedBox(height: 95),
                 ),
               ),
             ],
-          ),
-          Image.asset(
-            'assets/images/independent_task.png',
-            height: 100,
-            errorBuilder: (context, error, stackTrace) => const SizedBox(height: 100),
           ),
         ],
       ),

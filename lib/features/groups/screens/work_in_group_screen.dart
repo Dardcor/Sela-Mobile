@@ -127,7 +127,7 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
           RefreshIndicator(

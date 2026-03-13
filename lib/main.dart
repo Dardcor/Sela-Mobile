@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'features/home/screens/splash_screen.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/dashboard_screen.dart';
@@ -17,6 +17,7 @@ import 'features/tasks/screens/independent_task_detail_screen.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/constants/colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +54,7 @@ class MyApp extends StatelessWidget {
       title: 'SELA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF09637E)),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryTeal),
         useMaterial3: true,
       ),
       builder: (context, child) => SafeArea(

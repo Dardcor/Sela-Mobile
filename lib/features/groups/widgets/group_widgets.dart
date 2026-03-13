@@ -27,19 +27,19 @@ class GroupCard extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar stack anggota
+          // Avatar stack anggota di kiri atas
           SizedBox(
             height: 40,
             child: Stack(
@@ -70,13 +70,13 @@ class GroupCard extends StatelessWidget {
                     left: 72,
                     child: CircleAvatar(
                       radius: 17,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: AppColors.buttonGray,
                       child: Text(
                         '+${members.length - 3}',
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey,
+                          color: AppColors.textGray,
                         ),
                       ),
                     ),
@@ -89,26 +89,26 @@ class GroupCard extends StatelessWidget {
             team['name'] ?? '',
             style: GoogleFonts.outfit(
               fontWeight: FontWeight.bold,
-              fontSize: 17,
+              fontSize: 18,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Grup',
             style: GoogleFonts.outfit(
               color: AppColors.primaryTeal,
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '${members.length} Member',
-                style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 12),
+                style: GoogleFonts.outfit(color: AppColors.textGray, fontSize: 13),
               ),
               GestureDetector(
                 onTap: onDetailTap,
@@ -248,43 +248,46 @@ class GroupInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 52,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: isNum ? TextInputType.number : TextInputType.text,
-            decoration: InputDecoration(
-              hintText: hint,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-              hintStyle: GoogleFonts.outfit(color: Colors.grey[300]),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: AppColors.primaryTeal, width: 1.2),
             ),
-          ),
-        ),
-        Positioned(
-          left: 14,
-          top: -10,
-          child: Container(
-            color: bgColor,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              label,
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            child: TextField(
+              controller: controller,
+              keyboardType: isNum ? TextInputType.number : TextInputType.text,
+              decoration: InputDecoration(
+                hintText: hint,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                hintStyle: GoogleFonts.outfit(color: Colors.grey[300]),
               ),
             ),
           ),
-        ),
-      ],
+          Positioned(
+            left: 14,
+            top: -10,
+            child: Container(
+              color: bgColor,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                label,
+                style: GoogleFonts.outfit(
+                  color: AppColors.primaryTeal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -310,57 +313,60 @@ class GroupDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              hint: Text(
-                hint,
-                style: GoogleFonts.outfit(color: Colors.grey[300]),
-              ),
-              icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-              items: items
-                  .map(
-                    (e) => DropdownMenuItem(
-                      value: e,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(e, style: GoogleFonts.outfit(color: Colors.black)),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: value,
+                hint: Text(
+                  hint,
+                  style: GoogleFonts.outfit(color: Colors.grey[300]),
+                ),
+                icon: Icon(Icons.expand_more, color: Colors.grey[300]),
+                items: items
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(e, style: GoogleFonts.outfit(color: Colors.black)),
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-        Positioned(
-          left: 14,
-          top: -10,
-          child: Container(
-            color: bgColor,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              label,
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+                    )
+                    .toList(),
+                onChanged: onChanged,
               ),
             ),
           ),
-        ),
-      ],
+          Positioned(
+            left: 14,
+            top: -10,
+            child: Container(
+              color: bgColor,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                label,
+                style: GoogleFonts.outfit(
+                  color: AppColors.primaryTeal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -382,9 +388,11 @@ class YourProgressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter subtask yang progresnya milik user ini (atau semua jika logikanya berbeda)
-    // Di screenshot, ini menampilkan 'Your Progres'
-    final userSubtasks = subtasks; // Placeholder, idealnya filter by userId
+    // Filter subtask yang progresnya milik user ini
+    final userSubtasks = subtasks.where((st) {
+      final progressList = (st['subtask_progress'] as List?);
+      return progressList?.any((p) => p['user_id'] == userId) ?? false;
+    }).toList();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
@@ -392,6 +400,13 @@ class YourProgressSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,24 +422,59 @@ class YourProgressSection extends StatelessWidget {
                   color: AppColors.primaryTeal,
                 ),
               ),
-              // Ikon status kecil di pojok (opsional, sesuai gambar 1)
-              Image.asset('assets/images/google_icon.png', height: 40, opacity: const AlwaysStoppedAnimation(0.1)),
+              // Ilustrasi progres (menggantikan google icon)
+              Container(
+                width: 80,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(width: 50, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 4),
+                    Container(width: 50, height: 6, decoration: BoxDecoration(color: AppColors.accentTeal, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 4),
+                    Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(2))),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 15),
-          ...userSubtasks.map((st) {
-            final progressData = (st['subtask_progress'] as List?)?.firstWhere(
-              (p) => p['user_id'] == userId,
-              orElse: () => null,
-            );
-            final currentProgress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+          if (userSubtasks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  'No assigned subtasks',
+                  style: GoogleFonts.outfit(color: Colors.grey[400]),
+                ),
+              ),
+            )
+          else
+            ...userSubtasks.map((st) {
+              final progressData = (st['subtask_progress'] as List?)?.firstWhere(
+                (p) => p['user_id'] == userId,
+                orElse: () => null,
+              );
+              final currentProgress = (progressData?['progress'] as num?)?.toInt() ?? 0;
 
-            return _YourSubtaskItem(
-              title: st['title'],
-              progress: currentProgress,
-              onChanged: (val) => onStatusChanged(st['id'], val),
-            );
-          }),
+              return _YourSubtaskItem(
+                title: st['title'],
+                progress: currentProgress,
+                onChanged: (val) => onStatusChanged(st['id'], val),
+              );
+            }),
         ],
       ),
     );
@@ -446,10 +496,10 @@ class _YourSubtaskItem extends StatelessWidget {
   Widget build(BuildContext context) {
     String statusText = 'Upcoming';
     if (progress >= 100) statusText = 'Done';
-    else if (progress > 0) statusText = 'In Progress';
+    else if (progress > 0) statusText = 'In progress';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -457,29 +507,43 @@ class _YourSubtaskItem extends StatelessWidget {
             title,
             style: GoogleFonts.outfit(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTeal,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  statusText,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+          PopupMenuButton<int>(
+            onSelected: onChanged,
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(value: 0, child: Text('Upcoming')),
+              const PopupMenuItem(value: 50, child: Text('In progress')),
+              const PopupMenuItem(value: 100, child: Text('Done')),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentTeal, // Warna biru status bar
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.accentTeal.withOpacity(0.2),
+                    blurRadius: 4,
                   ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.expand_more_rounded, color: Colors.white, size: 14),
-              ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    statusText,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.expand_more_rounded, color: Colors.white, size: 16),
+                ],
+              ),
             ),
           ),
         ],
@@ -498,44 +562,58 @@ class GroupDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(25, 50, 25, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        // Garis lurus sesuai permintaan sebelumnya
+      ),
+      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 0, 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Tombol Kembali
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryTeal,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
+              Expanded(
+                child: Text(
+                  'Group Task', // Berubah dari Work in Group
+                  style: GoogleFonts.outfit(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.primaryTeal,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                    size: 18,
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Work in Group',
-                style: GoogleFonts.outfit(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTeal,
+              // Ilustrasi sesuai Gambar 2 - Geser sedikit ke kiri dan atas
+              Transform.translate(
+                offset: const Offset(-30, -10),
+                child: Image.asset(
+                  'assets/images/group_task.png',
+                  height: 85,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 85),
                 ),
               ),
             ],
-          ),
-          Image.asset(
-            'assets/images/group_task.png',
-            height: 100,
-            errorBuilder: (_, __, ___) => const SizedBox(height: 100),
           ),
         ],
       ),
@@ -1006,7 +1084,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: _isExpanded ? const Color(0xFF8BB7BB) : Colors.white,
+        color: _isExpanded ? AppColors.lightTeal : Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: _isExpanded ? null : Border(bottom: BorderSide(color: Colors.grey.shade100)),
       ),
@@ -1058,18 +1136,27 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                   );
                   final progress = (progressData?['progress'] as num?)?.toInt() ?? 0;
                   String statusText = 'Upcoming';
-                  Color statusColor = Colors.blue;
-                  if (progress >= 100) { statusText = 'Done'; statusColor = AppColors.primaryTeal; }
-                  else if (progress > 0) { statusText = 'In progress'; statusColor = Colors.orange; }
+                  Color statusColor = AppColors.lightTeal; // Light blue
+                  if (progress >= 100) { 
+                    statusText = 'Done'; 
+                    statusColor = AppColors.primaryTeal; // Teal
+                  } else if (progress > 0) { 
+                    statusText = 'In progress'; 
+                    statusColor = AppColors.accentTeal; // Blue
+                  }
 
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           st['title'],
-                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+                          style: GoogleFonts.outfit(
+                            fontSize: 14, 
+                            fontWeight: FontWeight.bold, 
+                            color: Colors.black87,
+                          ),
                         ),
                         Text(
                           statusText,
@@ -1103,12 +1190,17 @@ class WorkInGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(25, 55, 25, 0),
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        // Lengkungan dihapus, sekarang garis lurus
+      ),
+      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 0, 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tombol Kembali melingkar dengan latar belakang teal (Gambar 2)
+          // Tombol Kembali
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -1120,9 +1212,10 @@ class WorkInGroupHeader extends StatelessWidget {
               child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             ),
           ),
-          const SizedBox(height: 25),
+          const SizedBox(height: 5),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Text(
@@ -1134,12 +1227,15 @@ class WorkInGroupHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              // Ilustrasi sesuai Gambar 2 (assets/images/group_task.png)
-              Image.asset(
-                'assets/images/group_task.png',
-                height: 120,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox(height: 100),
+              // Gambar digeser lebih ke kiri (offset -30)
+              Transform.translate(
+                offset: const Offset(-30, -10),
+                child: Image.asset(
+                  'assets/images/group_task.png',
+                  height: 85,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 85),
+                ),
               ),
             ],
           ),

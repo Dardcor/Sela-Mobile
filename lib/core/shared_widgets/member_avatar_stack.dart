@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/colors.dart';
 
 /// Tumpukan avatar anggota yang ditampilkan secara overlapping.
 /// Digunakan di kartu tugas grup pada Dashboard dan WorkInGroupScreen.
@@ -33,7 +34,7 @@ class MemberAvatarStack extends StatelessWidget {
               left: idx * overlap,
               child: CircleAvatar(
                 radius: avatarRadius,
-                backgroundColor: const Color(0xFFE0E0E0),
+                backgroundColor: AppColors.buttonGray,
                 child: Text(
                   '+${members.length - (maxVisible - 1)}',
                   style: TextStyle(

@@ -230,13 +230,13 @@ class GroupTaskCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(7),
+                  decoration: const BoxDecoration(
                     color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(8),
+                    shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.book_outlined,
+                    Icons.menu_book_rounded,
                     color: Colors.white,
                     size: 18,
                   ),
@@ -351,13 +351,13 @@ class IndependentTaskItem extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              padding: const EdgeInsets.all(9),
+              decoration: const BoxDecoration(
                 color: AppColors.primaryTeal,
-                borderRadius: BorderRadius.circular(10),
+                shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.book_outlined,
+                Icons.menu_book_rounded,
                 color: Colors.white,
                 size: 20,
               ),

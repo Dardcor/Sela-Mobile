@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/calendar_widgets.dart';
 
@@ -14,7 +15,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final _supabase = Supabase.instance.client;
   bool _isLoading = true;
   List<Map<String, dynamic>> _upcomingTasks = [];
-  DateTime _selectedDate = DateTime(2026, 3, 13); // User requested 2026 real data
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -41,7 +42,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             if (dueDate != null) {
               final now = DateTime.now();
-              // Normalize both dates to zero time for accurate day difference
               final today = DateTime(now.year, now.month, now.day);
               final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
               final diff = target.difference(today).inDays;
@@ -67,6 +67,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               'status_label': statusLabel,
               'show_delete': true,
               'due_date': dueDate,
+              'start_date': t['start_date'] != null ? DateTime.parse(t['start_date']).toLocal() : null,
+              'id': t['id'],
             };
           }).toList();
           _isLoading = false;
@@ -74,6 +76,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteTask(String taskId) async {
+    try {
+      await _supabase.from('tasks').delete().eq('id', taskId);
+      _fetchTasks();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete task: $e')),
+        );
+      }
     }
   }
 
@@ -100,7 +115,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -111,22 +126,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   selectedDate: _selectedDate,
                   onMonthChanged: _onMonthChanged,
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 15),
                 CalendarCard(
                   selectedDate: _selectedDate,
                   upcomingTasks: _upcomingTasks,
                   onPageChanged: _onPageChanged,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 35),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else
-                  UpcomingTaskSection(tasks: _upcomingTasks),
-                const SizedBox(height: 140),
+                  UpcomingTaskSection(
+                    tasks: _upcomingTasks,
+                    onDelete: _deleteTask,
+                  ),
+                const SizedBox(height: 160),
               ],
             ),
           ),
-          const AppBottomNavBar(currentIndex: 1),
+          AppBottomNavBar(
+            currentIndex: 1,
+            onAddTap: () async {
+              await Navigator.pushNamed(context, '/add_project');
+              _fetchTasks();
+            },
+          ),
         ],
       ),
     );

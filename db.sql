@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS "public"."groups" (
     "group_number" integer,
     "member_limit" integer DEFAULT 4,
     "invitation_code" text UNIQUE,
-    "lecture_code" text,
     "created_by" uuid REFERENCES auth.users(id) ON DELETE CASCADE,
     "created_at" timestamp with time zone DEFAULT now()
 );
@@ -51,6 +50,7 @@ CREATE TABLE IF NOT EXISTS "public"."subtasks" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     "task_id" uuid REFERENCES "public"."tasks"(id) ON DELETE CASCADE,
     "title" text NOT NULL,
+    "description" text,
     "created_at" timestamp with time zone DEFAULT now()
 );
 
@@ -93,6 +93,8 @@ AS $$
     );
 $$;
 
+DROP FUNCTION IF EXISTS public.find_group_by_invite_code(text);
+
 CREATE OR REPLACE FUNCTION public.find_group_by_invite_code(p_code text)
 RETURNS TABLE (
     id uuid,
@@ -102,7 +104,6 @@ RETURNS TABLE (
     group_number integer,
     member_limit integer,
     invitation_code text,
-    lecture_code text,
     created_by uuid,
     created_at timestamp with time zone
 )
@@ -112,7 +113,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
     SELECT id, name, course_name, class_name, group_number, member_limit,
-           invitation_code, lecture_code, created_by, created_at
+           invitation_code, created_by, created_at
     FROM public.groups
     WHERE invitation_code = p_code
     LIMIT 1;
@@ -240,5 +241,35 @@ BEGIN
     DROP POLICY IF EXISTS "Users can manage own abilities" ON profile_abilities;
     CREATE POLICY "Users can manage own abilities"
         ON profile_abilities FOR ALL USING (auth.uid() = user_id);
+
+    INSERT INTO storage.buckets (id, name, public)
+    VALUES ('profiles', 'profiles', true)
+    ON CONFLICT (id) DO NOTHING;
+
+    DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+    CREATE POLICY "Public Access"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'profiles');
+
+    DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
+    CREATE POLICY "Users can upload their own avatar"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        bucket_id = 'profiles' AND 
+        (storage.foldername(name))[1] = 'avatars'
+    );
+
+    DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
+    CREATE POLICY "Users can update their own avatar"
+    ON storage.objects FOR UPDATE
+    TO authenticated
+    USING (bucket_id = 'profiles');
+
+    DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
+    CREATE POLICY "Users can delete their own avatar"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (bucket_id = 'profiles');
 
 END $$;

@@ -26,7 +26,7 @@ class CalendarHeader extends StatelessWidget {
           bottomRight: Radius.circular(100),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(25, 20, 25, 40),
+      padding: const EdgeInsets.fromLTRB(25, 20, 25, 30),
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -46,89 +46,64 @@ class CalendarHeader extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(40),
                   ),
                   child: Text(
                     'Calender',
                     style: GoogleFonts.outfit(
-                      fontSize: 24,
+                      fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryTeal,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ),
                 const Spacer(),
-                const SizedBox(width: 42),
+                const SizedBox(width: 44), 
               ],
             ),
-            const SizedBox(height: 30),
-            const CalendarFilters(),
-            const SizedBox(height: 30),
-            MonthSelector(
-              selectedDate: selectedDate,
-              onMonthChanged: onMonthChanged,
+            const SizedBox(height: 35),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () => onMonthChanged(-1),
+                  child: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
+                ),
+                Column(
+                  children: [
+                    Text(
+                      _getMonthName(selectedDate.month),
+                      style: GoogleFonts.outfit(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '${selectedDate.year}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => onMonthChanged(1),
+                  child: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class CalendarFilters extends StatelessWidget {
-  const CalendarFilters({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: const [
-        _FilterBtn(label: 'Day', active: false),
-        _FilterBtn(label: 'Week', active: false),
-        _FilterBtn(label: 'Month', active: true),
-        _FilterBtn(label: 'Year', active: false),
-      ],
-    );
-  }
-}
-
-class _FilterBtn extends StatelessWidget {
-  final String label;
-  final bool active;
-
-  const _FilterBtn({required this.label, required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: active ? Colors.white : Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.outfit(
-          color: active ? AppColors.primaryTeal : Colors.white,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-class MonthSelector extends StatelessWidget {
-  final DateTime selectedDate;
-  final Function(int) onMonthChanged;
-
-  const MonthSelector({
-    super.key,
-    required this.selectedDate,
-    required this.onMonthChanged,
-  });
 
   String _getMonthName(int month) {
     const months = [
@@ -137,50 +112,10 @@ class MonthSelector extends StatelessWidget {
     ];
     return months[month - 1];
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            GestureDetector(
-              onTap: () => onMonthChanged(-1),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
-            ),
-            Column(
-              children: [
-                Text(
-                  _getMonthName(selectedDate.month),
-                  style: GoogleFonts.outfit(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  '${selectedDate.year}',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                ),
-              ],
-            ),
-            GestureDetector(
-              onTap: () => onMonthChanged(1),
-              child: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CalendarCard — Kartu Kalender Bulanan Menggunakan TableCalendar Library.
+// CalendarCard — Kartu Kalender Bulanan.
 // ─────────────────────────────────────────────────────────────────────────────
 class CalendarCard extends StatelessWidget {
   final DateTime selectedDate;
@@ -196,23 +131,17 @@ class CalendarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Collect all task dates
-    final taskDates = upcomingTasks
-        .where((t) => t['due_date'] != null)
-        .map((t) => DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day))
-        .toSet();
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 25),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(35),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
@@ -224,64 +153,88 @@ class CalendarCard extends StatelessWidget {
         headerVisible: false,
         startingDayOfWeek: StartingDayOfWeek.monday,
         onPageChanged: onPageChanged,
-        daysOfWeekHeight: 40,
+        daysOfWeekHeight: 45,
+        rowHeight: 45, 
         
-        // Custom styling to match user's screenshot
+        availableGestures: AvailableGestures.horizontalSwipe,
+        
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
-          outsideTextStyle: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 14),
-          defaultTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
-          weekendTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
-          todayDecoration: const BoxDecoration(
-            color: Colors.transparent, // We handle today separately via builders if needed
-          ),
-          todayTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
+          defaultTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
+          weekendTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
+          todayDecoration: const BoxDecoration(color: Colors.transparent),
+          todayTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
+          outsideTextStyle: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 16),
         ),
         
         daysOfWeekStyle: DaysOfWeekStyle(
-          weekdayStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
-          weekendStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
+          weekdayStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 15),
+          weekendStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 15),
         ),
 
-        // Custom builders to match the specific "Teal Highlight" style
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (context, day, focusedDay) {
             final normalizedDay = DateTime(day.year, day.month, day.day);
-            if (taskDates.contains(normalizedDay)) {
-              return _buildHighlightedDay(day, isRange: false);
+            
+            // Dapatkan semua tugas yang jatuh pada hari ini (due date)
+            bool isSpecificDueDate = upcomingTasks.any((t) => 
+               t['due_date'] != null && 
+               DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day) == normalizedDay);
+            
+            // Cek apakah hari ini berada dalam rentang start_date s/d due_date
+            bool inRange = upcomingTasks.any((t) {
+              if (t['start_date'] == null || t['due_date'] == null) return false;
+              final start = DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day);
+              final end = DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day);
+              return normalizedDay.isAfter(start.subtract(const Duration(seconds: 1))) && 
+                     normalizedDay.isBefore(end.add(const Duration(seconds: 1)));
+            });
+
+            if (isSpecificDueDate || inRange) {
+               bool isStart = upcomingTasks.any((t) => 
+                  t['start_date'] != null && 
+                  DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day) == normalizedDay);
+               
+               bool isEnd = upcomingTasks.any((t) => 
+                  t['due_date'] != null && 
+                  DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day) == normalizedDay);
+
+               return _buildDayCell(day, isCircle: isSpecificDueDate, inRange: inRange, isStart: isStart, isEnd: isEnd);
             }
             return null;
           },
-          outsideBuilder: (context, day, focusedDay) {
-            return Center(
-              child: Text(
-                '${day.day}',
-                style: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 14),
-              ),
-            );
-          },
-          markerBuilder: (context, day, events) => const SizedBox(), // Hide default markers
         ),
       ),
     );
   }
 
-  Widget _buildHighlightedDay(DateTime day, {required bool isRange}) {
-    return Center(
-      child: Container(
-        width: 35,
-        height: 35,
-        decoration: const BoxDecoration(
-          color: AppColors.primaryTeal,
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(
-            '${day.day}',
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+  Widget _buildDayCell(DateTime day, {required bool isCircle, required bool inRange, bool isStart = false, bool isEnd = false}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        color: inRange ? AppColors.lightTealBg : Colors.transparent,
+        borderRadius: isStart 
+          ? const BorderRadius.horizontal(left: Radius.circular(25))
+          : isEnd 
+            ? const BorderRadius.horizontal(right: Radius.circular(25))
+            : BorderRadius.zero,
+      ),
+      child: Center(
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isCircle ? AppColors.primaryTeal : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '${day.day}',
+              style: GoogleFonts.outfit(
+                color: isCircle ? Colors.white : Colors.black,
+                fontWeight: isCircle || inRange ? FontWeight.bold : FontWeight.normal,
+                fontSize: 16,
+              ),
             ),
           ),
         ),
@@ -290,13 +243,14 @@ class CalendarCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UpcomingTaskSection — Daftar tugas mendatang.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// UpcomingTaskSection â€” Daftar tugas mendatang.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class UpcomingTaskSection extends StatelessWidget {
   final List<Map<String, dynamic>> tasks;
+  final Function(String) onDelete;
 
-  const UpcomingTaskSection({super.key, required this.tasks});
+  const UpcomingTaskSection({super.key, required this.tasks, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +262,7 @@ class UpcomingTaskSection extends StatelessWidget {
           Text(
             'Upcoming Task',
             style: GoogleFonts.outfit(
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -316,7 +270,10 @@ class UpcomingTaskSection extends StatelessWidget {
           if (tasks.isEmpty)
              Center(child: Text('No upcoming tasks', style: GoogleFonts.outfit(color: Colors.grey)))
           else
-            ...tasks.map((task) => _TaskCard(task: task)).toList(),
+            ...tasks.map((task) => _TaskCard(
+              task: task, 
+              onDelete: () => onDelete(task['id']),
+            )).toList(),
         ],
       ),
     );
@@ -325,71 +282,80 @@ class UpcomingTaskSection extends StatelessWidget {
 
 class _TaskCard extends StatelessWidget {
   final Map<String, dynamic> task;
+  final VoidCallback onDelete;
 
-  const _TaskCard({required this.task});
+  const _TaskCard({required this.task, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Row(
+    return Dismissible(
+      key: Key(task['id'].toString()),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 25),
+        margin: const EdgeInsets.only(bottom: 15),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Icon(Icons.delete_rounded, color: AppColors.primaryTeal.withOpacity(0.8), size: 35),
+      ),
+      onDismissed: (_) => onDelete(),
+      child: Container(
+        width: double.infinity, // Full width
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          task['title'] ?? '',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryTeal,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          task['date_label'] ?? '',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                      ],
+                  Text(
+                    task['title'] ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTeal,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    task['status_label'] ?? '',
+                    task['date_label'] ?? '',
                     style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          if (task['show_delete'] == true) ...[
-            const SizedBox(width: 15),
-            Icon(Icons.delete_rounded, color: AppColors.primaryTeal.withOpacity(0.6), size: 28),
+            Text(
+              task['status_label'] ?? '',
+              style: GoogleFonts.outfit(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
+

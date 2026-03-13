@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
+import '../core/constants/colors.dart';
 import 'dashboard_screen.dart';
 import 'calendar_screen.dart';
 import 'group_screen.dart';
@@ -38,7 +38,7 @@ class _NavbarState extends State<Navbar> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8F9),
+      backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
           IndexedStack(
