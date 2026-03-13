@@ -1,6 +1,9 @@
 # Database
 .env
 
+# sql
+db.sql
+
 # Miscellaneous
 *.class
 *.log
