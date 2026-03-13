@@ -365,22 +365,30 @@ class GroupDropdownField extends StatelessWidget {
   }
 }
 
-/// Section progress subtask + member — digunakan di GroupDetailScreen.
-class GroupProgressSection extends StatelessWidget {
-  final String title;
+// ─────────────────────────────────────────────────────────────────────────────
+// YourProgressSection — Daftar subtask milik user yang login.
+// ─────────────────────────────────────────────────────────────────────────────
+class YourProgressSection extends StatelessWidget {
   final List subtasks;
+  final String userId;
+  final Function(String subtaskId, int progress) onStatusChanged;
 
-  const GroupProgressSection({
+  const YourProgressSection({
     super.key,
-    required this.title,
     required this.subtasks,
+    required this.userId,
+    required this.onStatusChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Filter subtask yang progresnya milik user ini (atau semua jika logikanya berbeda)
+    // Di screenshot, ini menampilkan 'Your Progres'
+    final userSubtasks = subtasks; // Placeholder, idealnya filter by userId
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -388,55 +396,90 @@ class GroupProgressSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryTeal,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Your Progres',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+              // Ikon status kecil di pojok (opsional, sesuai gambar 1)
+              Image.asset('assets/images/google_icon.png', height: 40, opacity: const AlwaysStoppedAnimation(0.1)),
+            ],
           ),
           const SizedBox(height: 15),
-          ...subtasks.map((st) => _SubtaskRow(title: st['title'], value: 50)),
+          ...userSubtasks.map((st) {
+            final progressData = (st['subtask_progress'] as List?)?.firstWhere(
+              (p) => p['user_id'] == userId,
+              orElse: () => null,
+            );
+            final currentProgress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+
+            return _YourSubtaskItem(
+              title: st['title'],
+              progress: currentProgress,
+              onChanged: (val) => onStatusChanged(st['id'], val),
+            );
+          }),
         ],
       ),
     );
   }
 }
 
-class _SubtaskRow extends StatelessWidget {
+class _YourSubtaskItem extends StatelessWidget {
   final String title;
-  final double value;
+  final int progress;
+  final Function(int) onChanged;
 
-  const _SubtaskRow({required this.title, required this.value});
+  const _YourSubtaskItem({
+    required this.title,
+    required this.progress,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
+    String statusText = 'Upcoming';
+    if (progress >= 100) statusText = 'Done';
+    else if (progress > 0) statusText = 'In Progress';
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 15),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(title, style: GoogleFonts.outfit(fontSize: 14)),
-          ),
           Text(
-            '${value.toInt()}%',
+            title,
             style: GoogleFonts.outfit(
-              fontSize: 12,
-              color: AppColors.primaryTeal,
-              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: LinearProgressIndicator(
-                value: value / 100,
-                backgroundColor: Colors.grey[200],
-                color: AppColors.primaryTeal,
-                minHeight: 6,
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  statusText,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.expand_more_rounded, color: Colors.white, size: 14),
+              ],
             ),
           ),
         ],
@@ -444,6 +487,7 @@ class _SubtaskRow extends StatelessWidget {
     );
   }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GroupDetailHeader — Header navigasi detail tugas grup.
@@ -489,7 +533,7 @@ class GroupDetailHeader extends StatelessWidget {
             ],
           ),
           Image.asset(
-            'assets/images/work_in_group.png',
+            'assets/images/group_task.png',
             height: 100,
             errorBuilder: (_, __, ___) => const SizedBox(height: 100),
           ),
@@ -515,23 +559,27 @@ class GroupMainCard extends StatelessWidget {
 
   String _formatDate(String? s) {
     if (s == null) return '';
-    final dt = DateTime.parse(s);
-    return '${dt.day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.month - 1]} ${dt.year}';
+    try {
+      final dt = DateTime.parse(s);
+      return '${dt.day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.month - 1]}';
+    } catch (_) { return ''; }
   }
 
   @override
   Widget build(BuildContext context) {
+    final links = (task['task_links'] as List?) ?? [];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -542,37 +590,64 @@ class GroupMainCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(10),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.book_outlined, color: Colors.white, size: 20),
+                child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 22),
               ),
               const Spacer(),
-              // ✅ Indikator progres dari shared_widgets
-              TaskProgressIndicator(progress: progress, size: 45, strokeWidth: 5, fontSize: 10),
+              TaskProgressIndicator(
+                progress: progress,
+                size: 55,
+                strokeWidth: 6,
+                fontSize: 12,
+              ),
             ],
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 12),
           Text(
             task['title'] ?? '',
-            style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
+            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             task['description'] ?? '',
-            style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[600]),
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
           ),
+          const SizedBox(height: 15),
+          // Link docs (Gambar 1 & 2)
+          ...links.map((link) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Text(
+              link['url'] ?? '',
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
           const SizedBox(height: 15),
           Row(
             children: [
-              Text(
-                '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['category'] ?? ''}',
-                style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+              Expanded(
+                child: Text(
+                  '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
+                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primaryTeal,
                   borderRadius: BorderRadius.circular(10),
@@ -581,7 +656,7 @@ class GroupMainCard extends StatelessWidget {
                   'Report',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -595,6 +670,259 @@ class GroupMainCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CreateSubtaskSection — Tabs Automatic/Manual untuk membuat subtask.
+// ─────────────────────────────────────────────────────────────────────────────
+class CreateSubtaskSection extends StatefulWidget {
+  final List members;
+  final Function(String title, String? assignedTo, String description) onCreateManual;
+  final VoidCallback onCreateAutomatic;
+
+  const CreateSubtaskSection({
+    super.key,
+    required this.members,
+    required this.onCreateManual,
+    required this.onCreateAutomatic,
+  });
+
+  @override
+  State<CreateSubtaskSection> createState() => _CreateSubtaskSectionState();
+}
+
+class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
+  int _activeTab = 0; // 0=Automatic, 1=Manual
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  String? _selectedMemberId;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Create Subtask',
+            style: GoogleFonts.outfit(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryTeal,
+            ),
+          ),
+          const SizedBox(height: 15),
+          // Tabs
+          Container(
+            height: 40,
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                _TabItem(title: 'Automatic', active: _activeTab == 0, onTap: () => setState(() => _activeTab = 0)),
+                _TabItem(title: 'Manual', active: _activeTab == 1, onTap: () => setState(() => _activeTab = 1)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _activeTab == 0 ? _buildAutomatic() : _buildManual(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutomatic() {
+    return Column(
+      children: [
+        Text(
+          '*Tasks will be automatically divided among each member evenly according to their abilities.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
+        ),
+        const SizedBox(height: 25),
+        GestureDetector(
+          onTap: widget.onCreateAutomatic,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Create',
+                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildManual() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: GroupInputField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              flex: 2,
+              child: _DropdownPerson(
+                label: 'Subject',
+                hint: 'pick the person',
+                value: _selectedMemberId,
+                members: widget.members,
+                onChanged: (v) => setState(() => _selectedMemberId = v),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        GroupInputField(label: 'Description', hint: 'description', controller: _descCtrl),
+        const SizedBox(height: 25),
+        GestureDetector(
+          onTap: () {
+            widget.onCreateManual(_titleCtrl.text, _selectedMemberId, _descCtrl.text);
+            _titleCtrl.clear();
+            _descCtrl.clear();
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Center(
+              child: Text(
+                'Create',
+                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TabItem extends StatelessWidget {
+  final String title;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _TabItem({required this.title, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: active ? AppColors.primaryTeal : Colors.transparent, width: 2.5)),
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                color: active ? Colors.black : Colors.grey[400],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DropdownPerson extends StatelessWidget {
+  final String label;
+  final String hint;
+  final String? value;
+  final List members;
+  final Function(String?) onChanged;
+
+  const _DropdownPerson({
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.members,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 52,
+          padding: const EdgeInsets.only(left: 14, right: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: value,
+              hint: Text(hint, style: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 12)),
+              icon: Icon(Icons.expand_more_rounded, color: Colors.grey[300]),
+              items: members.map((m) {
+                final p = m['profiles'];
+                return DropdownMenuItem<String>(
+                  value: p['id'],
+                  child: Text(p['full_name'] ?? 'Member', style: GoogleFonts.outfit(fontSize: 13)),
+                );
+              }).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 14,
+          top: -10,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(color: AppColors.primaryTeal, fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GroupMemberSection — Kartu "Member & Progres" di GroupDetailScreen.
 // Diekstrak agar rebuild hanya terjadi saat daftar anggota berubah.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -602,21 +930,19 @@ class GroupMemberSection extends StatelessWidget {
   final List members;
   final List subtasks;
   final String createdBy;
-  final Future<void> Function(dynamic memberId) onDeleteMember;
 
   const GroupMemberSection({
     super.key,
     required this.members,
     required this.subtasks,
     required this.createdBy,
-    required this.onDeleteMember,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -627,7 +953,7 @@ class GroupMemberSection extends StatelessWidget {
           Text(
             'Member & Progres',
             style: GoogleFonts.outfit(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: AppColors.primaryTeal,
             ),
@@ -636,9 +962,7 @@ class GroupMemberSection extends StatelessWidget {
           ...members.map(
             (m) => GroupMemberProgressTile(
               member: m,
-              subtasks: subtasks,
-              createdBy: createdBy,
-              onDelete: () => onDeleteMember(m['id']),
+              allSubtasks: subtasks,
             ),
           ),
         ],
@@ -647,81 +971,128 @@ class GroupMemberSection extends StatelessWidget {
   }
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GroupMemberProgressTile — Tile ekspansi untuk satu anggota beserta subtask-nya.
 // Diekstrak agar setiap tile bisa di-rebuild secara independen.
 // ─────────────────────────────────────────────────────────────────────────────
-class GroupMemberProgressTile extends StatelessWidget {
+class GroupMemberProgressTile extends StatefulWidget {
   final dynamic member;
-  final List subtasks;
-  final String createdBy;
-  final VoidCallback onDelete;
+  final List allSubtasks;
 
   const GroupMemberProgressTile({
     super.key,
     required this.member,
-    required this.subtasks,
-    required this.createdBy,
-    required this.onDelete,
+    required this.allSubtasks,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final profile = member['profiles'];
-    final isLeader = member['role'] == 'leader';
+  State<GroupMemberProgressTile> createState() => _GroupMemberProgressTileState();
+}
 
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        leading: CircleAvatar(
-          backgroundImage: NetworkImage(
-            profile?['avatar_url'] ?? 'https://via.placeholder.com/150',
-          ),
-        ),
-        title: Text(
-          profile?['full_name'] ?? 'Member',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          '${subtasks.length} SubTask',
-          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
-        ),
-        trailing: !isLeader
-            ? IconButton(
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.primaryTeal,
-                  size: 28,
-                ),
-                onPressed: onDelete,
-              )
-            : null,
-        children: subtasks
-            .map(
-              (st) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(st['title'], style: GoogleFonts.outfit(fontSize: 12)),
-                    Text(
-                      '100%',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        color: AppColors.primaryTeal,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = widget.member['profiles'];
+    final userId = profile['id'];
+    
+    final userSubtasks = widget.allSubtasks.where((st) {
+      final progress = (st['subtask_progress'] as List?);
+      return progress?.any((p) => p['user_id'] == userId) ?? false;
+    }).toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: _isExpanded ? const Color(0xFF8BB7BB) : Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: _isExpanded ? null : Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          onExpansionChanged: (val) => setState(() => _isExpanded = val),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 10),
+          leading: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _isExpanded ? Colors.white : AppColors.primaryTeal.withOpacity(0.3), width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage(
+                profile?['avatar_url'] ?? 'https://via.placeholder.com/150',
               ),
-            )
-            .toList(),
+            ),
+          ),
+          title: Text(
+            profile?['full_name'] ?? 'Member',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold, 
+              fontSize: 16, 
+              color: _isExpanded ? Colors.white : AppColors.primaryTeal,
+            ),
+          ),
+          subtitle: Text(
+            '${userSubtasks.length} SubTask',
+            style: GoogleFonts.outfit(
+              fontSize: 12, 
+              color: _isExpanded ? Colors.white.withOpacity(0.8) : Colors.grey,
+            ),
+          ),
+          trailing: Icon(
+            _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, 
+            color: _isExpanded ? Colors.white : Colors.grey,
+          ),
+          children: [
+            Container(
+              color: Colors.white, // Isi selalu putih
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(
+                children: userSubtasks.map((st) {
+                  final progressData = (st['subtask_progress'] as List?)?.firstWhere(
+                    (p) => p['user_id'] == userId,
+                    orElse: () => null,
+                  );
+                  final progress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+                  String statusText = 'Upcoming';
+                  Color statusColor = Colors.blue;
+                  if (progress >= 100) { statusText = 'Done'; statusColor = AppColors.primaryTeal; }
+                  else if (progress > 0) { statusText = 'In progress'; statusColor = Colors.orange; }
+
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          st['title'],
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+                        ),
+                        Text(
+                          statusText,
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WorkInGroupHeader — Header layar Work In Group (back + judul + ilustrasi).
@@ -737,57 +1108,38 @@ class WorkInGroupHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Tombol Kembali melingkar dengan latar belakang teal (Gambar 2)
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppColors.primaryTeal,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back, size: 20),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 25),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Work in Group',
-                    style: GoogleFonts.outfit(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryTeal,
-                    ),
-                  ),
-                  Text(
-                    'Your group assignments',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-              Image.asset(
-                'assets/images/work_group.png',
-                height: 80,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 80,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(
-                    Icons.people_rounded,
+              Expanded(
+                child: Text(
+                  'Group Task',
+                  style: GoogleFonts.outfit(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.primaryTeal,
-                    size: 40,
                   ),
                 ),
+              ),
+              // Ilustrasi sesuai Gambar 2 (assets/images/group_task.png)
+              Image.asset(
+                'assets/images/group_task.png',
+                height: 120,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox(height: 100),
               ),
             ],
           ),
@@ -796,3 +1148,4 @@ class WorkInGroupHeader extends StatelessWidget {
     );
   }
 }
+

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
@@ -24,16 +24,16 @@ class WorkGroupTaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 22),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -41,76 +41,85 @@ class WorkGroupTaskCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Icon dengan latar belakang lingkaran teal (Gambar 2)
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(10),
+                  shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.book_outlined,
+                  Icons.menu_book_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 15),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task['title'] ?? '',
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      task['description'] ?? '',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: Text(
+                  task['title'] ?? '',
+                  style: GoogleFonts.outfit(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 10),
-              TaskProgressIndicator(progress: progress),
+              // Indikator progres melingkar
+              TaskProgressIndicator(
+                progress: progress,
+                size: 50,
+                strokeWidth: 5,
+                fontSize: 11,
+              ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Deskripsi tugas (Gambar 2 menggunakan teks placeholder yang panjang)
+          Text(
+            task['description'] ?? '',
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           if (detailInfo.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 42),
-              child: Text(
-                detailInfo,
-                style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            Text(
+              detailInfo,
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                color: Colors.grey[400],
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Tumpukan avatar anggota
               MemberAvatarStack(
                 members: members,
-                maxVisible: 4,
-                avatarRadius: 12,
-                overlap: 18,
+                maxVisible: 3,
+                avatarRadius: 15,
+                overlap: 22,
               ),
+              // Tombol Detail teal yang lebih menonjol
               GestureDetector(
                 onTap: onDetailTap,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 9,
+                    horizontal: 32,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryTeal,
@@ -120,8 +129,8 @@ class WorkGroupTaskCard extends StatelessWidget {
                     'Detail',
                     style: GoogleFonts.outfit(
                       color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -132,6 +141,7 @@ class WorkGroupTaskCard extends StatelessWidget {
       ),
     );
 }
+
 
 /// Kartu tugas mandiri untuk layar IndependentTaskScreen.
 class IndependentTaskCard extends StatelessWidget {

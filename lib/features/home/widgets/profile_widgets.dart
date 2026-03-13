@@ -1,34 +1,43 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProfileTopBar — Header navigasi "My Profile" (back + judul).
-// const-safe karena tidak menyimpan state, hanya menerima action navigasi.
+// ProfileHeader — Header layar Profil (Back + Judul Profile).
 // ─────────────────────────────────────────────────────────────────────────────
-class ProfileTopBar extends StatelessWidget {
-  const ProfileTopBar({super.key});
+class ProfileHeader extends StatelessWidget {
+  const ProfileHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(25, 20, 25, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back, color: Colors.black, size: 22),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 24),
             ),
           ),
+          const SizedBox(height: 10),
           Text(
-            'My Profile',
-            style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+            'Profile',
+            style: GoogleFonts.outfit(
+              fontSize: 54,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.1,
+            ),
           ),
-          const SizedBox(width: 44),
         ],
       ),
     );
@@ -36,123 +45,547 @@ class ProfileTopBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProfileInfoSection — Bagian avatar + nama + kelas pengguna.
-// Diekstrak agar hanya bagian ini yang di-rebuild saat profil dimuat.
+// UserInfoCard — Kartu putih berisi Avatar, Nama, Mahasiswa, dan Kelas.
 // ─────────────────────────────────────────────────────────────────────────────
-class ProfileInfoSection extends StatelessWidget {
+class UserInfoCard extends StatelessWidget {
   final Map<String, dynamic>? profile;
+  final VoidCallback onEditTap;
 
-  const ProfileInfoSection({super.key, required this.profile});
+  const UserInfoCard({super.key, required this.profile, required this.onEditTap});
 
   @override
   Widget build(BuildContext context) {
-    final name = profile?['full_name'] ?? profile?['username'] ?? 'User';
-    final className = profile?['class_name'] ?? 'Software Enginner';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
-      child: Row(
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 25),
+      padding: const EdgeInsets.only(top: 40, bottom: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(45),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
+      ),
+      child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: ClipOval(
-              child: profile?['avatar_url'] != null
-                  ? Image.network(profile!['avatar_url'], fit: BoxFit.cover)
-                  : const Icon(Icons.person, size: 50, color: AppColors.primaryTeal),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE2EFF1), width: 1),
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: const Color(0xFFC7DEE2),
+              backgroundImage: profile?['avatar_url'] != null
+                  ? NetworkImage(profile!['avatar_url'])
+                  : null,
+              child: profile?['avatar_url'] == null
+                  ? const Icon(Icons.person, size: 45, color: Color(0xFF5A8D99))
+                  : null,
             ),
           ),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+          const SizedBox(height: 15),
+          Text(
+            profile?['full_name'] ?? profile?['username'] ?? 'User Name',
+            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Mahasiswa',
+            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            profile?['class_name'] ?? 'Class Name',
+            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 15),
+          _SmallEditButton(label: 'Edit Profile', onTap: onEditTap),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AbilitiesCard — Kartu dengan fieldset style bertuliskan "Your ability".
+// ─────────────────────────────────────────────────────────────────────────────
+class AbilitiesCard extends StatelessWidget {
+  final List<String> abilities;
+  final VoidCallback onEditTap;
+
+  const AbilitiesCard({super.key, required this.abilities, required this.onEditTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 35, 20, 25),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(color: const Color(0xFF5A8D99), width: 1.2),
+            ),
+            child: Column(
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: abilities.isEmpty 
+                    ? [const SizedBox(height: 40)] 
+                    : abilities.map((a) => _AbilityTag(label: a)).toList(),
+                ),
+                const SizedBox(height: 20),
+                _SmallEditButton(label: 'Edit ability', onTap: onEditTap),
+              ],
+            ),
+          ),
+          Positioned(
+            top: -16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                color: const Color(0xFFF1F8F9), // Match screen background
+                child: Text(
+                  'Your ability',
+                  style: GoogleFonts.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF2C5F6D),
+                  ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallEditButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SmallEditButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primaryTeal,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AbilityTag extends StatelessWidget {
+  final String label;
+
+  const _AbilityTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashPainter(color: const Color(0xFF5A8D99), strokeWidth: 1.2, dash: 4, gap: 3),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: const Color(0xFF2C5F6D),
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dash;
+  final double gap;
+
+  _DashPainter({required this.color, required this.strokeWidth, required this.dash, required this.gap});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final RRect rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      const Radius.circular(15),
+    );
+
+    final Path path = Path()..addRRect(rrect);
+    final Path dashedPath = Path();
+
+    for (final PathMetric metric in path.computeMetrics()) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        dashedPath.addPath(
+          metric.extractPath(distance, distance + dash),
+          Offset.zero,
+        );
+        distance += dash + gap;
+      }
+    }
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EditProfileModal — Modal untuk mengedit Username dan Class.
+// ─────────────────────────────────────────────────────────────────────────────
+class EditProfileModal extends StatefulWidget {
+  final Map<String, dynamic>? profile;
+  final Function(String name, String className) onSave;
+
+  const EditProfileModal({super.key, required this.profile, required this.onSave});
+
+  @override
+  State<EditProfileModal> createState() => _EditProfileModalState();
+}
+
+class _EditProfileModalState extends State<EditProfileModal> {
+  late TextEditingController _nameCtrl;
+  String? _selectedClass;
+  final List<String> _classes = ['2 - D3 IT B', '2 - D3 IT A', '1 - D3 IT B', '1 - D3 IT A'];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.profile?['full_name'] ?? '');
+    _selectedClass = widget.profile?['class_name'] ?? _classes[0];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE2EFF1), width: 1),
+                ),
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: const Color(0xFFC7DEE2),
+                  backgroundImage: widget.profile?['avatar_url'] != null
+                      ? NetworkImage(widget.profile!['avatar_url'])
+                      : null,
+                  child: widget.profile?['avatar_url'] == null
+                      ? const Icon(Icons.person, size: 50, color: Color(0xFF5A8D99))
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 10),
               Text(
-                className,
+                'Edit Photo Profile',
                 style: GoogleFonts.outfit(
+                  color: AppColors.primaryTeal,
                   fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
+              _buildField('Username', _nameCtrl),
+              const SizedBox(height: 25),
+              _buildDropdown('Class', _selectedClass, _classes, (val) => setState(() => _selectedClass = val)),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: () {
+                  widget.onSave(_nameCtrl.text, _selectedClass ?? '');
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Save',
+                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildField(String label, TextEditingController ctrl) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 55,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+          ),
+          child: TextField(
+            controller: ctrl,
+            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 18),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 15,
+          top: -11,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: AppColors.primaryTeal,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown(String label, String? value, List<String> items, Function(String?) onChanged) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 55,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: value,
+              icon: const Icon(Icons.expand_more_rounded, color: Colors.grey),
+              items: items
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]))))
+                  .toList(),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        Positioned(
+          left: 15,
+          top: -11,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: AppColors.primaryTeal,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProfileMenuList — Daftar menu (My Team, My Project, dll.) dengan navigasi.
-// Diekstrak agar hanya bagian ini yang di-rebuild saat item ditekan.
+// EditAbilityModal — Modal untuk menambah/menghapus Ability.
 // ─────────────────────────────────────────────────────────────────────────────
-class ProfileMenuList extends StatelessWidget {
-  const ProfileMenuList({super.key});
+class EditAbilityModal extends StatefulWidget {
+  final List<String> abilities;
+  final Function(List<String> newAbilities) onSave;
 
-  static const _items = [
-    {'label': 'My Team', 'route': '/team'},
-    {'label': 'My Project', 'route': '/add_project'},
-    {'label': 'My Profile', 'route': null},
-    {'label': 'Email', 'route': null},
-    {'label': 'Account', 'route': null},
-    {'label': 'Notification', 'route': null},
-  ];
+  const EditAbilityModal({super.key, required this.abilities, required this.onSave});
 
-  static const _icons = [
-    Icons.people_outline,
-    Icons.description_outlined,
-    Icons.person_outline,
-    Icons.email_outlined,
-    Icons.shield_outlined,
-    Icons.notifications_outlined,
-  ];
+  @override
+  State<EditAbilityModal> createState() => _EditAbilityModalState();
+}
+
+class _EditAbilityModalState extends State<EditAbilityModal> {
+  late List<String> _currentAbilities;
+  final _newAbilityCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentAbilities = List.from(widget.abilities);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: List.generate(_items.length, (i) {
-          final item = _items[i];
-          final route = item['route'] as String?;
-          return GestureDetector(
-            onTap: route != null ? () => Navigator.pushNamed(context, route) : null,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(18),
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Edit Ability',
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
               ),
-              child: Row(
-                children: [
-                  Icon(_icons[i], color: Colors.white, size: 22),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      item['label'] as String,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+              const SizedBox(height: 5),
+              const Divider(color: AppColors.primaryTeal, thickness: 1.2),
+              const SizedBox(height: 10),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      ..._currentAbilities.asMap().entries.map((entry) {
+                        return Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(entry.value, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w500)),
+                                GestureDetector(
+                                  onTap: () => setState(() => _currentAbilities.removeAt(entry.key)),
+                                  child: const Icon(Icons.remove_rounded, color: AppColors.primaryTeal, size: 28),
+                                ),
+                              ],
+                            ),
+                            Divider(height: 25, color: Colors.grey.shade200),
+                          ],
+                        );
+                      }),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _newAbilityCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Type new ability',
+                                hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 16),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _addAbility(),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _addAbility,
+                            child: const Icon(Icons.add_rounded, color: AppColors.primaryTeal, size: 28),
+                          ),
+                        ],
                       ),
+                      Divider(height: 10, color: Colors.grey.shade200),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: () {
+                  widget.onSave(_currentAbilities);
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Save',
+                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: Colors.white, size: 22),
-                ],
+                ),
               ),
-            ),
-          );
-        }),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  void _addAbility() {
+    if (_newAbilityCtrl.text.isNotEmpty) {
+      setState(() {
+        _currentAbilities.add(_newAbilityCtrl.text);
+        _newAbilityCtrl.clear();
+      });
+    }
   }
 }

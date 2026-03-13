@@ -1,16 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/profile_widgets.dart';
 
-/// ProfileScreen â€” Kerangka layar profil pengguna.
-///
-/// File ini mengelola pengambilan data profil dari Supabase dan
-/// mendelegasikan rendering UI ke komponen di [profile_widgets.dart]:
-/// - [ProfileTopBar]       â†’ header navigasi (const, tidak perlu rebuild)
-/// - [ProfileInfoSection]  â†’ avatar + nama + kelas (rebuild saat profil dimuat)
-/// - [ProfileMenuList]     â†’ daftar menu (const, tidak perlu rebuild)
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,6 +14,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final supabase = Supabase.instance.client;
   Map<String, dynamic>? profile;
+  List<String> abilities = [];
   bool isLoading = true;
 
   @override
@@ -33,36 +27,118 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
-      final data = await supabase.from('profiles').select().eq('id', userId).single();
-      if (mounted) setState(() => profile = data);
+
+      // Fetch profile
+      final profileData = await supabase.from('profiles').select().eq('id', userId).single();
+      
+      // Fetch abilities
+      final abilitiesData = await supabase.from('profile_abilities').select('ability').eq('user_id', userId);
+      final List<String> fetchedAbilities = (abilitiesData as List).map((e) => e['ability'] as String).toList();
+
+      if (mounted) {
+        setState(() {
+          profile = profileData;
+          abilities = fetchedAbilities;
+          isLoading = false;
+        });
+      }
     } catch (e) {
-    } finally {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
+  Future<void> _updateProfile(String name, String className) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      await supabase.from('profiles').update({
+        'full_name': name,
+        'class_name': className,
+      }).eq('id', userId);
+
+      _fetchProfile();
+    } catch (e) {
+      // error handling
+    }
+  }
+
+  Future<void> _updateAbilities(List<String> newAbilities) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      // Delete existing
+      await supabase.from('profile_abilities').delete().eq('user_id', userId);
+
+      // Insert new
+      if (newAbilities.isNotEmpty) {
+        await supabase.from('profile_abilities').insert(
+          newAbilities.map((a) => {'user_id': userId, 'ability': a}).toList(),
+        );
+      }
+
+      _fetchProfile();
+    } catch (e) {
+      // error handling
+    }
+  }
+
+  void _showEditProfile() {
+    showDialog(
+      context: context,
+      builder: (context) => EditProfileModal(
+        profile: profile,
+        onSave: _updateProfile,
+      ),
+    );
+  }
+
+  void _showEditAbility() {
+    showDialog(
+      context: context,
+      builder: (context) => EditAbilityModal(
+        abilities: abilities,
+        onSave: _updateAbilities,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: AppColors.mainGradient),
-        child: Stack(
+        backgroundColor: const Color(0xFFF1F8F9),
+        body: Stack(
           children: [
+            // Dark Teal Header with Curved Bottom Effect
+            Container(
+              width: double.infinity,
+              height: 380,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryTeal,
+                borderRadius: BorderRadius.only(
+                  bottomRight: Radius.circular(100),
+                ),
+              ),
+            ),
             SafeArea(
-              bottom: false,
               child: SingleChildScrollView(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // âœ… const â€” tidak pernah di-rebuild
-                    const ProfileTopBar(),
-                    const SizedBox(height: 30),
-                    // âœ… Hanya bagian ini yang di-rebuild saat profil dimuat
-                    ProfileInfoSection(profile: profile),
-                    const SizedBox(height: 40),
-                    // âœ… const â€” menu statis, tidak pernah di-rebuild
-                    const ProfileMenuList(),
-                    const SizedBox(height: 120),
+                    const ProfileHeader(),
+                    const SizedBox(height: 20),
+                    // Information Card that overlaps the header
+                    UserInfoCard(
+                      profile: profile,
+                      onEditTap: _showEditProfile,
+                    ),
+                    const SizedBox(height: 35),
+                    // Abilities Card
+                    AbilitiesCard(
+                      abilities: abilities,
+                      onEditTap: _showEditAbility,
+                    ),
+                    const SizedBox(height: 140),
                   ],
                 ),
               ),
@@ -70,6 +146,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const AppBottomNavBar(currentIndex: 4),
           ],
         ),
-      ),
-    );
+      );
 }
+

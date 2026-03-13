@@ -5,9 +5,6 @@ import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/dashboard_widgets.dart';
 
-/// DashboardScreen — Kerangka layar utama aplikasi SELA.
-///
-/// File ini hanya berisi logika fetch data dan kalkulasi statistik.
 /// Semua rendering UI didelegasikan ke [dashboard_widgets.dart]:
 /// - [DashboardHeader]        → avatar + statistik task (rebuild saat data berubah)
 /// - [DashboardSearchBar]     → search bar (rebuild terisolasi dari list)
@@ -176,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // ✅ Header seksi diisolasi — const-friendly, rebuild hanya saat navigasi
                 SliverToBoxAdapter(
                   child: DashboardSectionHeader(
-                    title: 'Work in Group',
+                    title: 'Group Task',
                     onSeeAll: () => Navigator.pushNamed(context, '/work_in_group')
                         .then((_) => _fetchData()),
                   ),

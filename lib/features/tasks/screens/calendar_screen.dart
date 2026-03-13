@@ -1,23 +1,101 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/calendar_widgets.dart';
 
-/// CalendarScreen — Kerangka layar kalender.
-///
-/// File ini hanya berisi susunan komponen dan logika navigasi.
-/// Semua widget UI didelegasikan ke [calendar_widgets.dart] untuk:
-/// - Keterbacaan yang lebih baik (file lebih pendek & bersih)
-/// - Isolasi rebuild: jika kalender berubah, layar lain tidak ikut di-render ulang
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
-  // Data jadwal statis (sementara — dapat diganti dengan data dari Supabase)
-  static const _schedules = [
-    {'title': 'Ecomerse AWS', 'subtitle': 'Workshop Aplikasi dan Komputasi Awan', 'isGroup': true},
-    {'title': 'Ecomerse AWS', 'subtitle': 'Workshop Aplikasi dan Komputasi Awan', 'isGroup': false},
-    {'title': 'Ecomerse AWS', 'subtitle': 'Workshop Aplikasi dan Komputasi Awan', 'isGroup': true},
-  ];
+  @override
+  State<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends State<CalendarScreen> {
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _upcomingTasks = [];
+  DateTime _selectedDate = DateTime(2026, 3, 13); // User requested 2026 real data
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTasks();
+  }
+
+  Future<void> _fetchTasks() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final data = await _supabase
+          .from('tasks')
+          .select()
+          .order('due_date', ascending: true);
+
+      if (mounted) {
+        setState(() {
+          _upcomingTasks = (data as List).map((t) {
+            final DateTime? dueDate = t['due_date'] != null ? DateTime.parse(t['due_date']).toLocal() : null;
+            String dateLabel = 'No date';
+            String statusLabel = 'Upcoming';
+
+            if (dueDate != null) {
+              final now = DateTime.now();
+              // Normalize both dates to zero time for accurate day difference
+              final today = DateTime(now.year, now.month, now.day);
+              final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
+              final diff = target.difference(today).inDays;
+              
+              if (diff == 0) {
+                dateLabel = 'Today';
+                statusLabel = 'This day';
+              } else if (diff == 1) {
+                dateLabel = 'Tomorrow';
+                statusLabel = 'Next 1 day';
+              } else if (diff > 1) {
+                dateLabel = '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
+                statusLabel = 'Next $diff days';
+              } else if (diff < 0) {
+                dateLabel = 'Passed';
+                statusLabel = 'Expired';
+              }
+            }
+
+            return {
+              'title': t['title'],
+              'date_label': dateLabel,
+              'status_label': statusLabel,
+              'show_delete': true,
+              'due_date': dueDate,
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  }
+
+  void _onMonthChanged(int increment) {
+    setState(() {
+      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + increment, 1);
+    });
+  }
+
+  void _onPageChanged(DateTime focusedDay) {
+    setState(() {
+      _selectedDate = focusedDay;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,40 +103,28 @@ class CalendarScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF1F8F9),
       body: Stack(
         children: [
-          CustomScrollView(
+          SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            slivers: [
-              // ✅ Header navigasi diisolasi — rebuild terpisah dari konten kalender
-              const SliverToBoxAdapter(child: CalendarTopBar()),
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-              // ✅ Judul + filter bulan diisolasi
-              const SliverToBoxAdapter(child: CalendarTitleSection()),
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-              // ✅ Kalender utama diisolasi — rebuild hanya saat tanggal berubah
-              const SliverToBoxAdapter(child: CalendarCard()),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              // ✅ Header list jadwal diisolasi
-              const SliverToBoxAdapter(child: CalendarScheduleHeader()),
-              const SliverToBoxAdapter(child: SizedBox(height: 15)),
-              // ✅ Setiap item jadwal adalah widget terpisah — rebuild terisolasi per item
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final s = _schedules[index];
-                      return ScheduleItem(
-                        title: s['title'] as String,
-                        subtitle: s['subtitle'] as String,
-                        isGroup: s['isGroup'] as bool,
-                      );
-                    },
-                    childCount: _schedules.length,
-                  ),
+            child: Column(
+              children: [
+                CalendarHeader(
+                  selectedDate: _selectedDate,
+                  onMonthChanged: _onMonthChanged,
                 ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
+                const SizedBox(height: 25),
+                CalendarCard(
+                  selectedDate: _selectedDate,
+                  upcomingTasks: _upcomingTasks,
+                  onPageChanged: _onPageChanged,
+                ),
+                const SizedBox(height: 40),
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  UpcomingTaskSection(tasks: _upcomingTasks),
+                const SizedBox(height: 140),
+              ],
+            ),
           ),
           const AppBottomNavBar(currentIndex: 1),
         ],

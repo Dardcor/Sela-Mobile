@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
     "username" text UNIQUE,
@@ -224,5 +223,22 @@ BEGIN
                   AND tasks.created_by = auth.uid()
             )
         );
+
+    CREATE TABLE IF NOT EXISTS "public"."profile_abilities" (
+        "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        "user_id" uuid REFERENCES "public"."profiles"(id) ON DELETE CASCADE,
+        "ability" text NOT NULL,
+        "created_at" timestamp with time zone DEFAULT now()
+    );
+
+    ALTER TABLE "public"."profile_abilities" ENABLE ROW LEVEL SECURITY;
+
+    DROP POLICY IF EXISTS "Anyone can view profile abilities" ON profile_abilities;
+    CREATE POLICY "Anyone can view profile abilities"
+        ON profile_abilities FOR SELECT USING (true);
+
+    DROP POLICY IF EXISTS "Users can manage own abilities" ON profile_abilities;
+    CREATE POLICY "Users can manage own abilities"
+        ON profile_abilities FOR ALL USING (auth.uid() = user_id);
 
 END $$;
