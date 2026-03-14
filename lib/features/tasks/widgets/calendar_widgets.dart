@@ -22,11 +22,11 @@ class CalendarHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.primaryTeal,
-        borderRadius: BorderRadius.only(
-          bottomRight: Radius.circular(100),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(40),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(25, 20, 25, 30),
+      padding: const EdgeInsets.fromLTRB(25, 20, 25, 140),
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -34,7 +34,13 @@ class CalendarHeader extends StatelessWidget {
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: const BoxDecoration(
@@ -160,6 +166,8 @@ class CalendarCard extends StatelessWidget {
         
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
+          cellMargin: EdgeInsets.zero,
+          cellPadding: EdgeInsets.zero,
           defaultTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
           weekendTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
           todayDecoration: const BoxDecoration(color: Colors.transparent),
@@ -168,56 +176,77 @@ class CalendarCard extends StatelessWidget {
         ),
         
         daysOfWeekStyle: DaysOfWeekStyle(
-          weekdayStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 15),
-          weekendStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 15),
+          weekdayStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
+          weekendStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
         ),
 
         calendarBuilders: CalendarBuilders(
-          defaultBuilder: (context, day, focusedDay) {
-            final normalizedDay = DateTime(day.year, day.month, day.day);
-            
-            // Dapatkan semua tugas yang jatuh pada hari ini (due date)
-            bool isSpecificDueDate = upcomingTasks.any((t) => 
-               t['due_date'] != null && 
-               DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day) == normalizedDay);
-            
-            // Cek apakah hari ini berada dalam rentang start_date s/d due_date
-            bool inRange = upcomingTasks.any((t) {
-              if (t['start_date'] == null || t['due_date'] == null) return false;
-              final start = DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day);
-              final end = DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day);
-              return normalizedDay.isAfter(start.subtract(const Duration(seconds: 1))) && 
-                     normalizedDay.isBefore(end.add(const Duration(seconds: 1)));
-            });
-
-            if (isSpecificDueDate || inRange) {
-               bool isStart = upcomingTasks.any((t) => 
-                  t['start_date'] != null && 
-                  DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day) == normalizedDay);
-               
-               bool isEnd = upcomingTasks.any((t) => 
-                  t['due_date'] != null && 
-                  DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day) == normalizedDay);
-
-               return _buildDayCell(day, isCircle: isSpecificDueDate, inRange: inRange, isStart: isStart, isEnd: isEnd);
-            }
-            return null;
-          },
+          defaultBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
+          todayBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
+          selectedBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
+          outsideBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks, isOutside: true),
         ),
       ),
     );
   }
 
-  Widget _buildDayCell(DateTime day, {required bool isCircle, required bool inRange, bool isStart = false, bool isEnd = false}) {
+  Widget? _customDayBuilder(DateTime day, List<Map<String, dynamic>> tasks, {bool isOutside = false}) {
+    final normalizedDay = DateTime(day.year, day.month, day.day);
+    
+    // 1. Circle highlight (due date)
+    bool isCircle = tasks.any((t) => 
+       t['due_date'] != null && 
+       isSameDay(t['due_date'], normalizedDay));
+    
+    // 2. Range highlight helper
+    bool dayHasRange(DateTime d) {
+      final nd = DateTime(d.year, d.month, d.day);
+      return tasks.any((t) {
+        if (t['start_date'] == null || t['due_date'] == null) return false;
+        if (isSameDay(t['start_date'], t['due_date'])) return false;
+        final start = DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day);
+        final end = DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day);
+        return (nd.isAtSameMomentAs(start) || nd.isAfter(start)) && 
+               (nd.isAtSameMomentAs(end) || nd.isBefore(end));
+      });
+    }
+
+    bool inRange = dayHasRange(normalizedDay);
+    
+    if (isCircle || inRange) {
+      // Determine rounding: 
+      // Round LEFT if: today is inRange AND (yesterday is NOT inRange OR today is Monday)
+      // Round RIGHT if: today is inRange AND (tomorrow is NOT inRange OR today is Sunday)
+      bool isStart = inRange && (!dayHasRange(normalizedDay.subtract(const Duration(days: 1))) || normalizedDay.weekday == DateTime.monday);
+      bool isEnd = inRange && (!dayHasRange(normalizedDay.add(const Duration(days: 1))) || normalizedDay.weekday == DateTime.sunday);
+
+      return _buildDayCell(
+        day, 
+        isCircle: isCircle, 
+        inRange: inRange, 
+        isStart: isStart, 
+        isEnd: isEnd,
+        isOutside: isOutside,
+      );
+    }
+    return null;
+  }
+
+  Widget _buildDayCell(DateTime day, {
+    required bool isCircle, 
+    required bool inRange, 
+    bool isStart = false, 
+    bool isEnd = false,
+    bool isOutside = false,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
+      margin: const EdgeInsets.symmetric(vertical: 2.5),
       decoration: BoxDecoration(
         color: inRange ? AppColors.lightTealBg : Colors.transparent,
-        borderRadius: isStart 
-          ? const BorderRadius.horizontal(left: Radius.circular(25))
-          : isEnd 
-            ? const BorderRadius.horizontal(right: Radius.circular(25))
-            : BorderRadius.zero,
+        borderRadius: BorderRadius.horizontal(
+          left: isStart ? const Radius.circular(25) : Radius.zero,
+          right: isEnd ? const Radius.circular(25) : Radius.zero,
+        ),
       ),
       child: Center(
         child: Container(
@@ -231,7 +260,7 @@ class CalendarCard extends StatelessWidget {
             child: Text(
               '${day.day}',
               style: GoogleFonts.outfit(
-                color: isCircle ? Colors.white : Colors.black,
+                color: isCircle ? Colors.white : (isOutside ? Colors.grey[300] : Colors.black),
                 fontWeight: isCircle || inRange ? FontWeight.bold : FontWeight.normal,
                 fontSize: 16,
               ),

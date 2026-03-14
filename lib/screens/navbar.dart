@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
-import 'dashboard_screen.dart';
-import 'calendar_screen.dart';
-import 'group_screen.dart';
-import 'profile_screen.dart';
+import '../features/home/screens/dashboard_screen.dart';
+import '../features/tasks/screens/calendar_screen.dart';
+import '../features/groups/screens/group_screen.dart';
+import '../features/home/screens/profile_screen.dart';
 
 class Navbar extends StatefulWidget {
   final int initialIndex;
@@ -16,20 +16,24 @@ class Navbar extends StatefulWidget {
 class _NavbarState extends State<Navbar> {
   late int _selectedIndex;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const CalendarScreen(),
-    const GroupScreen(),
-    const ProfileScreen(),
-  ];
+  // Use 5 slots to match indexing (0=Home, 1=Calendar, 2=FAB, 3=Team, 4=Profile)
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _screens = [
+      const DashboardScreen(),
+      const CalendarScreen(),
+      const SizedBox.shrink(), // Placeholder for index 2
+      const GroupScreen(),
+      const ProfileScreen(),
+    ];
   }
 
   void _onItemTapped(int index) {
+    if (index == 2) return;
     setState(() {
       _selectedIndex = index;
     });
@@ -39,6 +43,7 @@ class _NavbarState extends State<Navbar> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
+      // Use IndexedStack to keep state alive and make transitions instant
       body: Stack(
         children: [
           IndexedStack(
@@ -55,27 +60,27 @@ class _NavbarState extends State<Navbar> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 85,
-        margin: const EdgeInsets.all(22),
+        height: 80,
+        margin: const EdgeInsets.fromLTRB(25, 0, 25, 30),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(45),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 25,
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 30,
               offset: const Offset(0, 10),
-            )
+            ),
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _navIcon(Icons.home_filled, 0),
+            _navIcon(Icons.home_rounded, 0),
             _navIcon(Icons.calendar_month_rounded, 1),
             _buildAddButton(),
-            _navIcon(Icons.people_rounded, 2),
-            _navIcon(Icons.person_rounded, 3),
+            _navIcon(Icons.groups_rounded, 3),
+            _navIcon(Icons.person_rounded, 4),
           ],
         ),
       ),
@@ -86,13 +91,13 @@ class _NavbarState extends State<Navbar> {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/add_project'),
       child: Container(
-        height: 60,
-        width: 60,
-        decoration: const BoxDecoration(
+        height: 52,
+        width: 52,
+        decoration: BoxDecoration(
           color: AppColors.primaryTeal,
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(15),
         ),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 35),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 34),
       ),
     );
   }
@@ -102,19 +107,17 @@ class _NavbarState extends State<Navbar> {
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: Container(
-        // Equalizing the hit area and ensuring consistent size
-        width: 50,
-        height: 50,
-        decoration: active 
-            ? BoxDecoration(
-                color: AppColors.primaryTeal.withOpacity(0.1),
+        padding: const EdgeInsets.all(10),
+        decoration: active
+            ? const BoxDecoration(
+                color: AppColors.lightTealBg,
                 shape: BoxShape.circle,
               )
             : null,
         child: Icon(
           icon,
-          color: active ? AppColors.primaryTeal : Colors.grey[400],
-          size: 32,
+          color: active ? AppColors.primaryTeal : Colors.black.withOpacity(0.4),
+          size: 30,
         ),
       ),
     );

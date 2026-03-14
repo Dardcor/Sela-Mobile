@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Input field standar untuk layar auth (email, username).
@@ -20,44 +20,31 @@ class AuthTextField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
-                ),
-                TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintStyle: GoogleFonts.outfit(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
-                  ),
-                  style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
+        floatingLabelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
+        hintText: hint,
+        hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
+        prefixIcon: Icon(icon, color: Colors.black54),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
       ),
     );
+  }
 }
 
 /// Input field password dengan toggle visibilitas.
@@ -78,51 +65,37 @@ class AuthPasswordField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_outline, color: Colors.grey),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
-                ),
-                TextField(
-                  controller: controller,
-                  obscureText: obscure,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintStyle: GoogleFonts.outfit(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
-                  ),
-                  style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
+      decoration: InputDecoration(
+        labelText: label,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
+        floatingLabelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
+        hintText: hint,
+        hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
+        prefixIcon: const Icon(Icons.lock_outline, color: Colors.black54),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscure ? Icons.remove_red_eye_outlined : Icons.visibility_off_outlined,
+            color: Colors.black54,
           ),
-          GestureDetector(
-            onTap: onToggle,
-            child: Icon(
-              obscure
-                  ? Icons.remove_red_eye_outlined
-                  : Icons.visibility_off_outlined,
-              color: Colors.grey,
-            ),
-          ),
-        ],
+          onPressed: onToggle,
+          splashRadius: 20,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.black87, width: 1.5),
+        ),
       ),
     );
+  }
 }

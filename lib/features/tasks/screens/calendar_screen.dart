@@ -80,14 +80,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _deleteTask(String taskId) async {
+    // Optimistic Update: Remove from local list immediately to prevent Dismissible error
+    setState(() {
+      _upcomingTasks.removeWhere((t) => t['id'] == taskId);
+    });
+
     try {
       await _supabase.from('tasks').delete().eq('id', taskId);
-      _fetchTasks();
+      // Optional: re-fetch to ensure sync, but local state is already corrected
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to delete task: $e')),
         );
+        // Re-fetch if failed to restore state
+        _fetchTasks();
       }
     }
   }
@@ -114,44 +121,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
+    return RefreshIndicator(
+      onRefresh: _fetchTasks,
+      color: AppColors.primaryTeal,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
               children: [
                 CalendarHeader(
                   selectedDate: _selectedDate,
                   onMonthChanged: _onMonthChanged,
                 ),
-                const SizedBox(height: 15),
-                CalendarCard(
-                  selectedDate: _selectedDate,
-                  upcomingTasks: _upcomingTasks,
-                  onPageChanged: _onPageChanged,
-                ),
-                const SizedBox(height: 35),
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else
-                  UpcomingTaskSection(
-                    tasks: _upcomingTasks,
-                    onDelete: _deleteTask,
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 195),
+                    child: CalendarCard(
+                      selectedDate: _selectedDate,
+                      upcomingTasks: _upcomingTasks,
+                      onPageChanged: _onPageChanged,
+                    ),
                   ),
-                const SizedBox(height: 160),
+                ),
               ],
             ),
-          ),
-          AppBottomNavBar(
-            currentIndex: 1,
-            onAddTap: () async {
-              await Navigator.pushNamed(context, '/add_project');
-              _fetchTasks();
-            },
-          ),
-        ],
+            const SizedBox(height: 35),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              UpcomingTaskSection(
+                tasks: _upcomingTasks,
+                onDelete: _deleteTask,
+              ),
+            const SizedBox(height: 160),
+          ],
+        ),
       ),
     );
   }

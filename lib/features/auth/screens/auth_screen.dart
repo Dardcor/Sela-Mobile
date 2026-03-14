@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
 import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
@@ -20,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _obscureLoginPassword = true;
   bool _obscureRegisterPassword = true;
+  bool _rememberMe = false;
 
   final _emailLoginController = TextEditingController();
   final _passwordLoginController = TextEditingController();
@@ -29,15 +31,50 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordRegisterController = TextEditingController();
 
   final supabase = Supabase.instance.client;
+  final _pageController = PageController(initialPage: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedCredentials();
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final remembered = prefs.getBool('remember_me') ?? false;
+    if (remembered) {
+      final savedEmail = prefs.getString('remembered_email') ?? '';
+      final savedPassword = prefs.getString('remembered_password') ?? '';
+      if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _rememberMe = true;
+            _emailLoginController.text = savedEmail;
+            _passwordLoginController.text = savedPassword;
+          });
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _emailLoginController.dispose();
     _passwordLoginController.dispose();
     _usernameRegisterController.dispose();
     _emailRegisterController.dispose();
     _passwordRegisterController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    _emailLoginController.clear();
+    _passwordLoginController.clear();
+    _usernameRegisterController.clear();
+    _emailRegisterController.clear();
+    _passwordRegisterController.clear();
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   Future<void> _handleLogin() async {
@@ -57,6 +94,22 @@ class _AuthScreenState extends State<AuthScreen> {
       );
 
       if (res.session != null && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        if (_rememberMe) {
+          await prefs.setBool('remember_me', true);
+          await prefs.setString('remembered_email', email);
+          await prefs.setString('remembered_password', password);
+        } else {
+          await prefs.remove('remember_me');
+          await prefs.remove('remembered_email');
+          await prefs.remove('remembered_password');
+        }
+        
+        // Update last_login_at di database
+        await supabase.from('profiles').update({
+          'last_login_at': DateTime.now().toIso8601String(),
+        }).eq('id', res.user!.id);
+
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
     } on AuthException catch (e) {
@@ -103,7 +156,10 @@ class _AuthScreenState extends State<AuthScreen> {
           _emailRegisterController.clear();
           _passwordRegisterController.clear();
           await Future.delayed(const Duration(milliseconds: 1500));
-          if (mounted) setState(() => isLogin = true);
+          if (mounted) {
+            setState(() => isLogin = true);
+            _pageController.animateToPage(0, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+          }
         }
         return;
       }
@@ -173,89 +229,124 @@ class _AuthScreenState extends State<AuthScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(gradient: AppColors.mainGradient),
-          child: Column(
-            children: [
-              const SizedBox(height: 60),
-              Image.asset('assets/images/logo.png', width: 80),
-              const SizedBox(height: 30),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Hello!', style: GoogleFonts.outfit(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white)),
-                      Text('Welcome to SELA', style: GoogleFonts.outfit(fontSize: 18, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w400)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(30.0),
+        resizeToAvoidBottomInset: false,
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primaryTeal,
+          child: Container(
+            width: double.infinity,
+            height: MediaQuery.of(context).size.height,
+            decoration: const BoxDecoration(gradient: AppColors.mainGradient),
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                Image.asset('assets/images/logo.png', width: 80),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ✅ Tab toggle diekstrak — rebuild terisolasi
-                        AuthToggleTab(
-                          isLogin: isLogin,
-                          onLoginTap: () {
-                            if (mounted && !isLogin) setState(() => isLogin = true);
-                          },
-                          onRegisterTap: () {
-                            if (mounted && isLogin) setState(() => isLogin = false);
-                          },
-                        ),
-                        const SizedBox(height: 30),
-                        // ✅ Form diekstrak ke sub-widget masing-masing
-                        if (isLogin) _LoginForm(
-                          emailController: _emailLoginController,
-                          passwordController: _passwordLoginController,
-                          obscurePassword: _obscureLoginPassword,
-                          isLoading: isLoading,
-                          onToggleObscure: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
-                          onLogin: _handleLogin,
-                          onForgotPassword: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-                          ),
-                        ) else _RegisterForm(
-                          usernameController: _usernameRegisterController,
-                          emailController: _emailRegisterController,
-                          passwordController: _passwordRegisterController,
-                          obscurePassword: _obscureRegisterPassword,
-                          isLoading: isLoading,
-                          onToggleObscure: () => setState(() => _obscureRegisterPassword = !_obscureRegisterPassword),
-                          onRegister: _handleRegister,
-                        ),
+                        Text('Hello!', style: GoogleFonts.outfit(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text('Welcome to SELA', style: GoogleFonts.outfit(fontSize: 18, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w400)),
                       ],
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 30),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(30, 30, 30, 0),
+                            child: AuthToggleTab(
+                              isLogin: isLogin,
+                              onLoginTap: () {
+                                if (mounted && !isLogin) {
+                                  _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                }
+                              },
+                              onRegisterTap: () {
+                                if (mounted && isLogin) {
+                                  _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            child: SizedBox(
+                              height: isLogin ? 400 : 480,
+                              child: PageView(
+                                controller: _pageController,
+                                physics: const BouncingScrollPhysics(),
+                                onPageChanged: (index) {
+                                  if (mounted) setState(() => isLogin = index == 0);
+                                },
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 15, left: 30, right: 30),
+                                    child: _LoginForm(
+                                      emailController: _emailLoginController,
+                                      passwordController: _passwordLoginController,
+                                      obscurePassword: _obscureLoginPassword,
+                                      isLoading: isLoading,
+                                      rememberMe: _rememberMe,
+                                      onToggleObscure: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
+                                      onRememberMeChanged: (val) => setState(() => _rememberMe = val ?? false),
+                                      onLogin: _handleLogin,
+                                      onForgotPassword: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 15, left: 30, right: 30),
+                                    child: _RegisterForm(
+                                      usernameController: _usernameRegisterController,
+                                      emailController: _emailRegisterController,
+                                      passwordController: _passwordRegisterController,
+                                      obscurePassword: _obscureRegisterPassword,
+                                      isLoading: isLoading,
+                                      onToggleObscure: () => setState(() => _obscureRegisterPassword = !_obscureRegisterPassword),
+                                      onRegister: _handleRegister,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 50),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+
 
 // ────────────────────────────────────────────
 // Form Login — widget terpisah agar isolasi rebuild
@@ -265,7 +356,9 @@ class _LoginForm extends StatelessWidget {
   final TextEditingController passwordController;
   final bool obscurePassword;
   final bool isLoading;
+  final bool rememberMe;
   final VoidCallback onToggleObscure;
+  final ValueChanged<bool?> onRememberMeChanged;
   final VoidCallback onLogin;
   final VoidCallback onForgotPassword;
 
@@ -274,7 +367,9 @@ class _LoginForm extends StatelessWidget {
     required this.passwordController,
     required this.obscurePassword,
     required this.isLoading,
+    required this.rememberMe,
     required this.onToggleObscure,
+    required this.onRememberMeChanged,
     required this.onLogin,
     required this.onForgotPassword,
   });
@@ -302,7 +397,11 @@ class _LoginForm extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(children: [
-              Checkbox(value: false, onChanged: (v) {}),
+              Checkbox(
+                value: rememberMe, 
+                onChanged: onRememberMeChanged,
+                activeColor: AppColors.primaryTeal,
+              ),
               Text('Remember me', style: GoogleFonts.outfit(fontSize: 14)),
             ]),
             TextButton(

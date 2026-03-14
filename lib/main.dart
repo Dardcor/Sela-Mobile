@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/navbar.dart';
 import 'features/home/screens/splash_screen.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/dashboard_screen.dart';
@@ -65,17 +66,17 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/auth': (context) => const AuthScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
+        '/dashboard': (context) => const Navbar(initialIndex: 0),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/new_password': (context) => const NewPasswordScreen(),
         '/otp_verify': (context) => const OTPVerifyScreen(),
         '/success': (context) => const SuccessScreen(),
         '/work_in_group': (context) => const WorkInGroupScreen(),
         '/independent_task': (context) => const IndependentTaskScreen(),
-        '/calendar': (context) => const CalendarScreen(),
+        '/calendar': (context) => const Navbar(initialIndex: 1),
         '/add_project': (context) => const AddProjectScreen(),
-        '/team': (context) => const GroupScreen(),
-        '/profile': (context) => const ProfileScreen(),
+        '/team': (context) => const Navbar(initialIndex: 3),
+        '/profile': (context) => const Navbar(initialIndex: 4),
         '/work_in_group_detail': (context) => const GroupDetailScreen(),
         '/independent_task_detail': (context) => const IndependentTaskDetailScreen(),
       },

@@ -337,6 +337,9 @@ class _GroupScreenState extends State<GroupScreen> {
 
   void _showGroupDetail(dynamic team) {
     final members = (team['group_members'] as List?) ?? [];
+    final currentUserId = supabase.auth.currentUser?.id;
+    final isMeLeader = members.any((m) => m['user_id'] == currentUserId && m['role'] == 'leader');
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -456,9 +459,9 @@ class _GroupScreenState extends State<GroupScreen> {
                           children: [
                             CircleAvatar(
                               radius: 28,
-                              backgroundImage: prof?['avatar_url'] != null
+                              backgroundImage: prof?['avatar_url'] != null && prof!['avatar_url'].toString().isNotEmpty
                                   ? NetworkImage(prof['avatar_url']) as ImageProvider
-                                  : const AssetImage('assets/images/avatar.png'),
+                                  : const AssetImage('assets/images/default_profile.png'),
                             ),
                             const SizedBox(width: 15),
                             Expanded(
@@ -512,7 +515,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                 ],
                               ),
                             ),
-                            if (!isLeader)
+                            if (isMeLeader && !isLeader)
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete_outline_rounded,
@@ -545,113 +548,115 @@ class _GroupScreenState extends State<GroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // ✅ Header sesuai Gambar 1
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(25, 45, 25, 0),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
-                        ),
+    return RefreshIndicator(
+      onRefresh: _fetch,
+      color: AppColors.primaryTeal,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // ✅ Header sesuai Gambar 1
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(25, 45, 25, 0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 40),
-                      Expanded(
-                        child: Container(
-                          height: 52,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(40),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'Group',
-                            style: GoogleFonts.outfit(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryTeal,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 68), // Spacer agar tetap seimbang
-                    ],
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 35)),
-              // ✅ Subtitle sesuai Gambar 1
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.outfit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        height: 1.15,
-                      ),
-                      children: const [
-                        TextSpan(text: 'create your '),
-                        TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
-                        TextSpan(text: ',\n'),
-                        TextSpan(text: 'or join a '),
-                        TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
-                      ],
+                      child: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
                     ),
                   ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 25)),
-              SliverToBoxAdapter(child: _buildSearchUI()),
-              const SliverToBoxAdapter(child: SizedBox(height: 25)),
-              isLoading
-                  ? const SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(50),
-                          child: CircularProgressIndicator(color: AppColors.primaryTeal),
-                        ),
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 22),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          // ✅ GroupCard dari local widgets — rebuild terisolasi
-                          (context, index) => GroupCard(
-                            team: teams[index],
-                            onDetailTap: () => _showGroupDetail(teams[index]),
+                  const SizedBox(width: 40),
+                  Expanded(
+                    child: Container(
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(40),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
                           ),
-                          childCount: teams.length,
+                        ],
+                      ),
+                      child: Text(
+                        'Group',
+                        style: GoogleFonts.outfit(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTeal,
                         ),
                       ),
                     ),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
+                  ),
+                  const SizedBox(width: 68), // Spacer agar tetap seimbang
+                ],
+              ),
+            ),
           ),
-          const AppBottomNavBar(currentIndex: 3),
+          const SliverToBoxAdapter(child: SizedBox(height: 35)),
+          // ✅ Subtitle sesuai Gambar 1
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 1.15,
+                  ),
+                  children: const [
+                    TextSpan(text: 'create your '),
+                    TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
+                    TextSpan(text: ',\n'),
+                    TextSpan(text: 'or join a '),
+                    TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 25)),
+          SliverToBoxAdapter(child: _buildSearchUI()),
+          const SliverToBoxAdapter(child: SizedBox(height: 25)),
+          isLoading
+              ? const SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(50),
+                      child: CircularProgressIndicator(color: AppColors.primaryTeal),
+                    ),
+                  ),
+                )
+              : SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      // ✅ GroupCard dari local widgets — rebuild terisolasi
+                      (context, index) => GroupCard(
+                        team: teams[index],
+                        onDetailTap: () => _showGroupDetail(teams[index]),
+                      ),
+                      childCount: teams.length,
+                    ),
+                  ),
+                ),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
     );

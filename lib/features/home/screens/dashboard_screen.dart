@@ -172,65 +172,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final independent = _cachedIndependent ?? [];
 
     final allTasksCount = groups.length + independent.length;
-    final doneTasksCount = groups.where((t) => t['status'] == 'Done').length +
-        independent.where((t) => t['status'] == 'Done').length;
-    final inProgressCount = groups.where((t) => t['status'] == 'In Progress').length +
-        independent.where((t) => t['status'] == 'In Progress').length;
-    final upcomingCount = groups.where((t) => t['status'] == 'Upcoming').length +
-        independent.where((t) => t['status'] == 'Upcoming').length;
+    
+    int doneTasksCount = 0;
+    int inProgressCount = 0;
+    int upcomingCount = 0;
 
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _fetchData,
-            color: AppColors.primaryTeal,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // ✅ Header diisolasi — rebuild hanya saat profil/stats berubah
-                SliverToBoxAdapter(
-                  child: DashboardHeader(
-                    profile: _cachedProfile,
-                    allTasksCount: allTasksCount,
-                    doneTasksCount: doneTasksCount,
-                    inProgressCount: inProgressCount,
-                    upcomingCount: upcomingCount,
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                // ✅ Search bar diisolasi — rebuild hanya saat input berubah
-                SliverToBoxAdapter(child: DashboardSearchBar(controller: _searchCtrl)),
-                const SliverToBoxAdapter(child: SizedBox(height: 25)),
-                // ✅ Header seksi diisolasi — const-friendly, rebuild hanya saat navigasi
-                SliverToBoxAdapter(
-                  child: DashboardSectionHeader(
-                    title: 'Group Task',
-                    onSeeAll: () => Navigator.pushNamed(context, '/work_in_group')
-                        .then((_) => _fetchData()),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 15)),
-                SliverToBoxAdapter(child: _buildWorkInGroupList()),
-                const SliverToBoxAdapter(child: SizedBox(height: 25)),
-                SliverToBoxAdapter(
-                  child: DashboardSectionHeader(
-                    title: 'Independent Task',
-                    onSeeAll: () => Navigator.pushNamed(context, '/independent_task')
-                        .then((_) => _fetchData()),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 15)),
-                _buildIndependentTaskListSliver(),
-                const SliverToBoxAdapter(child: SizedBox(height: 110)),
-              ],
+    void _countTask(dynamic t) {
+      final subtasks = t['subtasks'] as List? ?? [];
+      if (subtasks.isNotEmpty) {
+        final progress = _calculateProgress(t);
+        if (progress >= 1.0) doneTasksCount++;
+        else if (progress > 0.0) inProgressCount++;
+        else upcomingCount++;
+      } else {
+        final status = t['status'] ?? 'Upcoming';
+        if (status == 'Done') doneTasksCount++;
+        else if (status == 'In Progress' || status == 'In progress') inProgressCount++;
+        else upcomingCount++;
+      }
+    }
+
+    groups.forEach(_countTask);
+    independent.forEach(_countTask);
+
+    return RefreshIndicator(
+      onRefresh: _fetchData,
+      color: AppColors.primaryTeal,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // ✅ Header diisolasi — rebuild hanya saat profil/stats berubah
+          SliverToBoxAdapter(
+            child: DashboardHeader(
+              profile: _cachedProfile,
+              allTasksCount: allTasksCount,
+              doneTasksCount: doneTasksCount,
+              inProgressCount: inProgressCount,
+              upcomingCount: upcomingCount,
             ),
           ),
-          AppBottomNavBar(
-            currentIndex: 0,
-            onAddTap: () => Navigator.pushNamed(context, '/add_project').then((_) => _fetchData()),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          // ✅ Search bar diisolasi — rebuild hanya saat input berubah
+          SliverToBoxAdapter(child: DashboardSearchBar(controller: _searchCtrl)),
+          const SliverToBoxAdapter(child: SizedBox(height: 25)),
+          // ✅ Header seksi diisolasi — const-friendly, rebuild hanya saat navigasi
+          SliverToBoxAdapter(
+            child: DashboardSectionHeader(
+              title: 'Group Task',
+              onSeeAll: () => Navigator.pushNamed(context, '/work_in_group')
+                  .then((_) => _fetchData()),
+            ),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: 15)),
+          SliverToBoxAdapter(child: _buildWorkInGroupList()),
+          const SliverToBoxAdapter(child: SizedBox(height: 25)),
+          SliverToBoxAdapter(
+            child: DashboardSectionHeader(
+              title: 'Independent Task',
+              onSeeAll: () => Navigator.pushNamed(context, '/independent_task')
+                  .then((_) => _fetchData()),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 15)),
+          _buildIndependentTaskListSliver(),
+          const SliverToBoxAdapter(child: SizedBox(height: 110)),
         ],
       ),
     );

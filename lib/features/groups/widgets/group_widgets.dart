@@ -56,11 +56,11 @@ class GroupCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 16,
                         backgroundImage:
-                            members[idx]['profiles']?['avatar_url'] != null
+                            members[idx]['profiles']?['avatar_url'] != null && members[idx]['profiles']['avatar_url'].toString().isNotEmpty
                                 ? NetworkImage(
                                         members[idx]['profiles']['avatar_url'])
                                     as ImageProvider
-                                : const AssetImage('assets/images/avatar.png'),
+                                : const AssetImage('assets/images/default_profile.png'),
                       ),
                     ),
                   ),
@@ -236,6 +236,7 @@ class GroupInputField extends StatelessWidget {
   final TextEditingController controller;
   final bool isNum;
   final Color bgColor;
+  final bool enabled;
 
   const GroupInputField({
     super.key,
@@ -244,6 +245,7 @@ class GroupInputField extends StatelessWidget {
     required this.controller,
     this.isNum = false,
     this.bgColor = Colors.white,
+    this.enabled = true,
   });
 
   @override
@@ -257,16 +259,19 @@ class GroupInputField extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+              border: Border.all(color: enabled ? AppColors.primaryTeal : Colors.grey[300]!, width: 1.2),
+              color: enabled ? Colors.transparent : Colors.grey[50],
             ),
             child: TextField(
               controller: controller,
+              enabled: enabled,
               keyboardType: isNum ? TextInputType.number : TextInputType.text,
+              style: GoogleFonts.outfit(color: enabled ? Colors.black : Colors.grey),
               decoration: InputDecoration(
                 hintText: hint,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-                hintStyle: GoogleFonts.outfit(color: Colors.grey[300]),
+                hintStyle: GoogleFonts.outfit(color: enabled ? Colors.grey[300] : Colors.grey[200]),
               ),
             ),
           ),
@@ -279,7 +284,7 @@ class GroupInputField extends StatelessWidget {
               child: Text(
                 label,
                 style: GoogleFonts.outfit(
-                  color: AppColors.primaryTeal,
+                  color: enabled ? AppColors.primaryTeal : Colors.grey,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -420,32 +425,6 @@ class YourProgressSection extends StatelessWidget {
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primaryTeal,
-                ),
-              ),
-              // Ilustrasi progres (menggantikan google icon)
-              Container(
-                width: 80,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(width: 50, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(height: 4),
-                    Container(width: 50, height: 6, decoration: BoxDecoration(color: AppColors.accentTeal, borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(height: 4),
-                    Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(2))),
-                  ],
                 ),
               ),
             ],
@@ -752,12 +731,16 @@ class GroupMainCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class CreateSubtaskSection extends StatefulWidget {
   final List members;
+  final bool isLeader;
+  final bool isLoading;
   final Function(String title, String? assignedTo, String description) onCreateManual;
   final VoidCallback onCreateAutomatic;
 
   const CreateSubtaskSection({
     super.key,
     required this.members,
+    required this.isLeader,
+    this.isLoading = false,
     required this.onCreateManual,
     required this.onCreateAutomatic,
   });
@@ -767,16 +750,39 @@ class CreateSubtaskSection extends StatefulWidget {
 }
 
 class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
-  int _activeTab = 0; // 0=Automatic, 1=Manual
+  int _activeTab = 0;
+  final PageController _pageController = PageController();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   String? _selectedMemberId;
 
   @override
   void dispose() {
+    _pageController.dispose();
     _titleCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
+  }
+
+  void _showLeaderOnlySnackBar() {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Only group leaders can create subtasks'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _switchTab(int index) {
+    setState(() => _activeTab = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -784,6 +790,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
       padding: const EdgeInsets.all(22),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -791,16 +798,30 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Create Subtask',
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryTeal,
-            ),
+          // Judul
+          Row(
+            children: [
+              Text(
+                'Create Subtask',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+              if (!widget.isLeader) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.lock_outline_rounded, size: 16, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text(
+                  'Leader only',
+                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[400]),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 15),
-          // Tabs
+          // Tab bar — semua user bisa klik untuk pindah tab
           Container(
             height: 40,
             decoration: BoxDecoration(
@@ -808,103 +829,177 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             ),
             child: Row(
               children: [
-                _TabItem(title: 'Automatic', active: _activeTab == 0, onTap: () => setState(() => _activeTab = 0)),
-                _TabItem(title: 'Manual', active: _activeTab == 1, onTap: () => setState(() => _activeTab = 1)),
+                _TabItem(
+                  title: 'Automatic',
+                  active: _activeTab == 0,
+                  onTap: () => _switchTab(0),
+                ),
+                _TabItem(
+                  title: 'Manual',
+                  active: _activeTab == 1,
+                  onTap: () => _switchTab(1),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          _activeTab == 0 ? _buildAutomatic() : _buildManual(),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: SizedBox(
+              height: _activeTab == 0 ? 115 : 225,
+              child: PageView(
+                controller: _pageController,
+                physics: const BouncingScrollPhysics(),
+                clipBehavior: Clip.antiAlias,
+                onPageChanged: (i) => setState(() => _activeTab = i),
+                children: [
+                  _buildAutomatic(),
+                  _buildManual(),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildAutomatic() {
-    return Column(
-      children: [
-        Text(
-          '*Tasks will be automatically divided among each member evenly according to their abilities.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
-        ),
-        const SizedBox(height: 25),
-        GestureDetector(
-          onTap: widget.onCreateAutomatic,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTeal,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Create',
-                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Text(
+            '*Tasks will be automatically divided among each member evenly according to their abilities.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 20),
+          // Tombol Create — hanya ini yang diblokir untuk member
+          GestureDetector(
+            onTap: () {
+              if (widget.isLoading) return;
+              if (widget.isLeader) {
+                widget.onCreateAutomatic();
+              } else {
+                _showLeaderOnlySnackBar();
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTeal,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (!widget.isLoading) ...[
+                    const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                  ],
+                  widget.isLoading
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Text('Create', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildManual() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: GroupInputField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              flex: 2,
-              child: _DropdownPerson(
-                label: 'Subject',
-                hint: 'pick the person',
-                value: _selectedMemberId,
-                members: widget.members,
-                onChanged: (v) => setState(() => _selectedMemberId = v),
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: GestureDetector(
+                  onTap: !widget.isLeader ? _showLeaderOnlySnackBar : null,
+                  child: GroupInputField(
+                    label: 'Subtask title',
+                    hint: 'subtask title',
+                    controller: _titleCtrl,
+                    enabled: widget.isLeader,
+                  ),
+                ),
               ),
+              const SizedBox(width: 15),
+              Expanded(
+                flex: 2,
+                child: GestureDetector(
+                  onTap: !widget.isLeader ? _showLeaderOnlySnackBar : null,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: AbsorbPointer(
+                      absorbing: !widget.isLeader,
+                      child: _DropdownPerson(
+                        label: 'Subject',
+                        hint: 'pick the person',
+                        value: _selectedMemberId,
+                        members: widget.members,
+                        enabled: widget.isLeader,
+                        onChanged: widget.isLeader ? (v) => setState(() => _selectedMemberId = v) : (v) {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          GestureDetector(
+            onTap: !widget.isLeader ? _showLeaderOnlySnackBar : null,
+            child: GroupInputField(
+              label: 'Description',
+              hint: 'description',
+              controller: _descCtrl,
+              enabled: widget.isLeader,
             ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        GroupInputField(label: 'Description', hint: 'description', controller: _descCtrl),
-        const SizedBox(height: 25),
-        GestureDetector(
-          onTap: () {
-            widget.onCreateManual(_titleCtrl.text, _selectedMemberId, _descCtrl.text);
-            _titleCtrl.clear();
-            _descCtrl.clear();
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTeal,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Center(
-              child: Text(
-                'Create',
-                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          // Tombol Create
+          GestureDetector(
+            onTap: () {
+              if (widget.isLoading) return;
+              if (widget.isLeader) {
+                widget.onCreateManual(_titleCtrl.text, _selectedMemberId, _descCtrl.text);
+                _titleCtrl.clear();
+                _descCtrl.clear();
+                setState(() => _selectedMemberId = null);
+              } else {
+                _showLeaderOnlySnackBar();
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTeal,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Center(
+                child: widget.isLoading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text('Create', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
+
 
 class _TabItem extends StatelessWidget {
   final String title;
@@ -944,6 +1039,7 @@ class _DropdownPerson extends StatelessWidget {
   final String? value;
   final List members;
   final Function(String?) onChanged;
+  final bool enabled;
 
   const _DropdownPerson({
     required this.label,
@@ -951,6 +1047,7 @@ class _DropdownPerson extends StatelessWidget {
     required this.value,
     required this.members,
     required this.onChanged,
+    this.enabled = true,
   });
 
   @override
@@ -963,22 +1060,23 @@ class _DropdownPerson extends StatelessWidget {
           padding: const EdgeInsets.only(left: 14, right: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+            border: Border.all(color: enabled ? AppColors.primaryTeal : Colors.grey[300]!, width: 1.2),
+            color: enabled ? Colors.transparent : Colors.grey[50],
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               value: value,
               hint: Text(hint, style: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 12)),
-              icon: Icon(Icons.expand_more_rounded, color: Colors.grey[300]),
+              icon: Icon(Icons.expand_more_rounded, color: enabled ? Colors.grey[300] : Colors.grey[200]),
               items: members.map((m) {
                 final p = m['profiles'];
                 return DropdownMenuItem<String>(
                   value: p['id'],
-                  child: Text(p['full_name'] ?? 'Member', style: GoogleFonts.outfit(fontSize: 13)),
+                  child: Text(p['full_name'] ?? 'Member', style: GoogleFonts.outfit(fontSize: 13, color: enabled ? Colors.black : Colors.grey)),
                 );
               }).toList(),
-              onChanged: onChanged,
+              onChanged: enabled ? onChanged : null,
             ),
           ),
         ),
@@ -990,7 +1088,7 @@ class _DropdownPerson extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               label,
-              style: GoogleFonts.outfit(color: AppColors.primaryTeal, fontWeight: FontWeight.bold, fontSize: 14),
+              style: GoogleFonts.outfit(color: enabled ? AppColors.primaryTeal : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
             ),
           ),
         ),
@@ -1100,9 +1198,9 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             ),
             child: CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(
-                profile?['avatar_url'] ?? 'https://via.placeholder.com/150',
-              ),
+              backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
+                  ? NetworkImage(profile!['avatar_url']) as ImageProvider
+                  : const AssetImage('assets/images/default_profile.png'),
             ),
           ),
           title: Text(
@@ -1244,4 +1342,3 @@ class WorkInGroupHeader extends StatelessWidget {
     );
   }
 }
-

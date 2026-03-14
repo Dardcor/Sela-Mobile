@@ -19,7 +19,13 @@ class ProfileHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+              }
+            },
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: const BoxDecoration(
@@ -82,12 +88,9 @@ class UserInfoCard extends StatelessWidget {
             child: CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.lightTealBg,
-              backgroundImage: profile?['avatar_url'] != null
-                  ? NetworkImage(profile!['avatar_url'])
-                  : null,
-              child: profile?['avatar_url'] == null
-                  ? const Icon(Icons.person, size: 45, color: AppColors.primaryTeal)
-                  : null,
+              backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
+                  ? NetworkImage(profile!['avatar_url']) as ImageProvider
+                  : const AssetImage('assets/images/default_profile.png'),
             ),
           ),
           const SizedBox(height: 15),
@@ -356,12 +359,9 @@ class _EditProfileModalState extends State<EditProfileModal> {
                       child: CircleAvatar(
                         radius: 45,
                         backgroundColor: AppColors.lightTealBg,
-                        backgroundImage: widget.profile?['avatar_url'] != null
-                            ? NetworkImage(widget.profile!['avatar_url'])
-                            : null,
-                        child: widget.profile?['avatar_url'] == null
-                            ? const Icon(Icons.person, size: 50, color: AppColors.primaryTeal)
-                            : null,
+                        backgroundImage: widget.profile?['avatar_url'] != null && widget.profile!['avatar_url'].toString().isNotEmpty
+                            ? NetworkImage(widget.profile!['avatar_url']) as ImageProvider
+                            : const AssetImage('assets/images/default_profile.png'),
                       ),
                     ),
                     const SizedBox(height: 10),

@@ -193,32 +193,6 @@ class TaskProgressCard extends StatelessWidget {
                   color: AppColors.primaryTeal,
                 ),
               ),
-              // Ilustrasi progres (menggantikan google icon)
-              Container(
-                width: 80,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(width: 50, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(height: 4),
-                    Container(width: 50, height: 6, decoration: BoxDecoration(color: AppColors.accentTeal, borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(height: 4),
-                    Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(2))),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -291,15 +265,15 @@ class TaskProgressCard extends StatelessWidget {
 }
 
 class IndependentCreateSubtaskSection extends StatefulWidget {
-  final List members;
   final Function(String, String?, String) onCreateManual;
   final VoidCallback onCreateAutomatic;
+  final bool isLoading;
 
   const IndependentCreateSubtaskSection({
     super.key,
-    required this.members,
     required this.onCreateManual,
     required this.onCreateAutomatic,
+    this.isLoading = false,
   });
 
   @override
@@ -310,18 +284,32 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
   late TabController _tabController;
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  String? _selectedMember;
+  int _activeTab = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging || _tabController.index != _activeTab) {
+        setState(() => _activeTab = _tabController.index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -363,74 +351,88 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
               Tab(text: 'Manual'),
             ],
           ),
-          SizedBox(
-            height: _tabController.index == 0 ? 150 : 300,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Automatic Tab
-                Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    children: [
-                      Text(
-                        '*tasks will be automatically divided according to your abilities',
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: widget.onCreateAutomatic,
-                          icon: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
-                          label: Text(
-                            'Create',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryTeal,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: SizedBox(
+              height: _activeTab == 0 ? 150 : 275,
+              child: TabBarView(
+                controller: _tabController,
+                clipBehavior: Clip.antiAlias,
+                children: [
+                  // Automatic Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        Text(
+                          '*tasks will be automatically divided according to your abilities',
+                          style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: widget.isLoading ? null : widget.onCreateAutomatic,
+                          child: Container(
+                            width: double.infinity,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryTeal,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: widget.isLoading
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text('Create', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Manual Tab
-                Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    children: [
-                      _CreateSubtaskField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
-                      const SizedBox(height: 20),
-                      _CreateSubtaskField(label: 'Description', hint: 'description', controller: _descCtrl, lines: 3),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // User ID for independent task is current user
+                  // Manual Tab
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        _CreateSubtaskField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
+                        const SizedBox(height: 20),
+                        _CreateSubtaskField(label: 'Description', hint: 'description', controller: _descCtrl, lines: 3),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: widget.isLoading ? null : () {
                             widget.onCreateManual(_titleCtrl.text, null, _descCtrl.text);
                             _titleCtrl.clear();
                             _descCtrl.clear();
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryTeal,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text(
-                            'Create',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
+                          child: Container(
+                            width: double.infinity,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryTeal,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: widget.isLoading
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : Text('Create', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "full_name" text,
     "avatar_url" text,
     "class_name" text,
+    "last_login_at" timestamp with time zone,
     "updated_at" timestamp with time zone DEFAULT now()
 );
 
@@ -53,6 +54,8 @@ CREATE TABLE IF NOT EXISTS "public"."subtasks" (
     "description" text,
     "created_at" timestamp with time zone DEFAULT now()
 );
+
+ALTER TABLE "public"."subtasks" ADD COLUMN IF NOT EXISTS "description" text;
 
 CREATE TABLE IF NOT EXISTS "public"."subtask_progress" (
     "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -193,13 +196,42 @@ BEGIN
     CREATE POLICY "Anyone can view subtasks"
         ON subtasks FOR SELECT USING (true);
 
-    DROP POLICY IF EXISTS "Creators can manage subtasks" ON subtasks;
-    CREATE POLICY "Creators can manage subtasks"
+    DROP POLICY IF EXISTS "Creators or Leaders can manage subtasks" ON subtasks;
+
+    DROP POLICY IF EXISTS "Leaders can insert subtasks" ON subtasks;
+    CREATE POLICY "Leaders can insert subtasks"
+        ON subtasks FOR INSERT WITH CHECK (
+            EXISTS (
+                SELECT 1 FROM tasks
+                WHERE tasks.id = subtasks.task_id
+                  AND (
+                      (tasks.is_group = false AND tasks.created_by = auth.uid())
+                      OR
+                      (tasks.is_group = true AND EXISTS (
+                          SELECT 1 FROM group_members
+                          WHERE group_id = tasks.group_id
+                            AND user_id = auth.uid()
+                            AND role = 'leader'
+                      ))
+                  )
+            )
+        );
+
+    DROP POLICY IF EXISTS "Leaders can update delete subtasks" ON subtasks;
+    CREATE POLICY "Leaders can update delete subtasks"
         ON subtasks FOR ALL USING (
             EXISTS (
                 SELECT 1 FROM tasks
                 WHERE tasks.id = subtasks.task_id
-                  AND tasks.created_by = auth.uid()
+                  AND (
+                      tasks.created_by = auth.uid()
+                      OR EXISTS (
+                          SELECT 1 FROM group_members
+                          WHERE group_id = tasks.group_id
+                            AND user_id = auth.uid()
+                            AND role = 'leader'
+                      )
+                  )
             )
         );
 
@@ -207,9 +239,47 @@ BEGIN
     CREATE POLICY "Users can view subtask progress"
         ON subtask_progress FOR SELECT USING (true);
 
-    DROP POLICY IF EXISTS "Users can update their own subtask progress" ON subtask_progress;
-    CREATE POLICY "Users can update their own subtask progress"
-        ON subtask_progress FOR ALL USING (auth.uid() = user_id);
+    DROP POLICY IF EXISTS "Users can update own progress or leaders can manage" ON subtask_progress;
+
+    DROP POLICY IF EXISTS "Leaders insert subtask progress" ON subtask_progress;
+    CREATE POLICY "Leaders insert subtask progress"
+        ON subtask_progress FOR INSERT WITH CHECK (
+            auth.uid() = user_id
+            OR EXISTS (
+                SELECT 1 FROM subtasks
+                JOIN tasks ON tasks.id = subtasks.task_id
+                WHERE subtasks.id = subtask_progress.subtask_id
+                  AND (
+                      tasks.created_by = auth.uid()
+                      OR EXISTS (
+                          SELECT 1 FROM group_members
+                          WHERE group_id = tasks.group_id
+                            AND user_id = auth.uid()
+                            AND role = 'leader'
+                      )
+                  )
+            )
+        );
+
+    DROP POLICY IF EXISTS "Users update own progress leaders update all" ON subtask_progress;
+    CREATE POLICY "Users update own progress leaders update all"
+        ON subtask_progress FOR UPDATE USING (
+            auth.uid() = user_id
+            OR EXISTS (
+                SELECT 1 FROM subtasks
+                JOIN tasks ON tasks.id = subtasks.task_id
+                WHERE subtasks.id = subtask_progress.subtask_id
+                  AND (
+                      tasks.created_by = auth.uid()
+                      OR EXISTS (
+                          SELECT 1 FROM group_members
+                          WHERE group_id = tasks.group_id
+                            AND user_id = auth.uid()
+                            AND role = 'leader'
+                      )
+                  )
+            )
+        );
 
     DROP POLICY IF EXISTS "Anyone can view task links" ON task_links;
     CREATE POLICY "Anyone can view task links"
@@ -273,3 +343,21 @@ BEGIN
     USING (bucket_id = 'profiles');
 
 END $$;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, username, full_name)
+  VALUES (
+    new.id, 
+    COALESCE(new.raw_user_meta_data->>'username', new.email),
+    COALESCE(new.raw_user_meta_data->>'full_name', new.email)
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

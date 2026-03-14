@@ -165,9 +165,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.bgLight,
-        body: Stack(
+  Widget build(BuildContext context) => RefreshIndicator(
+        onRefresh: _fetchProfile,
+        color: AppColors.primaryTeal,
+        child: Stack(
           children: [
             // Dark Teal Header with Curved Bottom Effect
             Container(
@@ -182,6 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SafeArea(
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -203,14 +205,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const AppBottomNavBar(currentIndex: 4),
             if (isUploadingPhoto)
               Container(
                 color: Colors.black.withOpacity(0.5),
                 child: const Center(
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
-              ),
+               ),
           ],
         ),
       );

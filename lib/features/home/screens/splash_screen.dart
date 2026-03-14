@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -42,11 +43,24 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/auth');
-      }
-    });
+    _checkSessionAndNavigate();
+  }
+
+  Future<void> _checkSessionAndNavigate() async {
+    // Tunggu animasi logo sedikit
+    await Future.delayed(const Duration(milliseconds: 2800));
+    
+    if (!mounted) return;
+
+    final session = Supabase.instance.client.auth.currentSession;
+    
+    if (session != null) {
+      // Jika ada sesi aktif, langsung ke Dashboard
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else {
+      // Jika tidak ada, ke halaman Auth
+      Navigator.pushReplacementNamed(context, '/auth');
+    }
   }
 
   @override

@@ -64,9 +64,9 @@ class DashboardHeader extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 26,
                       backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      backgroundImage: profile?['avatar_url'] != null
+                      backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
                           ? NetworkImage(profile!['avatar_url']) as ImageProvider
-                          : const AssetImage('assets/images/avatar.png'),
+                          : const AssetImage('assets/images/default_profile.png'),
                     ),
                   ),
                   const SizedBox(width: 15),

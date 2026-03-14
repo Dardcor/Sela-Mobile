@@ -4,13 +4,6 @@ import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/task_detail_widgets.dart';
 
-/// IndependentTaskDetailScreen — Kerangka layar detail tugas mandiri.
-///
-/// File ini hanya berisi logika kalkulasi progress, lalu mendelegasikan
-/// rendering ke komponen di [task_detail_widgets.dart]:
-/// - [IndependentTaskDetailHeader] → header navigasi (const, tidak di-rebuild)
-/// - [TaskDetailCard]              → kartu info task (rebuild saat task/progress berubah)
-/// - [TaskProgressCard]            → daftar subtask/progress (rebuild saat subtasks berubah)
 class IndependentTaskDetailScreen extends StatefulWidget {
   const IndependentTaskDetailScreen({super.key});
 
@@ -23,6 +16,7 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
   final supabase = Supabase.instance.client;
   dynamic _taskData;
   bool _isLoading = true;
+  bool _isCreating = false;
 
   @override
   void didChangeDependencies() {
@@ -45,10 +39,11 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
         setState(() {
           _taskData = data;
           _isLoading = false;
+          _isCreating = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isLoading = false; _isCreating = false; });
     }
   }
 
@@ -65,12 +60,16 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
     return (total / (subtasks.length * 100)).clamp(0.0, 1.0);
   }
 
-  Future<void> _handleCreateManual(String title, String? assignedTo, String description) async {
-    if (title.isEmpty) return;
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
+  Future<void> _handleCreateManual(String title, String? _, String description) async {
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a subtask title'), backgroundColor: Colors.red));
+      return;
+    }
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
+    setState(() => _isCreating = true);
+    try {
       final st = await supabase.from('subtasks').insert({
         'task_id': _taskData['id'],
         'title': title,
@@ -83,21 +82,28 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
         'progress': 0,
       });
 
-      _fetchFullTaskData(_taskData['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created successfully'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      debugPrint('create manual err: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        setState(() => _isCreating = false);
+      }
     }
   }
 
   Future<void> _handleCreateAutomatic() async {
-    // For independent task, just create a sample task assigned to self
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
+    setState(() => _isCreating = true);
+    try {
       final st = await supabase.from('subtasks').insert({
         'task_id': _taskData['id'],
-        'title': 'Automatic Task 1',
+        'title': 'Auto Task 1',
+        'description': 'Automatically generated task',
       }).select().single();
 
       await supabase.from('subtask_progress').insert({
@@ -106,9 +112,15 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
         'progress': 0,
       });
 
-      _fetchFullTaskData(_taskData['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created automatically'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      debugPrint('create auto err: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        setState(() => _isCreating = false);
+      }
     }
   }
 
@@ -116,14 +128,18 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
     final user = supabase.auth.currentUser;
     if (user == null) return;
     try {
-      await supabase.from('subtask_progress').upsert({
-        'subtask_id': subtaskId,
-        'user_id': user.id,
-        'progress': progress,
-      });
-      _fetchFullTaskData(_taskData['id']);
+      await supabase.from('subtask_progress')
+          .update({'progress': progress})
+          .eq('subtask_id', subtaskId)
+          .eq('user_id', user.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status updated successfully'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      debugPrint('status change err: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: ${e.toString()}'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -151,7 +167,7 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
                 TaskDetailCard(task: task, progress: progress),
                 const SizedBox(height: 25),
                 IndependentCreateSubtaskSection(
-                  members: const [], // Not needed for independent
+                  isLoading: _isCreating,
                   onCreateManual: _handleCreateManual,
                   onCreateAutomatic: _handleCreateAutomatic,
                 ),
@@ -171,3 +187,4 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
     );
   }
 }
+

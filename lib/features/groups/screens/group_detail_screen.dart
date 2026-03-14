@@ -51,11 +51,22 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           .select('*, profiles(*)')
           .eq('group_id', groupId);
 
+      // Cek secara langsung dari DB apakah user ini adalah leader di grup ini
+      final leaderCheck = await supabase
+          .from('group_members')
+          .select('role')
+          .eq('group_id', groupId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      final isLeaderFromDb = leaderCheck != null && leaderCheck['role'] == 'leader';
+
       if (mounted) {
         setState(() {
           _taskData = {
             ...data,
             'group_members': membersData,
+            'current_user_is_leader': isLeaderFromDb,
           };
           _isLoading = false;
         });
@@ -82,8 +93,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   Future<void> _handleCreateManual(String title, String? assignedTo, String description) async {
-    if (title.isEmpty || assignedTo == null) return;
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter subtask title'), backgroundColor: Colors.red));
+      return;
+    }
+    if (assignedTo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a member'), backgroundColor: Colors.red));
+      return;
+    }
     
+    setState(() => _isLoading = true);
     try {
       final st = await supabase.from('subtasks').insert({
         'task_id': _taskData['id'],
@@ -97,18 +116,26 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         'progress': 0,
       });
 
-      _fetchFullTaskData(_taskData['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created successfully'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      // error handle
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create subtask: ${e.toString()}'), backgroundColor: Colors.red));
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _handleCreateAutomatic() async {
-    // Basic automatic division: distribute subtasks evenly
-    // For now, let's just add a sample "Auto Task" to each member
     final members = _taskData['group_members'] as List;
-    if (members.isEmpty) return;
+    if (members.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No members in group'), backgroundColor: Colors.red));
+      return;
+    }
 
+    setState(() => _isLoading = true);
     try {
       for (int i = 0; i < members.length; i++) {
         final st = await supabase.from('subtasks').insert({
@@ -122,9 +149,15 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           'progress': 0,
         });
       }
-      _fetchFullTaskData(_taskData['id']);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtasks created automatically'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      // error handle
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -133,14 +166,18 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     if (user == null) return;
 
     try {
-      await supabase.from('subtask_progress').upsert({
-        'subtask_id': subtaskId,
-        'user_id': user.id,
-        'progress': progress,
-      });
-      _fetchFullTaskData(_taskData['id']);
+      await supabase.from('subtask_progress')
+          .update({'progress': progress})
+          .eq('subtask_id', subtaskId)
+          .eq('user_id', user.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status updated successfully'), backgroundColor: Colors.green));
+      }
+      await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
-      // error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: ${e.toString()}'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -155,6 +192,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final members = (task['group_members'] as List?) ?? [];
     final subtasks = (task['subtasks'] as List?) ?? [];
     final currentUserId = supabase.auth.currentUser?.id ?? '';
+    final isLeader = _taskData['current_user_is_leader'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -169,6 +207,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             // ✅ New Create Subtask Section (Gambar 1 & 2)
             CreateSubtaskSection(
               members: members,
+              isLeader: isLeader,
+              isLoading: _isLoading,
               onCreateManual: _handleCreateManual,
               onCreateAutomatic: _handleCreateAutomatic,
             ),
