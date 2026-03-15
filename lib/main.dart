@@ -41,8 +41,7 @@ void main() async {
       onTimeout: () => throw Exception('Supabase initialize timeout'),
     );
   } catch (e) {
-    // Tetap jalankan app agar tidak hang, akan error saat coba pakai Supabase
-  }
+}
 
   runApp(const MyApp());
 }
@@ -69,7 +68,10 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const Navbar(initialIndex: 0),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/new_password': (context) => const NewPasswordScreen(),
-        '/otp_verify': (context) => const OTPVerifyScreen(),
+        '/otp_verify': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as String? ?? '';
+          return OTPVerifyScreen(email: args);
+        },
         '/success': (context) => const SuccessScreen(),
         '/work_in_group': (context) => const WorkInGroupScreen(),
         '/independent_task': (context) => const IndependentTaskScreen(),

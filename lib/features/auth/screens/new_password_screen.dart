@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import 'success_screen.dart';
 
@@ -11,8 +12,65 @@ class NewPasswordScreen extends StatefulWidget {
 }
 
 class _NewPasswordScreenState extends State<NewPasswordScreen> {
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePass = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+  final supabase = Supabase.instance.client;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleUpdatePassword() async {
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (password.isEmpty) {
+      _showError('Please enter a new password');
+      return;
+    }
+    if (password != confirmPassword) {
+      _showError('Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('Password must be at least 6 characters');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await supabase.auth.updateUser(
+        UserAttributes(password: password),
+      );
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SuccessScreen()),
+        );
+      }
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError('An error occurred: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -30,16 +88,34 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               const SizedBox(height: 10),
               Text("New password must be unique from your old ones.", textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 50),
-              _buildPasswordField(label: 'password', hint: 'Qwerty1234567', obscure: _obscurePass, onToggle: () => setState(() => _obscurePass = !_obscurePass)),
+              _buildPasswordField(
+                controller: _passwordController,
+                label: 'Password',
+                hint: '',
+                obscure: _obscurePass,
+                onToggle: () => setState(() => _obscurePass = !_obscurePass),
+              ),
               const SizedBox(height: 20),
-              _buildPasswordField(label: 'Confirm password', hint: 'Qwerty1234567', obscure: _obscureConfirm, onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm)),
+              _buildPasswordField(
+                controller: _confirmPasswordController,
+                label: 'Confirm password',
+                hint: '',
+                obscure: _obscureConfirm,
+                onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+              ),
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity, height: 60,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SuccessScreen())),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 0),
-                  child: Text('Reset Password', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  onPressed: _isLoading ? null : _handleUpdatePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text('Reset Password', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
               const SizedBox(height: 30),
@@ -58,13 +134,21 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       ),
     );
 
-  Widget _buildPasswordField({required String label, required String hint, required bool obscure, required VoidCallback onToggle}) => TextField(
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required bool obscure,
+    required VoidCallback onToggle,
+  }) {
+    return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.outfit(color: Colors.grey),
         hintText: hint,
-        hintStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
+        hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         suffixIcon: IconButton(icon: Icon(obscure ? Icons.remove_red_eye_outlined : Icons.visibility, color: Colors.grey), onPressed: onToggle),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.grey)),
@@ -72,4 +156,5 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.primaryTeal)),
       ),
     );
+  }
 }

@@ -196,38 +196,43 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const GroupDetailHeader(),
-            const SizedBox(height: 10),
-            GroupMainCard(task: task, progress: progress),
-            const SizedBox(height: 25),
-            // ✅ New Create Subtask Section (Gambar 1 & 2)
-            CreateSubtaskSection(
-              members: members,
-              isLeader: isLeader,
-              isLoading: _isLoading,
-              onCreateManual: _handleCreateManual,
-              onCreateAutomatic: _handleCreateAutomatic,
-            ),
-            const SizedBox(height: 25),
-            // ✅ Your Progres (Gambar 1)
-            YourProgressSection(
-              subtasks: subtasks,
-              userId: currentUserId,
-              onStatusChanged: _handleStatusChanged,
-            ),
-            const SizedBox(height: 25),
-            // ✅ Member & Progres (Gambar 1)
-            GroupMemberSection(
-              members: members,
-              subtasks: subtasks,
-              createdBy: task['created_by'] ?? '',
-            ),
-            const SizedBox(height: 100),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () => _fetchFullTaskData(task['id']),
+        color: AppColors.primaryTeal,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const GroupDetailHeader(),
+              const SizedBox(height: 10),
+              GroupMainCard(task: task, progress: progress),
+              const SizedBox(height: 25),
+              // ✅ New Create Subtask Section (Gambar 1 & 2)
+              CreateSubtaskSection(
+                members: members,
+                isLeader: isLeader,
+                isLoading: _isLoading,
+                onCreateManual: _handleCreateManual,
+                onCreateAutomatic: _handleCreateAutomatic,
+              ),
+              const SizedBox(height: 25),
+              // ✅ Your Progres (Gambar 1)
+              YourProgressSection(
+                subtasks: subtasks,
+                userId: currentUserId,
+                onStatusChanged: _handleStatusChanged,
+              ),
+              const SizedBox(height: 25),
+              // ✅ Member & Progres (Gambar 1)
+              GroupMemberSection(
+                members: members,
+                subtasks: subtasks,
+                createdBy: task['created_by'] ?? '',
+              ),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );

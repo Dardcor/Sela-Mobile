@@ -16,7 +16,6 @@ class Navbar extends StatefulWidget {
 class _NavbarState extends State<Navbar> {
   late int _selectedIndex;
 
-  // Use 5 slots to match indexing (0=Home, 1=Calendar, 2=FAB, 3=Team, 4=Profile)
   late final List<Widget> _screens;
 
   @override
@@ -26,7 +25,7 @@ class _NavbarState extends State<Navbar> {
     _screens = [
       const DashboardScreen(),
       const CalendarScreen(),
-      const SizedBox.shrink(), // Placeholder for index 2
+      const SizedBox.shrink(),
       const GroupScreen(),
       const ProfileScreen(),
     ];
@@ -43,7 +42,6 @@ class _NavbarState extends State<Navbar> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      // Use IndexedStack to keep state alive and make transitions instant
       body: Stack(
         children: [
           IndexedStack(

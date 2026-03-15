@@ -36,15 +36,47 @@ class _GroupScreenState extends State<GroupScreen> {
     '4 – D4 IT B',
   ];
 
+  RealtimeChannel? _realtimeChannel;
+
   @override
   void initState() {
     super.initState();
     _fetch();
+    _setupRealtimeListener();
+  }
+
+  void _setupRealtimeListener() {
+    _realtimeChannel = supabase.channel('group-screen-changes');
+
+    // Listen for groups changes
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'groups',
+      callback: (payload) {
+        debugPrint('Groups Realtime: Data changed! Refreshing...');
+        _fetch();
+      },
+    );
+
+    // Listen for group_members changes
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'group_members',
+      callback: (payload) {
+        debugPrint('Group Members Realtime: Data changed! Refreshing...');
+        _fetch();
+      },
+    ).subscribe();
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    if (_realtimeChannel != null) {
+      supabase.removeChannel(_realtimeChannel!);
+    }
     super.dispose();
   }
 

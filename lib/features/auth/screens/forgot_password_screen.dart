@@ -1,10 +1,71 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import 'otp_verify_screen.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+  final supabase = Supabase.instance.client;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleResetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email address')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Supabase: Send recovery email
+      // Note: In Supabase dashboard, you can configure if this sends a link or a token.
+      // If it sends a token, the user can enter it in OTPVerifyScreen.
+      await supabase.auth.resetPasswordForEmail(email);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reset code sent! Check your email.')),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OTPVerifyScreen(email: email),
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -23,11 +84,13 @@ class ForgotPasswordScreen extends StatelessWidget {
               Text("Don't worry, we'll help you reset quickly.", textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 50),
               TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  labelText: 'Email address',
+                  labelText: 'Your Email Address',
                   labelStyle: GoogleFonts.outfit(color: Colors.grey),
-                  hintText: 'omanton@it.pens.student.com',
-                  hintStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
+                  hintText: 'youremail@gmail.com',
+                  hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.grey)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade300)),
@@ -38,9 +101,15 @@ class ForgotPasswordScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity, height: 60,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OTPVerifyScreen())),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 0),
-                  child: Text('Reset Password', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  onPressed: _isLoading ? null : _handleResetPassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    elevation: 0,
+                  ),
+                  child: _isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text('Reset Password', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
               const SizedBox(height: 30),

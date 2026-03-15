@@ -1,4 +1,4 @@
-name: mobile
+name: SELA
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -9,7 +9,7 @@ environment:
 
 dependencies:
   flutter:
-  sdk: flutter
+    sdk: flutter
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.9
@@ -36,26 +36,9 @@ flutter:
     - assets/images/otp.png
     - assets/images/new_pass.png
     - assets/images/success.png
-    - assets/images/avatar.png
     - assets/images/default_profile.png
     - assets/images/group_task.png
     - assets/images/independent_task.png
-    - assets/images/google_icon.png
-    - .env
-  uses-material-design: true
-
-  assets:
-    - assets/images/App_Logo.png
-    - assets/images/logo.png
-    - assets/images/forgot_pass.png
-    - assets/images/otp.png
-    - assets/images/new_pass.png
-    - assets/images/success.png
-    - assets/images/avatar.png
-    - assets/images/default_profile.png
-    - assets/images/group_task.png
-    - assets/images/independent_task.png
-    - assets/images/google_icon.png
     - .env
 
 flutter_launcher_icons:

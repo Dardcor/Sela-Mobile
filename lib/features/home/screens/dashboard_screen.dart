@@ -24,8 +24,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static List<dynamic>? _cachedGroups;
   static List<dynamic>? _cachedIndependent;
   
-  // Realtime subscription
-  RealtimeChannel? _profileSubscription;
+  // Realtime channel
+  RealtimeChannel? _realtimeChannel;
 
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
@@ -41,33 +41,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    _profileSubscription = supabase
-        .channel('public:profiles:${user.id}')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'profiles',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id',
-            value: user.id,
-          ),
-          callback: (payload) {
-            if (mounted) {
-              setState(() {
-                _cachedProfile = payload.newRecord;
-              });
-            }
-          },
-        )
-        .subscribe();
+    // ✅ Single Channel untuk semua perubahan database
+    _realtimeChannel = supabase.channel('db-changes');
+
+    // 1. Listen Profile changes
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'profiles',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'id',
+        value: user.id,
+      ),
+      callback: (payload) {
+        debugPrint('Realtime: Profile updated!');
+        if (mounted) {
+          setState(() => _cachedProfile = payload.newRecord);
+        }
+      },
+    );
+
+    // 2. Listen Tasks changes (INSERT/UPDATE/DELETE)
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'tasks',
+      callback: (payload) {
+        debugPrint('Realtime: Task changed (${payload.eventType})! Refreshing...');
+        _fetchData();
+      },
+    );
+
+    // 3. Listen Subtasks changes
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'subtasks',
+      callback: (payload) {
+        debugPrint('Realtime: Subtask changed! Refreshing...');
+        _fetchData();
+      },
+    );
+
+    _realtimeChannel!.subscribe((status, [error]) {
+      debugPrint('Realtime Status: $status');
+      if (error != null) debugPrint('Realtime Error: $error');
+    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
-    if (_profileSubscription != null) {
-      supabase.removeChannel(_profileSubscription!);
+    if (_realtimeChannel != null) {
+      supabase.removeChannel(_realtimeChannel!);
     }
     super.dispose();
   }

@@ -158,27 +158,32 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
       backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const IndependentTaskDetailHeader(),
-                const SizedBox(height: 10),
-                TaskDetailCard(task: task, progress: progress),
-                const SizedBox(height: 25),
-                IndependentCreateSubtaskSection(
-                  isLoading: _isCreating,
-                  onCreateManual: _handleCreateManual,
-                  onCreateAutomatic: _handleCreateAutomatic,
-                ),
-                const SizedBox(height: 25),
-                TaskProgressCard(
-                  subtasks: subtasks,
-                  userId: currentUserId,
-                  onStatusChanged: _handleStatusChanged,
-                ),
-                const SizedBox(height: 120),
-              ],
+          RefreshIndicator(
+            onRefresh: () => _fetchFullTaskData(task['id']),
+            color: AppColors.primaryTeal,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const IndependentTaskDetailHeader(),
+                  const SizedBox(height: 10),
+                  TaskDetailCard(task: task, progress: progress),
+                  const SizedBox(height: 25),
+                  IndependentCreateSubtaskSection(
+                    isLoading: _isCreating,
+                    onCreateManual: _handleCreateManual,
+                    onCreateAutomatic: _handleCreateAutomatic,
+                  ),
+                  const SizedBox(height: 25),
+                  TaskProgressCard(
+                    subtasks: subtasks,
+                    userId: currentUserId,
+                    onStatusChanged: _handleStatusChanged,
+                  ),
+                  const SizedBox(height: 120),
+                ],
+              ),
             ),
           ),
           const AppBottomNavBar(currentIndex: -1),

@@ -20,10 +20,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
   bool isUploadingPhoto = false;
 
+  RealtimeChannel? _realtimeChannel;
+
   @override
   void initState() {
     super.initState();
     _fetchProfile();
+    _setupRealtimeListener();
+  }
+
+  void _setupRealtimeListener() {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _realtimeChannel = supabase.channel('profile-screen-changes');
+
+    // Listen for profiles changes for current user
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'profiles',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'id',
+        value: userId,
+      ),
+      callback: (payload) {
+        debugPrint('Profile Realtime: Profile updated!');
+        _fetchProfile();
+      },
+    );
+
+    // Listen for profile_abilities changes for current user
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'profile_abilities',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: userId,
+      ),
+      callback: (payload) {
+        debugPrint('Profile Realtime: Abilities updated!');
+        _fetchProfile();
+      },
+    ).subscribe();
+  }
+
+  @override
+  void dispose() {
+    if (_realtimeChannel != null) {
+      supabase.removeChannel(_realtimeChannel!);
+    }
+    super.dispose();
   }
 
   Future<void> _fetchProfile() async {

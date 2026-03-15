@@ -106,9 +106,14 @@ class _AuthScreenState extends State<AuthScreen> {
         }
         
         // Update last_login_at di database
-        await supabase.from('profiles').update({
-          'last_login_at': DateTime.now().toIso8601String(),
-        }).eq('id', res.user!.id);
+        try {
+          await supabase.from('profiles').update({
+            'last_login_at': DateTime.now().toIso8601String(),
+          }).eq('id', res.user!.id);
+        } catch (e) {
+          // Abaikan error update last_login (mungkin kolom belum ada di Supabase)
+          debugPrint('Error updating last_login_at: $e');
+        }
 
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
@@ -147,51 +152,35 @@ class _AuthScreenState extends State<AuthScreen> {
         data: {'full_name': username, 'username': username},
       );
 
-      final userId = res.user?.id;
-
-      if (userId == null) {
-        if (mounted) {
-          _showSuccess('Registrasi berhasil! Silakan login dengan akun Anda.');
-          _usernameRegisterController.clear();
-          _emailRegisterController.clear();
-          _passwordRegisterController.clear();
-          await Future.delayed(const Duration(milliseconds: 1500));
-          if (mounted) {
-            setState(() => isLogin = true);
-            _pageController.animateToPage(0, duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
-          }
-        }
-        return;
-      }
-
-      try {
-        await supabase.rpc('upsert_profile', params: {
-          'p_id': userId, 'p_username': username, 'p_fullname': username,
-        });
-      } catch (profileError) {
-        try {
-          await supabase.from('profiles').upsert({
-            'id': userId, 'username': username, 'full_name': username,
-            'updated_at': DateTime.now().toIso8601String(),
-          });
-        } catch (e2) {
-        }
-      }
+      // Kita tidak perlu manual upsert_profile di sini lagi karena 
+      // sudah ada Trigger 'handle_new_user' di database (db.sql) 
+      // yang otomatis membuat profil saat user register.
 
       if (mounted) {
         _showSuccess('Registrasi berhasil! Silakan login dengan akun Anda.');
         _usernameRegisterController.clear();
         _emailRegisterController.clear();
         _passwordRegisterController.clear();
+        
         await Future.delayed(const Duration(milliseconds: 1500));
-        if (mounted) setState(() => isLogin = true);
+        
+        if (mounted) {
+          setState(() {
+            isLogin = true;
+          });
+          _pageController.animateToPage(
+            0, 
+            duration: const Duration(milliseconds: 400), 
+            curve: Curves.easeInOut
+          );
+        }
       }
     } on AuthException catch (e) {
       String msg = e.message;
-      if (msg.contains('User already registered') ||
-          msg.contains('already been registered') ||
-          msg.contains('already registered')) {
+      if (msg.contains('User already registered')) {
         msg = 'Email ini sudah terdaftar. Silakan login.';
+      } else if (msg.contains('Database error saving new user')) {
+        msg = 'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
       }
       _showError(msg);
     } catch (e) {

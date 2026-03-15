@@ -352,12 +352,39 @@ BEGIN
     new.id, 
     COALESCE(new.raw_user_meta_data->>'username', new.email),
     COALESCE(new.raw_user_meta_data->>'full_name', new.email)
-  );
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    full_name = EXCLUDED.full_name,
+    updated_at = now();
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER TABLE public.groups REPLICA IDENTITY FULL;
+ALTER TABLE public.tasks REPLICA IDENTITY FULL;
+ALTER TABLE public.subtasks REPLICA IDENTITY FULL;
+ALTER TABLE public.subtask_progress REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END $$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+ALTER PUBLICATION supabase_realtime SET TABLE 
+    public.profiles, 
+    public.groups, 
+    public.group_members, 
+    public.tasks, 
+    public.subtasks, 
+    public.subtask_progress, 
+    public.task_links,
+    public.profile_abilities;

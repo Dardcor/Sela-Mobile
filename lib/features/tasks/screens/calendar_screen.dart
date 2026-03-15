@@ -17,10 +17,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
   List<Map<String, dynamic>> _upcomingTasks = [];
   DateTime _selectedDate = DateTime.now();
 
+  RealtimeChannel? _realtimeChannel;
+
   @override
   void initState() {
     super.initState();
     _fetchTasks();
+    _setupRealtimeListener();
+  }
+
+  void _setupRealtimeListener() {
+    _realtimeChannel = _supabase.channel('calendar-db-changes');
+
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'tasks',
+      callback: (payload) {
+        debugPrint('Calendar Realtime: Task changed! Refreshing...');
+        _fetchTasks();
+      },
+    ).subscribe();
+  }
+
+  @override
+  void dispose() {
+    if (_realtimeChannel != null) {
+      _supabase.removeChannel(_realtimeChannel!);
+    }
+    super.dispose();
   }
 
   Future<void> _fetchTasks() async {
