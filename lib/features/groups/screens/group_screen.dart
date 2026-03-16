@@ -60,15 +60,17 @@ class _GroupScreenState extends State<GroupScreen> {
     );
 
     // Listen for group_members changes
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'group_members',
-      callback: (payload) {
-        debugPrint('Group Members Realtime: Data changed! Refreshing...');
-        _fetch();
-      },
-    ).subscribe();
+    _realtimeChannel!
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'group_members',
+          callback: (payload) {
+            debugPrint('Group Members Realtime: Data changed! Refreshing...');
+            _fetch();
+          },
+        )
+        .subscribe();
   }
 
   @override
@@ -112,7 +114,7 @@ class _GroupScreenState extends State<GroupScreen> {
       builder: (ctx) => DefaultTabController(
         length: 2,
         child: StatefulBuilder(
-          builder: (ctx, setS) => Padding(
+          builder: (ctx, setS) => SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               25,
               15,
@@ -156,7 +158,10 @@ class _GroupScreenState extends State<GroupScreen> {
                   unselectedLabelColor: Colors.grey[400],
                   indicatorColor: AppColors.primaryTeal,
                   indicatorWeight: 3,
-                  labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                  labelStyle: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                   tabs: const [
                     Tab(text: 'Join Group'),
                     Tab(text: 'Create Group'),
@@ -179,7 +184,10 @@ class _GroupScreenState extends State<GroupScreen> {
                           const SizedBox(height: 10),
                           Text(
                             '*Note: Enter the code from the group',
-                            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              color: Colors.grey[400],
+                            ),
                           ),
                           const SizedBox(height: 25),
                           SizedBox(
@@ -194,10 +202,17 @@ class _GroupScreenState extends State<GroupScreen> {
                                     'find_group_by_invite_code',
                                     params: {'p_code': c},
                                   );
-                                  if (results == null || (results as List).isEmpty) {
+                                  if (results == null ||
+                                      (results as List).isEmpty) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Invalid or expired code')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Invalid or expired code',
+                                          ),
+                                        ),
                                       );
                                     }
                                     return;
@@ -213,7 +228,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                     _fetch();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Successfully joined group! ✅'),
+                                        content: Text(
+                                          'Successfully joined group! ✅',
+                                        ),
                                         backgroundColor: AppColors.primaryTeal,
                                       ),
                                     );
@@ -222,7 +239,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Failed to join. You may already be a member.'),
+                                        content: Text(
+                                          'Failed to join. You may already be a member.',
+                                        ),
                                       ),
                                     );
                                   }
@@ -274,7 +293,12 @@ class _GroupScreenState extends State<GroupScreen> {
                                   label: 'Number Group',
                                   hint: 'choose a number',
                                   value: curNo,
-                                  items: const ['Kelompok 1', 'Kelompok 2', 'Kelompok 3', 'Kelompok 4'],
+                                  items: const [
+                                    'Kelompok 1',
+                                    'Kelompok 2',
+                                    'Kelompok 3',
+                                    'Kelompok 4',
+                                  ],
                                   onChanged: (v) => setS(() => curNo = v),
                                 ),
                               ),
@@ -288,40 +312,54 @@ class _GroupScreenState extends State<GroupScreen> {
                               onPressed: inProc
                                   ? null
                                   : () async {
-                                      if (curCourse == null || curNo == null) return;
+                                      if (curCourse == null || curNo == null)
+                                        return;
                                       setS(() => inProc = true);
                                       final inv = List.generate(
                                         6,
-                                        (i) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[
-                                            (DateTime.now().microsecondsSinceEpoch + i) % 36],
+                                        (i) =>
+                                            'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[(DateTime.now()
+                                                        .microsecondsSinceEpoch +
+                                                    i) %
+                                                36],
                                       ).join();
-                                      
+
                                       try {
                                         final g = await supabase
                                             .from('groups')
                                             .insert({
-                                              'name': 'D3 IT B - $curCourse - $curNo',
+                                              'name':
+                                                  'D3 IT B - $curCourse - $curNo',
                                               'course_name': curCourse,
                                               'class_name': 'D3 IT B',
-                                              'group_number': int.parse(curNo!.split(' ')[1]),
-                                              'member_limit': int.parse(limitCtrl.text),
+                                              'group_number': int.parse(
+                                                curNo!.split(' ')[1],
+                                              ),
+                                              'member_limit': int.parse(
+                                                limitCtrl.text,
+                                              ),
                                               'invitation_code': inv,
                                               'lecture_code': inv,
-                                              'created_by': supabase.auth.currentUser!.id,
+                                              'created_by':
+                                                  supabase.auth.currentUser!.id,
                                             })
                                             .select()
                                             .single();
-                                        await supabase.from('group_members').insert({
-                                          'group_id': g['id'],
-                                          'user_id': supabase.auth.currentUser!.id,
-                                          'role': 'leader',
-                                        });
+                                        await supabase
+                                            .from('group_members')
+                                            .insert({
+                                              'group_id': g['id'],
+                                              'user_id':
+                                                  supabase.auth.currentUser!.id,
+                                              'role': 'leader',
+                                            });
                                         if (mounted) {
                                           Navigator.pop(ctx);
                                           _fetch();
                                           SuccessDialog.show(
                                             context,
-                                            message: 'Group successfully created',
+                                            message:
+                                                'Group successfully created',
                                           );
                                         }
                                       } catch (e) {
@@ -370,7 +408,9 @@ class _GroupScreenState extends State<GroupScreen> {
   void _showGroupDetail(dynamic team) {
     final members = (team['group_members'] as List?) ?? [];
     final currentUserId = supabase.auth.currentUser?.id;
-    final isMeLeader = members.any((m) => m['user_id'] == currentUserId && m['role'] == 'leader');
+    final isMeLeader = members.any(
+      (m) => m['user_id'] == currentUserId && m['role'] == 'leader',
+    );
 
     showModalBottomSheet(
       context: context,
@@ -401,7 +441,11 @@ class _GroupScreenState extends State<GroupScreen> {
                 onTap: () => Navigator.pop(ctx),
                 child: const Align(
                   alignment: Alignment.centerLeft,
-                  child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.grey),
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
               const SizedBox(height: 15),
@@ -429,12 +473,18 @@ class _GroupScreenState extends State<GroupScreen> {
                     const SizedBox(height: 4),
                     Text(
                       team['class_name'] ?? '',
-                      style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey[500]),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        color: Colors.grey[500],
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Maks: ${team['member_limit'] ?? 4} people',
-                      style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey[400],
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     // Invitation code section
@@ -450,7 +500,10 @@ class _GroupScreenState extends State<GroupScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.textFieldBg,
                             borderRadius: BorderRadius.circular(12),
@@ -467,7 +520,9 @@ class _GroupScreenState extends State<GroupScreen> {
                         const SizedBox(width: 10),
                         _IconCircleButton(
                           icon: Icons.copy_all_rounded,
-                          onTap: () => Clipboard.setData(ClipboardData(text: team['invitation_code'] ?? '')),
+                          onTap: () => Clipboard.setData(
+                            ClipboardData(text: team['invitation_code'] ?? ''),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _IconCircleButton(
@@ -479,7 +534,10 @@ class _GroupScreenState extends State<GroupScreen> {
                     const SizedBox(height: 35),
                     Text(
                       'Member list:',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17),
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     ...members.map((m) {
@@ -491,9 +549,14 @@ class _GroupScreenState extends State<GroupScreen> {
                           children: [
                             CircleAvatar(
                               radius: 28,
-                              backgroundImage: prof?['avatar_url'] != null && prof!['avatar_url'].toString().isNotEmpty
-                                  ? NetworkImage(prof['avatar_url']) as ImageProvider
-                                  : const AssetImage('assets/images/default_profile.png'),
+                              backgroundImage:
+                                  prof?['avatar_url'] != null &&
+                                      prof!['avatar_url'].toString().isNotEmpty
+                                  ? NetworkImage(prof['avatar_url'])
+                                        as ImageProvider
+                                  : const AssetImage(
+                                      'assets/images/default_profile.png',
+                                    ),
                             ),
                             const SizedBox(width: 15),
                             Expanded(
@@ -504,7 +567,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          prof?['full_name'] ?? prof?['username'] ?? 'User',
+                                          prof?['full_name'] ??
+                                              prof?['username'] ??
+                                              'User',
                                           style: GoogleFonts.outfit(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 15,
@@ -522,7 +587,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: AppColors.primaryTeal,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: const Text(
                                             'Leader',
@@ -538,7 +605,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    prof?['class_name'] ?? team['class_name'] ?? '',
+                                    prof?['class_name'] ??
+                                        team['class_name'] ??
+                                        '',
                                     style: GoogleFonts.outfit(
                                       color: Colors.grey[400],
                                       fontSize: 12,
@@ -597,7 +666,11 @@ class _GroupScreenState extends State<GroupScreen> {
                       if (Navigator.canPop(context)) {
                         Navigator.pop(context);
                       } else {
-                        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/dashboard',
+                          (route) => false,
+                        );
                       }
                     },
                     child: Container(
@@ -606,7 +679,11 @@ class _GroupScreenState extends State<GroupScreen> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.black,
+                        size: 20,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 40),
@@ -654,10 +731,16 @@ class _GroupScreenState extends State<GroupScreen> {
                   ),
                   children: const [
                     TextSpan(text: 'create your '),
-                    TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
+                    TextSpan(
+                      text: 'group',
+                      style: TextStyle(color: AppColors.primaryTeal),
+                    ),
                     TextSpan(text: ',\n'),
                     TextSpan(text: 'or join a '),
-                    TextSpan(text: 'group', style: TextStyle(color: AppColors.primaryTeal)),
+                    TextSpan(
+                      text: 'group',
+                      style: TextStyle(color: AppColors.primaryTeal),
+                    ),
                   ],
                 ),
               ),
@@ -671,7 +754,9 @@ class _GroupScreenState extends State<GroupScreen> {
                   child: Center(
                     child: Padding(
                       padding: EdgeInsets.all(50),
-                      child: CircularProgressIndicator(color: AppColors.primaryTeal),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryTeal,
+                      ),
                     ),
                   ),
                 )
@@ -695,65 +780,73 @@ class _GroupScreenState extends State<GroupScreen> {
   }
 
   Widget _buildSearchUI() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+    padding: const EdgeInsets.symmetric(horizontal: 25),
+    child: Row(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Search',
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 15,
-                    ),
-                    hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
-                  ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Search',
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 15,
                 ),
+                hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
               ),
             ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.search, color: Colors.white, size: 28),
-              ),
-            ),
-            const SizedBox(width: 20),
-            Container(width: 1.5, height: 40, color: AppColors.primaryTeal.withValues(alpha: 0.3)),
-            const SizedBox(width: 20),
-            GestureDetector(
-              onTap: _showJoinCreateModal,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 28),
-              ),
-            ),
-          ],
+          ),
         ),
-      );
+        const SizedBox(width: 12),
+        GestureDetector(
+          onTap: () {},
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.search, color: Colors.white, size: 28),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Container(
+          width: 1.5,
+          height: 40,
+          color: AppColors.primaryTeal.withValues(alpha: 0.3),
+        ),
+        const SizedBox(width: 20),
+        GestureDetector(
+          onTap: _showJoinCreateModal,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.person_add_alt_1_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _IconCircleButton extends StatelessWidget {

@@ -104,12 +104,13 @@ class _AuthScreenState extends State<AuthScreen> {
           await prefs.remove('remembered_email');
           await prefs.remove('remembered_password');
         }
-        
+
         // Update last_login_at di database
         try {
-          await supabase.from('profiles').update({
-            'last_login_at': DateTime.now().toIso8601String(),
-          }).eq('id', res.user!.id);
+          await supabase
+              .from('profiles')
+              .update({'last_login_at': DateTime.now().toIso8601String()})
+              .eq('id', res.user!.id);
         } catch (e) {
           // Abaikan error update last_login (mungkin kolom belum ada di Supabase)
           debugPrint('Error updating last_login_at: $e');
@@ -138,22 +139,33 @@ class _AuthScreenState extends State<AuthScreen> {
     final email = _emailRegisterController.text.trim();
     final password = _passwordRegisterController.text.trim();
 
-    if (username.isEmpty) { _showError('Username tidak boleh kosong'); return; }
-    if (email.isEmpty) { _showError('Email tidak boleh kosong'); return; }
-    if (password.isEmpty) { _showError('Password tidak boleh kosong'); return; }
-    if (password.length < 6) { _showError('Password minimal 6 karakter'); return; }
+    if (username.isEmpty) {
+      _showError('Username tidak boleh kosong');
+      return;
+    }
+    if (email.isEmpty) {
+      _showError('Email tidak boleh kosong');
+      return;
+    }
+    if (password.isEmpty) {
+      _showError('Password tidak boleh kosong');
+      return;
+    }
+    if (password.length < 6) {
+      _showError('Password minimal 6 karakter');
+      return;
+    }
 
     setState(() => isLoading = true);
     try {
-
       final res = await supabase.auth.signUp(
         email: email,
         password: password,
         data: {'full_name': username, 'username': username},
       );
 
-      // Kita tidak perlu manual upsert_profile di sini lagi karena 
-      // sudah ada Trigger 'handle_new_user' di database (db.sql) 
+      // Kita tidak perlu manual upsert_profile di sini lagi karena
+      // sudah ada Trigger 'handle_new_user' di database (db.sql)
       // yang otomatis membuat profil saat user register.
 
       if (mounted) {
@@ -161,17 +173,17 @@ class _AuthScreenState extends State<AuthScreen> {
         _usernameRegisterController.clear();
         _emailRegisterController.clear();
         _passwordRegisterController.clear();
-        
+
         await Future.delayed(const Duration(milliseconds: 1500));
-        
+
         if (mounted) {
           setState(() {
             isLogin = true;
           });
           _pageController.animateToPage(
-            0, 
-            duration: const Duration(milliseconds: 400), 
-            curve: Curves.easeInOut
+            0,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
           );
         }
       }
@@ -180,7 +192,8 @@ class _AuthScreenState extends State<AuthScreen> {
       if (msg.contains('User already registered')) {
         msg = 'Email ini sudah terdaftar. Silakan login.';
       } else if (msg.contains('Database error saving new user')) {
-        msg = 'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
+        msg =
+            'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
       }
       _showError(msg);
     } catch (e) {
@@ -192,25 +205,29 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.outfit()),
-      backgroundColor: Colors.redAccent,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      margin: const EdgeInsets.all(15),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(15),
+      ),
+    );
   }
 
   void _showSuccess(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: GoogleFonts.outfit()),
-      backgroundColor: Colors.green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      margin: const EdgeInsets.all(15),
-      duration: const Duration(seconds: 3),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(15),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -224,7 +241,7 @@ class _AuthScreenState extends State<AuthScreen> {
           color: AppColors.primaryTeal,
           child: Container(
             width: double.infinity,
-            height: MediaQuery.of(context).size.height,
+            height: double.infinity,
             decoration: const BoxDecoration(gradient: AppColors.mainGradient),
             child: Column(
               children: [
@@ -238,8 +255,22 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Hello!', style: GoogleFonts.outfit(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text('Welcome to SELA', style: GoogleFonts.outfit(fontSize: 18, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w400)),
+                        Text(
+                          'Hello!',
+                          style: GoogleFonts.outfit(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Welcome to SELA',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -265,12 +296,20 @@ class _AuthScreenState extends State<AuthScreen> {
                               isLogin: isLogin,
                               onLoginTap: () {
                                 if (mounted && !isLogin) {
-                                  _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                  _pageController.animateToPage(
+                                    0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
                                 }
                               },
                               onRegisterTap: () {
                                 if (mounted && isLogin) {
-                                  _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                  _pageController.animateToPage(
+                                    1,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
                                 }
                               },
                             ),
@@ -285,35 +324,58 @@ class _AuthScreenState extends State<AuthScreen> {
                                 controller: _pageController,
                                 physics: const BouncingScrollPhysics(),
                                 onPageChanged: (index) {
-                                  if (mounted) setState(() => isLogin = index == 0);
+                                  if (mounted)
+                                    setState(() => isLogin = index == 0);
                                 },
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 15, left: 30, right: 30),
+                                    padding: const EdgeInsets.only(
+                                      top: 15,
+                                      left: 30,
+                                      right: 30,
+                                    ),
                                     child: _LoginForm(
                                       emailController: _emailLoginController,
-                                      passwordController: _passwordLoginController,
+                                      passwordController:
+                                          _passwordLoginController,
                                       obscurePassword: _obscureLoginPassword,
                                       isLoading: isLoading,
                                       rememberMe: _rememberMe,
-                                      onToggleObscure: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword),
-                                      onRememberMeChanged: (val) => setState(() => _rememberMe = val ?? false),
+                                      onToggleObscure: () => setState(
+                                        () => _obscureLoginPassword =
+                                            !_obscureLoginPassword,
+                                      ),
+                                      onRememberMeChanged: (val) => setState(
+                                        () => _rememberMe = val ?? false,
+                                      ),
                                       onLogin: _handleLogin,
                                       onForgotPassword: () => Navigator.push(
                                         context,
-                                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const ForgotPasswordScreen(),
+                                        ),
                                       ),
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 15, left: 30, right: 30),
+                                    padding: const EdgeInsets.only(
+                                      top: 15,
+                                      left: 30,
+                                      right: 30,
+                                    ),
                                     child: _RegisterForm(
-                                      usernameController: _usernameRegisterController,
+                                      usernameController:
+                                          _usernameRegisterController,
                                       emailController: _emailRegisterController,
-                                      passwordController: _passwordRegisterController,
+                                      passwordController:
+                                          _passwordRegisterController,
                                       obscurePassword: _obscureRegisterPassword,
                                       isLoading: isLoading,
-                                      onToggleObscure: () => setState(() => _obscureRegisterPassword = !_obscureRegisterPassword),
+                                      onToggleObscure: () => setState(
+                                        () => _obscureRegisterPassword =
+                                            !_obscureRegisterPassword,
+                                      ),
                                       onRegister: _handleRegister,
                                     ),
                                   ),
@@ -335,7 +397,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
-
 
 // ────────────────────────────────────────────
 // Form Login — widget terpisah agar isolasi rebuild
@@ -365,45 +426,57 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      children: [
-        AuthTextField(
-          controller: emailController,
-          label: 'Email Address',
-          hint: 'contoh@email.com',
-          icon: Icons.email_outlined,
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 20),
-        AuthPasswordField(
-          controller: passwordController,
-          label: 'Password',
-          hint: 'Masukkan password',
-          obscure: obscurePassword,
-          onToggle: onToggleObscure,
-        ),
-        const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [
+    children: [
+      AuthTextField(
+        controller: emailController,
+        label: 'Email Address',
+        hint: 'contoh@email.com',
+        icon: Icons.email_outlined,
+        keyboardType: TextInputType.emailAddress,
+      ),
+      const SizedBox(height: 20),
+      AuthPasswordField(
+        controller: passwordController,
+        label: 'Password',
+        hint: 'Masukkan password',
+        obscure: obscurePassword,
+        onToggle: onToggleObscure,
+      ),
+      const SizedBox(height: 10),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
               Checkbox(
-                value: rememberMe, 
+                value: rememberMe,
                 onChanged: onRememberMeChanged,
                 activeColor: AppColors.primaryTeal,
               ),
               Text('Remember me', style: GoogleFonts.outfit(fontSize: 14)),
-            ]),
-            TextButton(
-              onPressed: onForgotPassword,
-              child: Text('Forgot Password?', style: GoogleFonts.outfit(color: AppColors.lightTeal, fontSize: 14)),
+            ],
+          ),
+          TextButton(
+            onPressed: onForgotPassword,
+            child: Text(
+              'Forgot Password?',
+              style: GoogleFonts.outfit(
+                color: AppColors.lightTeal,
+                fontSize: 14,
+              ),
             ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        AuthSubmitButton(label: 'Login', isLoading: isLoading, onPressed: onLogin),
-        const SizedBox(height: 20),
-      ],
-    );
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      AuthSubmitButton(
+        label: 'Login',
+        isLoading: isLoading,
+        onPressed: onLogin,
+      ),
+      const SizedBox(height: 20),
+    ],
+  );
 }
 
 // ────────────────────────────────────────────
@@ -430,32 +503,36 @@ class _RegisterForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-      children: [
-        AuthTextField(
-          controller: usernameController,
-          label: 'Username',
-          hint: 'Masukkan username Anda',
-          icon: Icons.person_outline,
-        ),
-        const SizedBox(height: 20),
-        AuthTextField(
-          controller: emailController,
-          label: 'Email Address',
-          hint: 'contoh@email.com',
-          icon: Icons.email_outlined,
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 20),
-        AuthPasswordField(
-          controller: passwordController,
-          label: 'Password',
-          hint: 'Minimal 6 karakter',
-          obscure: obscurePassword,
-          onToggle: onToggleObscure,
-        ),
-        const SizedBox(height: 40),
-        AuthSubmitButton(label: 'Register', isLoading: isLoading, onPressed: onRegister),
-        const SizedBox(height: 20),
-      ],
-    );
+    children: [
+      AuthTextField(
+        controller: usernameController,
+        label: 'Username',
+        hint: 'Masukkan username Anda',
+        icon: Icons.person_outline,
+      ),
+      const SizedBox(height: 20),
+      AuthTextField(
+        controller: emailController,
+        label: 'Email Address',
+        hint: 'contoh@email.com',
+        icon: Icons.email_outlined,
+        keyboardType: TextInputType.emailAddress,
+      ),
+      const SizedBox(height: 20),
+      AuthPasswordField(
+        controller: passwordController,
+        label: 'Password',
+        hint: 'Minimal 6 karakter',
+        obscure: obscurePassword,
+        onToggle: onToggleObscure,
+      ),
+      const SizedBox(height: 40),
+      AuthSubmitButton(
+        label: 'Register',
+        isLoading: isLoading,
+        onPressed: onRegister,
+      ),
+      const SizedBox(height: 20),
+    ],
+  );
 }
