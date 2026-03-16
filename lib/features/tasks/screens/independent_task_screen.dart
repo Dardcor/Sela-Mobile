@@ -75,12 +75,12 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(10),
                             decoration: const BoxDecoration(
                               color: AppColors.primaryTeal,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                            child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
                           ),
                         ),
                         const SizedBox(height: 5),

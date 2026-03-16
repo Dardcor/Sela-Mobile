@@ -658,91 +658,75 @@ class _GroupScreenState extends State<GroupScreen> {
           // ✅ Header sesuai Gambar 1
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(25, 45, 25, 0),
+              padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 15, 25, 20),
               child: Row(
                 children: [
+                  // Tombol back — kiri
                   GestureDetector(
                     onTap: () {
                       if (Navigator.canPop(context)) {
                         Navigator.pop(context);
                       } else {
                         Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/dashboard',
-                          (route) => false,
+                          context, '/dashboard', (route) => false,
                         );
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.arrow_back,
-                        color: Colors.black,
-                        size: 20,
+                        color: AppColors.primaryTeal,
+                        size: 24,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(40),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        'Group',
-                        style: GoogleFonts.outfit(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryTeal,
+                  const Spacer(),
+                  // Judul — pill putih tengah
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(40),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
                         ),
+                      ],
+                    ),
+                    child: Text(
+                      'Group',
+                      style: GoogleFonts.outfit(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryTeal,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 68), // Spacer agar tetap seimbang
-                ],
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 35)),
-          // ✅ Subtitle sesuai Gambar 1
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25),
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.outfit(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 1.15,
+                  const Spacer(),
+                  // Tombol add group — kanan (penyeimbang)
+                  GestureDetector(
+                    onTap: _showJoinCreateModal,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.group_add_rounded,
+                        color: AppColors.primaryTeal,
+                        size: 24,
+                      ),
+                    ),
                   ),
-                  children: const [
-                    TextSpan(text: 'create your '),
-                    TextSpan(
-                      text: 'group',
-                      style: TextStyle(color: AppColors.primaryTeal),
-                    ),
-                    TextSpan(text: ',\n'),
-                    TextSpan(text: 'or join a '),
-                    TextSpan(
-                      text: 'group',
-                      style: TextStyle(color: AppColors.primaryTeal),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),

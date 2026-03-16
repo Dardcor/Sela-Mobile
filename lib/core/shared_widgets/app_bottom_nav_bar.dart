@@ -3,22 +3,28 @@ import '../constants/colors.dart';
 
 /// Shared Bottom Navigation Bar used across all main screens.
 /// [currentIndex]: 0=Home, 1=Calendar, 2=Add(FAB), 3=Team, 4=Profile
+/// [onTabTap]: optional — jika diisi, navigasi menggunakan callback (untuk IndexedStack shell).
+///             Jika kosong, navigasi menggunakan Navigator.pushNamed (untuk screen standalone).
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final VoidCallback? onAddTap;
+  final void Function(int)? onTabTap;
 
   const AppBottomNavBar({
     super.key,
     required this.currentIndex,
     this.onAddTap,
+    this.onTabTap,
   });
 
   @override
-  Widget build(BuildContext context) => Align(
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    return Align(
         alignment: Alignment.bottomCenter,
         child: Container(
           height: 80,
-          margin: const EdgeInsets.fromLTRB(25, 0, 25, 30),
+          margin: EdgeInsets.fromLTRB(25, 0, 25, bottomInset + 8),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(45),
@@ -37,11 +43,15 @@ class AppBottomNavBar extends StatelessWidget {
                 icon: Icons.home_rounded,
                 active: currentIndex == 0,
                 route: '/dashboard',
+                index: 0,
+                onTabTap: onTabTap,
               ),
               _NavIcon(
                 icon: Icons.calendar_month_rounded,
                 active: currentIndex == 1,
                 route: '/calendar',
+                index: 1,
+                onTabTap: onTabTap,
               ),
               GestureDetector(
                 onTap: onAddTap ?? () => Navigator.pushNamed(context, '/add_project'),
@@ -59,27 +69,36 @@ class AppBottomNavBar extends StatelessWidget {
                 icon: Icons.groups_rounded,
                 active: currentIndex == 3,
                 route: '/team',
+                index: 3,
+                onTabTap: onTabTap,
               ),
               _NavIcon(
                 icon: Icons.person_rounded,
                 active: currentIndex == 4,
                 route: '/profile',
+                index: 4,
+                onTabTap: onTabTap,
               ),
             ],
           ),
         ),
       );
+  }
 }
 
 class _NavIcon extends StatelessWidget {
   final IconData icon;
   final bool active;
   final String route;
+  final int index;
+  final void Function(int)? onTabTap;
 
   const _NavIcon({
     required this.icon,
     required this.active,
     required this.route,
+    required this.index,
+    this.onTabTap,
   });
 
   @override
@@ -88,11 +107,17 @@ class _NavIcon extends StatelessWidget {
       onTap: active
           ? null
           : () {
-              final navigator = Navigator.of(context);
-              if (route == '/dashboard') {
-                navigator.pushNamedAndRemoveUntil(route, (r) => false);
+              if (onTabTap != null) {
+                // Mode shell: switch tab via IndexedStack
+                onTabTap!(index);
               } else {
-                navigator.pushNamed(route);
+                // Mode standalone: navigasi via route
+                final navigator = Navigator.of(context);
+                if (route == '/dashboard') {
+                  navigator.pushNamedAndRemoveUntil(route, (r) => false);
+                } else {
+                  navigator.pushNamed(route);
+                }
               }
             },
       child: Container(
@@ -112,5 +137,3 @@ class _NavIcon extends StatelessWidget {
     );
   }
 }
-
-

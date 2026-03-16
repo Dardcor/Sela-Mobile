@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/navbar.dart';
+import 'core/shared_widgets/navbar.dart';
 import 'features/home/screens/splash_screen.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/dashboard_screen.dart';

@@ -1,4 +1,5 @@
 export 'app_bottom_nav_bar.dart';
+export 'navbar.dart';
 export 'screen_header_bar.dart';
 export 'search_bar_with_button.dart';
 export 'task_progress_indicator.dart';

@@ -220,39 +220,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: AppColors.primaryTeal,
         child: Stack(
           children: [
-            // Dark Teal Header with Curved Bottom Effect
-            Container(
-              width: double.infinity,
-              height: 380,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryTeal,
-                borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(100),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const ProfileHeader(),
-                    const SizedBox(height: 20),
-                    // Information Card that overlaps the header
-                    UserInfoCard(
-                      profile: profile,
-                      onEditTap: _showEditProfile,
-                    ),
-                    const SizedBox(height: 35),
-                    // Abilities Card
-                    AbilitiesCard(
-                      abilities: abilities,
-                      onEditTap: _showEditAbility,
-                    ),
-                    const SizedBox(height: 140),
-                  ],
-                ),
+            SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const ProfileHeader(),
+                  const SizedBox(height: 20),
+                  UserInfoCard(
+                    profile: profile,
+                    onEditTap: _showEditProfile,
+                  ),
+                  const SizedBox(height: 35),
+                  // Abilities Card
+                  AbilitiesCard(
+                    abilities: abilities,
+                    onEditTap: _showEditAbility,
+                  ),
+                  const SizedBox(height: 140),
+                ],
               ),
             ),
             if (isUploadingPhoto)
@@ -261,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: const Center(
                   child: CircularProgressIndicator(color: Colors.white),
                 ),
-               ),
+              ),
           ],
         ),
       );

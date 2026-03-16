@@ -163,7 +163,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 SafeArea(
                   bottom: false,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 195),
+                    padding: const EdgeInsets.only(top: 210),
                     child: CalendarCard(
                       selectedDate: _selectedDate,
                       upcomingTasks: _upcomingTasks,

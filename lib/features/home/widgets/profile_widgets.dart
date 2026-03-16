@@ -13,15 +13,32 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(25, 20, 25, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Background teal — Positioned agar tidak memengaruhi tinggi Stack
+        // Background tetap visually meluas ke top+230px
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: MediaQuery.of(context).padding.top + 230,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+          ),
+        ),
+        // Konten asli — menentukan tinggi Stack yang dilaporkan ke Column
+        Padding(
+          padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 20, 25, 30),
+          child: Row(
             children: [
+              // Tombol back — kiri
               GestureDetector(
                 onTap: () {
                   if (Navigator.canPop(context)) {
@@ -39,6 +56,26 @@ class ProfileHeader extends StatelessWidget {
                   child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 24),
                 ),
               ),
+              const Spacer(),
+              // Judul — pill putih tengah
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: Text(
+                  'Profile',
+                  style: GoogleFonts.outfit(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTeal,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              // Tombol logout — kanan
               GestureDetector(
                 onTap: () => _handleLogout(context),
                 child: Container(
@@ -52,18 +89,8 @@ class ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Profile',
-            style: GoogleFonts.outfit(
-              fontSize: 54,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

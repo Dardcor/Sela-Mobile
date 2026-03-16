@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/colors.dart';
 
@@ -27,12 +27,12 @@ class ScreenHeaderBar extends StatelessWidget {
           GestureDetector(
             onTap: onBack ?? () => Navigator.pop(context),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back, size: 20),
+              child: const Icon(Icons.arrow_back, size: 24),
             ),
           ),
           Container(

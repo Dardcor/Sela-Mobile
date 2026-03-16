@@ -18,98 +18,107 @@ class CalendarHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primaryTeal,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(40),
+    return Stack(
+      children: [
+        // Background teal — fixed height, tidak membatasi konten
+        Container(
+          height: MediaQuery.of(context).padding.top + 230,
+          decoration: const BoxDecoration(
+            color: AppColors.primaryTeal,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
         ),
-      ),
-      padding: const EdgeInsets.fromLTRB(25, 20, 25, 140),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else {
-                      Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 22),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
-                  decoration: BoxDecoration(
+        // Konten — tidak punya height constraint, bebas dari overflow
+        Padding(
+          padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 20, 25, 30),
+          child: Column(
+            children: [
+          // Baris 1: back button kiri | judul pill tengah | spacer kanan
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(40),
+                    shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    'Calender',
+                  child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 24),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: Text(
+                  'Calender',
+                  style: GoogleFonts.outfit(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTeal,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 44), // spacer penyeimbang
+            ],
+          ),
+          const SizedBox(height: 30),
+          // Baris 2: navigasi bulan terpusat
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => onMonthChanged(-1),
+                child: const Icon(Icons.chevron_left, color: Colors.white, size: 32),
+              ),
+              Column(
+                children: [
+                  Text(
+                    _getMonthName(selectedDate.month),
                     style: GoogleFonts.outfit(
-                      fontSize: 30,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryTeal,
-                      letterSpacing: -0.5,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-                const Spacer(),
-                const SizedBox(width: 44), 
-              ],
-            ),
-            const SizedBox(height: 35),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => onMonthChanged(-1),
-                  child: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
-                ),
-                Column(
-                  children: [
-                    Text(
-                      _getMonthName(selectedDate.month),
-                      style: GoogleFonts.outfit(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  Text(
+                    '${selectedDate.year}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.85),
+                      fontWeight: FontWeight.w500,
                     ),
-                    Text(
-                      '${selectedDate.year}',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () => onMonthChanged(1),
-                  child: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
-                ),
-              ],
-            ),
-          ],
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => onMonthChanged(1),
+                child: const Icon(Icons.chevron_right, color: Colors.white, size: 32),
+              ),
+            ],
+          ),
+        ],
+          ),
         ),
-      ),
+      ],
     );
   }
+
 
   String _getMonthName(int month) {
     const months = [

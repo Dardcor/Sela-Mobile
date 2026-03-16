@@ -33,24 +33,30 @@ class DashboardHeader extends StatelessWidget {
     final name = profile?['full_name'] ?? profile?['username'] ?? 'User';
     final role = profile?['class_name'] ?? 'Mahasiswa';
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        25,
-        MediaQuery.of(context).padding.top + 20,
-        25,
-        30,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.primaryTeal,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+    return Stack(
+      children: [
+        // Background teal — fixed height, tidak membatasi konten
+        Container(
+          height: MediaQuery.of(context).padding.top + 230,
+          decoration: const BoxDecoration(
+            color: AppColors.primaryTeal,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        // Konten — tidak punya height constraint, bebas dari overflow
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            25,
+            MediaQuery.of(context).padding.top + 20,
+            25,
+            30,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -143,7 +149,9 @@ class DashboardHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
