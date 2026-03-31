@@ -658,7 +658,12 @@ class _GroupScreenState extends State<GroupScreen> {
           // ✅ Header sesuai Gambar 1
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 15, 25, 20),
+              padding: EdgeInsets.fromLTRB(
+                25,
+                MediaQuery.of(context).padding.top + 15,
+                25,
+                20,
+              ),
               child: Row(
                 children: [
                   // Tombol back — kiri
@@ -668,7 +673,9 @@ class _GroupScreenState extends State<GroupScreen> {
                         Navigator.pop(context);
                       } else {
                         Navigator.pushNamedAndRemoveUntil(
-                          context, '/dashboard', (route) => false,
+                          context,
+                          '/dashboard',
+                          (route) => false,
                         );
                       }
                     },
@@ -688,7 +695,10 @@ class _GroupScreenState extends State<GroupScreen> {
                   const Spacer(),
                   // Judul — pill putih tengah
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 35,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(40),
@@ -710,22 +720,8 @@ class _GroupScreenState extends State<GroupScreen> {
                     ),
                   ),
                   const Spacer(),
-                  // Tombol add group — kanan (penyeimbang)
-                  GestureDetector(
-                    onTap: _showJoinCreateModal,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.group_add_rounded,
-                        color: AppColors.primaryTeal,
-                        size: 24,
-                      ),
-                    ),
-                  ),
+                  // Penyeimbang ukuran tombol back (agar judul tetap center)
+                  const SizedBox(width: 44),
                 ],
               ),
             ),
