@@ -74,6 +74,17 @@ CREATE TABLE IF NOT EXISTS "public"."task_links" (
     "created_at" timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS "public"."task_files" (
+    "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    "task_id" uuid REFERENCES "public"."tasks"(id) ON DELETE CASCADE,
+    "file_name" text NOT NULL,
+    "file_path" text NOT NULL,
+    "file_type" text,
+    "file_size" bigint DEFAULT 0,
+    "uploaded_by" uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    "created_at" timestamp with time zone DEFAULT now()
+);
+
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."groups" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."group_members" ENABLE ROW LEVEL SECURITY;
@@ -81,6 +92,7 @@ ALTER TABLE "public"."tasks" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."subtasks" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."subtask_progress" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."task_links" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."task_files" ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION public.is_group_member(p_group_id uuid, p_user_id uuid)
 RETURNS boolean
@@ -295,6 +307,64 @@ BEGIN
             )
         );
 
+    -- ─── task_files policies ───────────────────────────────────────────────
+    DROP POLICY IF EXISTS "Anyone can view task files" ON task_files;
+    CREATE POLICY "Anyone can view task files"
+        ON task_files FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM tasks
+                WHERE tasks.id = task_files.task_id
+                  AND (
+                      tasks.created_by = auth.uid()
+                      OR (
+                          tasks.is_group = true
+                          AND tasks.group_id IS NOT NULL
+                          AND public.is_group_member(tasks.group_id, auth.uid())
+                      )
+                  )
+            )
+        );
+
+    DROP POLICY IF EXISTS "Creators can insert task files" ON task_files;
+    CREATE POLICY "Creators can insert task files"
+        ON task_files FOR INSERT WITH CHECK (
+            auth.uid() = uploaded_by
+            AND EXISTS (
+                SELECT 1 FROM tasks
+                WHERE tasks.id = task_files.task_id
+                  AND tasks.created_by = auth.uid()
+            )
+        );
+
+    DROP POLICY IF EXISTS "Creators can delete task files" ON task_files;
+    CREATE POLICY "Creators can delete task files"
+        ON task_files FOR DELETE USING (
+            auth.uid() = uploaded_by
+        );
+
+    -- ─── Storage bucket: task-files ────────────────────────────────────────
+    INSERT INTO storage.buckets (id, name, public)
+    VALUES ('task-files', 'task-files', false)
+    ON CONFLICT (id) DO NOTHING;
+
+    DROP POLICY IF EXISTS "Authenticated users can upload task files" ON storage.objects;
+    CREATE POLICY "Authenticated users can upload task files"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (bucket_id = 'task-files');
+
+    DROP POLICY IF EXISTS "Task file owners can view their files" ON storage.objects;
+    CREATE POLICY "Task file owners can view their files"
+    ON storage.objects FOR SELECT
+    TO authenticated
+    USING (bucket_id = 'task-files');
+
+    DROP POLICY IF EXISTS "Task file owners can delete their files" ON storage.objects;
+    CREATE POLICY "Task file owners can delete their files"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (bucket_id = 'task-files' AND (storage.foldername(name))[1] = auth.uid()::text);
+
     CREATE TABLE IF NOT EXISTS "public"."profile_abilities" (
         "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
         "user_id" uuid REFERENCES "public"."profiles"(id) ON DELETE CASCADE,
@@ -387,4 +457,5 @@ ALTER PUBLICATION supabase_realtime SET TABLE
     public.subtasks, 
     public.subtask_progress, 
     public.task_links,
+    public.task_files,
     public.profile_abilities;

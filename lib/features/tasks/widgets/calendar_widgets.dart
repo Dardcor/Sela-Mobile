@@ -281,14 +281,17 @@ class CalendarCard extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// UpcomingTaskSection â€” Daftar tugas mendatang.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class UpcomingTaskSection extends StatelessWidget {
   final List<Map<String, dynamic>> tasks;
+  final String currentUserId;
   final Function(String) onDelete;
 
-  const UpcomingTaskSection({super.key, required this.tasks, required this.onDelete});
+  const UpcomingTaskSection({
+    super.key,
+    required this.tasks,
+    required this.currentUserId,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -306,10 +309,16 @@ class UpcomingTaskSection extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           if (tasks.isEmpty)
-             Center(child: Text('No upcoming tasks', style: GoogleFonts.outfit(color: Colors.grey)))
+            Center(
+              child: Text(
+                'No upcoming tasks',
+                style: GoogleFonts.outfit(color: Colors.grey),
+              ),
+            )
           else
             ...tasks.map((task) => _TaskCard(
-              task: task, 
+              task: task,
+              currentUserId: currentUserId,
               onDelete: () => onDelete(task['id']),
             )).toList(),
         ],
@@ -320,28 +329,179 @@ class UpcomingTaskSection extends StatelessWidget {
 
 class _TaskCard extends StatelessWidget {
   final Map<String, dynamic> task;
+  final String currentUserId;
   final VoidCallback onDelete;
 
-  const _TaskCard({required this.task, required this.onDelete});
+  const _TaskCard({
+    required this.task,
+    required this.currentUserId,
+    required this.onDelete,
+  });
+
+  Future<bool> _showDeleteConfirmation(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Ikon peringatan
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red[400],
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Hapus Task?',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Apa anda yakin ingin menghapus task ini?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  // Tombol Tidak
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppColors.primaryTeal,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Tidak',
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryTeal,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  // Tombol Ya
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.red[400],
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Ya',
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return result ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool isOwner = (task['created_by'] ?? '') == currentUserId;
+
     return Dismissible(
       key: Key(task['id'].toString()),
       direction: DismissDirection.endToStart,
+      // ✅ Background merah muncul saat swipe
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 25),
         margin: const EdgeInsets.only(bottom: 15),
         decoration: BoxDecoration(
-          color: Colors.transparent,
+          color: Colors.red[50],
           borderRadius: BorderRadius.circular(25),
         ),
-        child: Icon(Icons.delete_rounded, color: AppColors.primaryTeal.withOpacity(0.8), size: 35),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Hapus',
+              style: GoogleFonts.outfit(
+                color: Colors.red[400],
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.delete_rounded, color: Colors.red[400], size: 28),
+          ],
+        ),
       ),
+      // ✅ confirmDismiss: cek permission dulu, lalu tampilkan popup konfirmasi
+      confirmDismiss: (_) async {
+        if (!isOwner) {
+          // Member tidak bisa hapus task — tampilkan info
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Hanya pembuat task yang dapat menghapus task ini',
+                style: GoogleFonts.outfit(),
+              ),
+              backgroundColor: Colors.orange[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          return false;
+        }
+        // Pembuat task: tampilkan dialog konfirmasi
+        return await _showDeleteConfirmation(context);
+      },
       onDismissed: (_) => onDelete(),
       child: Container(
-        width: double.infinity, // Full width
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(

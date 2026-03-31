@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
@@ -9,13 +10,9 @@ import '../widgets/task_detail_widgets.dart';
 
 /// AddProjectScreen — Kerangka layar tambah tugas (grup/individual).
 ///
-/// File ini mengelola form state dan proses penyimpanan ke Supabase.
-/// Rendering UI didelegasikan ke komponen di [task_detail_widgets.dart]:
-/// - [AddTaskTopBar]         → header navigasi (const, tidak di-rebuild)
-/// - [TaskTypeToggle]        → toggle Grup/Individual (rebuild saat toggle berubah)
-/// - [LabeledInputField]     → field input dengan floating label
-/// - [AddTaskGroupDropdown]  → dropdown pilih grup (rebuild saat grup dipilih)
-/// - [FileUploadSection]     → section upload file (const, statis)
+/// Mendukung:
+/// - Multiple links (disimpan ke tabel task_links)
+/// - Upload file (PDF, Word, Excel, PPT, Gambar) ke Supabase storage
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
 
@@ -29,7 +26,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final titleCtrl = TextEditingController();
   final dateCtrl = TextEditingController();
   final descCtrl = TextEditingController();
-  final linkCtrl = TextEditingController();
+
+  // Multiple links
+  List<String> _links = [];
+
+  // Multiple files
+  List<PlatformFile> _files = [];
 
   List<dynamic> userGroups = [];
   dynamic selectedGroup;
@@ -48,7 +50,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     titleCtrl.dispose();
     dateCtrl.dispose();
     descCtrl.dispose();
-    linkCtrl.dispose();
     super.dispose();
   }
 
@@ -70,20 +71,42 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     }
     setState(() => isLoading = true);
     try {
-      await supabase.from('tasks').insert({
+      // 1. Simpan task ke tabel tasks
+      final taskRes = await supabase.from('tasks').insert({
         'title': titleCtrl.text,
         'description': descCtrl.text,
         'due_date': dateCtrl.text.isNotEmpty
             ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
             : null,
-        'link': linkCtrl.text,
         'is_group': isGroup,
         'group_id': isGroup ? selectedGroup['id'] : null,
         'created_by': supabase.auth.currentUser!.id,
-      });
+      }).select().single();
+
+      final taskId = taskRes['id'] as String;
+
+      // 2. Simpan multiple links ke tabel task_links
+      for (final link in _links) {
+        if (link.trim().isNotEmpty) {
+          await supabase.from('task_links').insert({
+            'task_id': taskId,
+            'url': link.trim(),
+          });
+        }
+      }
+
+      // 3. Upload files ke Supabase storage bucket "task-files"
+      for (final file in _files) {
+        if (file.bytes != null) {
+          final path = '$taskId/${file.name}';
+          await supabase.storage
+              .from('task-files')
+              .uploadBinary(path, file.bytes!);
+        }
+      }
+
       if (mounted) {
         setState(() => isLoading = false);
-        // ✅ Menggunakan SuccessDialog reusable dari shared_widgets
         SuccessDialog.show(
           context,
           message: 'Task successfully added',
@@ -95,6 +118,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
@@ -106,10 +132,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         children: [
           Column(
             children: [
-              // ✅ Header navigasi — const, tidak pernah di-rebuild
+              // Header navigasi — const, tidak pernah di-rebuild
               const AddTaskTopBar(),
               const SizedBox(height: 30),
-              // ✅ Toggle Grup/Individual — rebuild hanya saat toggle berubah
+              // Toggle Grup/Individual
               TaskTypeToggle(
                 isGroup: isGroup,
                 onGroupTap: () {
@@ -152,13 +178,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   Widget _buildForm(bool forGroup) {
     return SingleChildScrollView(
-      clipBehavior: Clip.none, // Allow floating labels to overflow
+      clipBehavior: Clip.none,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
-            const SizedBox(height: 15), // Space for the first floating label
-            // ✅ Field dengan floating label dari local widgets
+            const SizedBox(height: 15),
             LabeledInputField(
               label: 'Title',
               hint: 'Enter a task title',
@@ -184,7 +209,6 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ),
             const SizedBox(height: 25),
             if (forGroup) ...[
-              // ✅ Dropdown grup diisolasi — rebuild hanya saat grup dipilih
               AddTaskGroupDropdown(
                 userGroups: userGroups,
                 selectedGroup: selectedGroup,
@@ -199,6 +223,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               lines: 4,
             ),
             const SizedBox(height: 30),
+            // Divider "Support"
             Row(
               children: [
                 const Expanded(child: Divider()),
@@ -216,50 +241,17 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: LabeledInputField(
-                    label: 'Link',
-                    hint: 'Enter a link',
-                    controller: linkCtrl,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 25,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryTeal.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'Add',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // ✅ Multi-link section — link muncul di atas kolom input
+            LinkListSection(
+              links: _links,
+              onLinksChanged: (updated) => setState(() => _links = updated),
             ),
             const SizedBox(height: 25),
-            // ✅ Upload section — const, tidak pernah di-rebuild
-            const FileUploadSection(),
+            // ✅ Upload file section — hanya PDF, Word, Excel, PPT, Gambar
+            FileUploadSection(
+              files: _files,
+              onFilesChanged: (updated) => setState(() => _files = updated),
+            ),
             const SizedBox(height: 35),
             SizedBox(
               width: double.infinity,

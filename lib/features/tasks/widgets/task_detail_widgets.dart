@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
 
@@ -712,45 +713,314 @@ class LabeledInputField extends StatelessWidget {
     );
 }
 
-/// Section upload file di AddProjectScreen.
-class FileUploadSection extends StatelessWidget {
-  const FileUploadSection({super.key});
+// ─────────────────────────────────────────────────────────────────────────────
+// LinkListSection — Mendukung penambahan banyak link secara dinamis.
+// Setiap link yang ditambahkan muncul di atas kolom input.
+// ─────────────────────────────────────────────────────────────────────────────
+class LinkListSection extends StatefulWidget {
+  final List<String> links;
+  final Function(List<String>) onLinksChanged;
+
+  const LinkListSection({
+    super.key,
+    required this.links,
+    required this.onLinksChanged,
+  });
 
   @override
-  Widget build(BuildContext context) => Container(
-      width: double.infinity,
-      height: 130,
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.primaryTeal, width: 1.5),
-        borderRadius: BorderRadius.circular(25),
-        color: Colors.white,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.cloud_upload_rounded,
-            color: AppColors.primaryTeal,
-            size: 45,
+  State<LinkListSection> createState() => _LinkListSectionState();
+}
+
+class _LinkListSectionState extends State<LinkListSection> {
+  final _ctrl = TextEditingController();
+
+  void _addLink() {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    final updated = [...widget.links, text];
+    widget.onLinksChanged(updated);
+    _ctrl.clear();
+  }
+
+  void _removeLink(int index) {
+    final updated = List<String>.from(widget.links)..removeAt(index);
+    widget.onLinksChanged(updated);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Daftar link yang sudah ditambahkan — ditampilkan di atas kolom input
+        if (widget.links.isNotEmpty)
+          Column(
+            children: widget.links.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final link = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link_rounded, color: AppColors.primaryTeal, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        link,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                          decoration: TextDecoration.underline,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _removeLink(idx),
+                      child: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Upload your file here',
-            style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
+        // Baris input link + tombol Add
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: LabeledInputField(
+                label: 'Link',
+                hint: 'Enter a link',
+                controller: _ctrl,
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: _addLink,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'Add',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FileUploadSection — Upload file dengan batasan tipe: PDF, Word, Excel, PPT, Gambar.
+// Menampilkan daftar file yang sudah diupload dan memungkinkan penghapusan tiap file.
+// ─────────────────────────────────────────────────────────────────────────────
+class FileUploadSection extends StatefulWidget {
+  final List<PlatformFile> files;
+  final Function(List<PlatformFile>) onFilesChanged;
+
+  const FileUploadSection({
+    super.key,
+    required this.files,
+    required this.onFilesChanged,
+  });
+
+  @override
+  State<FileUploadSection> createState() => _FileUploadSectionState();
+}
+
+class _FileUploadSectionState extends State<FileUploadSection> {
+  static const _allowedExtensions = [
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'jpg', 'jpeg', 'png', 'gif', 'webp',
+  ];
+
+  IconData _iconForFile(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'pdf': return Icons.picture_as_pdf_rounded;
+      case 'doc': case 'docx': return Icons.description_rounded;
+      case 'xls': case 'xlsx': return Icons.table_chart_rounded;
+      case 'ppt': case 'pptx': return Icons.slideshow_rounded;
+      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp':
+        return Icons.image_rounded;
+      default: return Icons.insert_drive_file_rounded;
+    }
+  }
+
+  Color _colorForFile(String ext) {
+    switch (ext.toLowerCase()) {
+      case 'pdf': return Colors.red[400]!;
+      case 'doc': case 'docx': return Colors.blue[600]!;
+      case 'xls': case 'xlsx': return Colors.green[600]!;
+      case 'ppt': case 'pptx': return Colors.orange[600]!;
+      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp':
+        return Colors.purple[400]!;
+      default: return Colors.grey[500]!;
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: _allowedExtensions,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final updated = [...widget.files, ...result.files];
+    widget.onFilesChanged(updated);
+  }
+
+  void _removeFile(int index) {
+    final updated = List<PlatformFile>.from(widget.files)..removeAt(index);
+    widget.onFilesChanged(updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Daftar file yang sudah dipilih
+        if (widget.files.isNotEmpty)
+          Column(
+            children: widget.files.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final file = entry.value;
+              final ext = (file.extension ?? '').toLowerCase();
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(_iconForFile(ext), color: _colorForFile(ext), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            file.name,
+                            style: GoogleFonts.outfit(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (file.size > 0)
+                            Text(
+                              '${(file.size / 1024).toStringAsFixed(1)} KB',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _removeFile(idx),
+                      child: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Browse',
-            style: GoogleFonts.outfit(
-              color: AppColors.primaryTeal,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              decoration: TextDecoration.underline,
+        // Area drop/pick file
+        GestureDetector(
+          onTap: _pickFiles,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.primaryTeal, width: 1.5),
+              borderRadius: BorderRadius.circular(25),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.cloud_upload_rounded,
+                  color: AppColors.primaryTeal,
+                  size: 45,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Upload your file here',
+                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'PDF · Word · Excel · PPT · Image',
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[400],
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Browse',
+                  style: GoogleFonts.outfit(
+                    color: AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
