@@ -9,19 +9,79 @@ import '../../../core/shared_widgets/task_progress_indicator.dart';
 class TaskDetailCard extends StatelessWidget {
   final dynamic task;
   final double progress;
+  final List<Map<String, dynamic>> taskFiles;
 
   const TaskDetailCard({
     super.key,
     required this.task,
     required this.progress,
+    this.taskFiles = const [],
   });
 
   String _formatDateShort(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${dt.day} ${months[dt.month - 1]}';
+  }
+
+  IconData _iconForFileExt(String ext) {
+    switch (ext) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart_rounded;
+      case 'ppt':
+      case 'pptx':
+        return Icons.slideshow_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Icons.image_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
+    }
+  }
+
+  Color _colorForFileExt(String ext) {
+    switch (ext) {
+      case 'pdf':
+        return Colors.red;
+      case 'doc':
+      case 'docx':
+        return Colors.blue;
+      case 'xls':
+      case 'xlsx':
+        return Colors.green;
+      case 'ppt':
+      case 'pptx':
+        return Colors.orange;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -83,66 +143,89 @@ class TaskDetailCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            task['description'] ?? 'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+            task['description'] ??
+                'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
             style: GoogleFonts.outfit(
-              fontSize: 11, 
+              fontSize: 11,
               color: Colors.grey[600],
               height: 1.5,
             ),
           ),
           const SizedBox(height: 15),
-          if (task['link'] != null && task['link'].toString().isNotEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task['link'],
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  task['link'], // Tampilkan link kedua jika ada di gambar
-                  style: GoogleFonts.outfit(
-                    fontSize: 10,
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
-                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Report',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
+          // Links dari task_links
+          if (task['task_links'] != null &&
+              (task['task_links'] as List).isNotEmpty)
+            ...(task['task_links'] as List).map(
+              (link) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(
+                  children: [
+                    Icon(Icons.link_rounded, color: Colors.blue[400], size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        link['url'] ?? '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            ],
+            ),
+          // Files yang dilampirkan
+          if (taskFiles.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...taskFiles.map((file) {
+              final fileName = file['name'] as String? ?? 'file';
+              final ext = fileName.contains('.')
+                  ? fileName.split('.').last.toLowerCase()
+                  : '';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _iconForFileExt(ext),
+                      color: _colorForFileExt(ext),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 15),
+          Text(
+            '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
+            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
           ),
         ],
       ),
@@ -153,16 +236,97 @@ class TaskDetailCard extends StatelessWidget {
 /// Kartu daftar progress/subtask dari tugas mandiri.
 /// Diisolasi sehingga hanya bagian ini yang di-rebuild saat data subtask berubah.
 class TaskProgressCard extends StatelessWidget {
+  final String taskTitle;
   final List subtasks;
   final String userId;
   final Function(String, int) onStatusChanged;
 
   const TaskProgressCard({
-    super.key, 
+    super.key,
+    required this.taskTitle,
     required this.subtasks,
     required this.userId,
     required this.onStatusChanged,
   });
+
+  void _showDetailDialog(
+    BuildContext context,
+    String title,
+    String description,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                taskTitle,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Detail:',
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                description.isEmpty
+                    ? 'No description available for this subtask.'
+                    : description,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    'Close',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,48 +376,55 @@ class TaskProgressCard extends StatelessWidget {
                 orElse: () => null,
               );
               final prog = (progressData?['progress'] as num?)?.toInt() ?? 0;
-              
-              String statusText = 'Upcoming';
-              if (prog >= 100) statusText = 'Done';
-              else if (prog > 0) statusText = 'In Progress';
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      st['title'],
-                      style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    PopupMenuButton<int>(
-                      onSelected: (val) => onStatusChanged(st['id'], val),
-                      itemBuilder: (ctx) => [
-                        const PopupMenuItem(value: 0, child: Text('Upcoming')),
-                        const PopupMenuItem(value: 50, child: Text('In progress')),
-                        const PopupMenuItem(value: 100, child: Text('Done')),
+                    Row(
+                      children: [
+                        Text(
+                          st['title'] ?? '',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _showDetailDialog(
+                            context,
+                            st['title'] ?? '',
+                            st['description'] ?? '',
+                          ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: AppColors.primaryTeal,
+                            size: 16,
+                          ),
+                        ),
                       ],
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentTeal,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              statusText,
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.expand_more_rounded, color: Colors.white, size: 16),
-                          ],
-                        ),
+                    ),
+                    Checkbox(
+                      value: prog == 100,
+                      activeColor: AppColors.primaryTeal,
+                      checkColor: Colors.white,
+                      side: const BorderSide(
+                        color: AppColors.primaryTeal,
+                        width: 1.5,
                       ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      onChanged: (val) {
+                        if (val == true) {
+                          onStatusChanged(st['id'], 100);
+                        } else {
+                          onStatusChanged(st['id'], 0);
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -278,10 +449,13 @@ class IndependentCreateSubtaskSection extends StatefulWidget {
   });
 
   @override
-  State<IndependentCreateSubtaskSection> createState() => _IndependentCreateSubtaskSectionState();
+  State<IndependentCreateSubtaskSection> createState() =>
+      _IndependentCreateSubtaskSectionState();
 }
 
-class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubtaskSection> with SingleTickerProviderStateMixin {
+class _IndependentCreateSubtaskSectionState
+    extends State<IndependentCreateSubtaskSection>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -292,7 +466,8 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging || _tabController.index != _activeTab) {
+      if (_tabController.indexIsChanging ||
+          _tabController.index != _activeTab) {
         setState(() => _activeTab = _tabController.index);
       }
     });
@@ -345,7 +520,10 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
             unselectedLabelColor: Colors.grey[400],
             indicatorColor: AppColors.primaryTeal,
             indicatorWeight: 3,
-            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15),
+            labelStyle: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
             dividerColor: Colors.grey[200],
             tabs: const [
               Tab(text: 'Automatic'),
@@ -369,12 +547,17 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
                         const SizedBox(height: 10),
                         Text(
                           '*tasks will be automatically divided according to your abilities',
-                          style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500]),
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
                         GestureDetector(
-                          onTap: widget.isLoading ? null : widget.onCreateAutomatic,
+                          onTap: widget.isLoading
+                              ? null
+                              : widget.onCreateAutomatic,
                           child: Container(
                             width: double.infinity,
                             height: 48,
@@ -384,13 +567,31 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
                             ),
                             child: Center(
                               child: widget.isLoading
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                                        const Icon(
+                                          Icons.auto_awesome,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
                                         const SizedBox(width: 8),
-                                        Text('Create', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                                        Text(
+                                          'Create',
+                                          style: GoogleFonts.outfit(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ],
                                     ),
                             ),
@@ -405,16 +606,31 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
                     child: Column(
                       children: [
                         const SizedBox(height: 10),
-                        _CreateSubtaskField(label: 'Subtask title', hint: 'subtask title', controller: _titleCtrl),
+                        _CreateSubtaskField(
+                          label: 'Subtask title',
+                          hint: 'subtask title',
+                          controller: _titleCtrl,
+                        ),
                         const SizedBox(height: 20),
-                        _CreateSubtaskField(label: 'Description', hint: 'description', controller: _descCtrl, lines: 3),
+                        _CreateSubtaskField(
+                          label: 'Description',
+                          hint: 'description',
+                          controller: _descCtrl,
+                          lines: 3,
+                        ),
                         const SizedBox(height: 20),
                         GestureDetector(
-                          onTap: widget.isLoading ? null : () {
-                            widget.onCreateManual(_titleCtrl.text, null, _descCtrl.text);
-                            _titleCtrl.clear();
-                            _descCtrl.clear();
-                          },
+                          onTap: widget.isLoading
+                              ? null
+                              : () {
+                                  widget.onCreateManual(
+                                    _titleCtrl.text,
+                                    null,
+                                    _descCtrl.text,
+                                  );
+                                  _titleCtrl.clear();
+                                  _descCtrl.clear();
+                                },
                           child: Container(
                             width: double.infinity,
                             height: 48,
@@ -424,8 +640,21 @@ class _IndependentCreateSubtaskSectionState extends State<IndependentCreateSubta
                             ),
                             child: Center(
                               child: widget.isLoading
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : Text('Create', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Create',
+                                      style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
@@ -505,74 +734,74 @@ class _ProgressRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              title,
-              style: GoogleFonts.outfit(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            '${value.toInt()}%',
+    padding: const EdgeInsets.only(bottom: 18),
+    child: Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            title,
             style: GoogleFonts.outfit(
-              fontSize: 13,
-              color: AppColors.primaryTeal,
-              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            flex: 3,
-            child: Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                Container(
+        ),
+        Text(
+          '${value.toInt()}%',
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            color: AppColors.primaryTeal,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          flex: 3,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: (value / 100).clamp(0.0, 1.0),
+                child: Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: AppColors.primaryTeal,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                FractionallySizedBox(
-                  widthFactor: (value / 100).clamp(0.0, 1.0),
-                  child: Container(
-                    height: 8,
-                    decoration: BoxDecoration(
+              ),
+              Positioned(
+                left:
+                    (value / 100 * (MediaQuery.of(context).size.width * 0.3))
+                        .clamp(0.0, MediaQuery.of(context).size.width * 0.3) -
+                    6,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
                       color: AppColors.primaryTeal,
-                      borderRadius: BorderRadius.circular(10),
+                      width: 2.5,
                     ),
                   ),
                 ),
-                Positioned(
-                  left: (value / 100 *
-                              (MediaQuery.of(context).size.width * 0.3))
-                          .clamp(0.0, MediaQuery.of(context).size.width * 0.3) -
-                      6,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.primaryTeal,
-                        width: 2.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }
 
 /// Toggle Group / Individual di AddProjectScreen.
@@ -590,60 +819,60 @@ class TaskTypeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25),
-      height: 52,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: onGroupTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isGroup ? AppColors.primaryTeal : Colors.transparent,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: Center(
-                  child: Text(
-                    'Group',
-                    style: GoogleFonts.outfit(
-                      color: isGroup ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+    margin: const EdgeInsets.symmetric(horizontal: 25),
+    height: 52,
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(35),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: onGroupTap,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isGroup ? AppColors.primaryTeal : Colors.transparent,
+                borderRadius: BorderRadius.circular(35),
+              ),
+              child: Center(
+                child: Text(
+                  'Group',
+                  style: GoogleFonts.outfit(
+                    color: isGroup ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
             ),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: onIndividualTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: !isGroup ? AppColors.primaryTeal : Colors.transparent,
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: Center(
-                  child: Text(
-                    'Individual',
-                    style: GoogleFonts.outfit(
-                      color: !isGroup ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: onIndividualTap,
+            child: Container(
+              decoration: BoxDecoration(
+                color: !isGroup ? AppColors.primaryTeal : Colors.transparent,
+                borderRadius: BorderRadius.circular(35),
+              ),
+              child: Center(
+                child: Text(
+                  'Individual',
+                  style: GoogleFonts.outfit(
+                    color: !isGroup ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }
 
 /// Input field dengan label floating untuk AddProjectScreen.
@@ -669,48 +898,48 @@ class LabeledInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: lines == 1 ? 52 : null,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+    clipBehavior: Clip.none,
+    children: [
+      Container(
+        height: lines == 1 ? 52 : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+        ),
+        child: TextField(
+          controller: controller,
+          maxLines: lines,
+          readOnly: onTap != null,
+          onTap: onTap,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: InputBorder.none,
+            hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+            suffixIcon: icon != null
+                ? Icon(icon, color: Colors.grey[400])
+                : null,
           ),
-          child: TextField(
-            controller: controller,
-            maxLines: lines,
-            readOnly: onTap != null,
-            onTap: onTap,
-            decoration: InputDecoration(
-              hintText: hint,
-              border: InputBorder.none,
-              hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
-              suffixIcon: icon != null
-                  ? Icon(icon, color: Colors.grey[400])
-                  : null,
+        ),
+      ),
+      Positioned(
+        left: 14,
+        top: -10,
+        child: Container(
+          color: bgColor,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            label,
+            style: GoogleFonts.outfit(
+              color: AppColors.primaryTeal,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
           ),
         ),
-        Positioned(
-          left: 14,
-          top: -10,
-          child: Container(
-            color: bgColor,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              label,
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+      ),
+    ],
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -766,7 +995,10 @@ class _LinkListSectionState extends State<LinkListSection> {
               final link = entry.value;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -777,7 +1009,11 @@ class _LinkListSectionState extends State<LinkListSection> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.link_rounded, color: AppColors.primaryTeal, size: 16),
+                    const Icon(
+                      Icons.link_rounded,
+                      color: AppColors.primaryTeal,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -793,7 +1029,11 @@ class _LinkListSectionState extends State<LinkListSection> {
                     ),
                     GestureDetector(
                       onTap: () => _removeLink(idx),
-                      child: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
@@ -867,31 +1107,65 @@ class FileUploadSection extends StatefulWidget {
 
 class _FileUploadSectionState extends State<FileUploadSection> {
   static const _allowedExtensions = [
-    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'jpg', 'jpeg', 'png', 'gif', 'webp',
+    'pdf',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
   ];
 
   IconData _iconForFile(String ext) {
     switch (ext.toLowerCase()) {
-      case 'pdf': return Icons.picture_as_pdf_rounded;
-      case 'doc': case 'docx': return Icons.description_rounded;
-      case 'xls': case 'xlsx': return Icons.table_chart_rounded;
-      case 'ppt': case 'pptx': return Icons.slideshow_rounded;
-      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp':
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart_rounded;
+      case 'ppt':
+      case 'pptx':
+        return Icons.slideshow_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
         return Icons.image_rounded;
-      default: return Icons.insert_drive_file_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
     }
   }
 
   Color _colorForFile(String ext) {
     switch (ext.toLowerCase()) {
-      case 'pdf': return Colors.red[400]!;
-      case 'doc': case 'docx': return Colors.blue[600]!;
-      case 'xls': case 'xlsx': return Colors.green[600]!;
-      case 'ppt': case 'pptx': return Colors.orange[600]!;
-      case 'jpg': case 'jpeg': case 'png': case 'gif': case 'webp':
+      case 'pdf':
+        return Colors.red[400]!;
+      case 'doc':
+      case 'docx':
+        return Colors.blue[600]!;
+      case 'xls':
+      case 'xlsx':
+        return Colors.green[600]!;
+      case 'ppt':
+      case 'pptx':
+        return Colors.orange[600]!;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
         return Colors.purple[400]!;
-      default: return Colors.grey[500]!;
+      default:
+        return Colors.grey[500]!;
     }
   }
 
@@ -900,6 +1174,7 @@ class _FileUploadSectionState extends State<FileUploadSection> {
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: _allowedExtensions,
+      withData: true, // WAJIB untuk web/mobile jika menggunakan uploadBinary
     );
     if (result == null || result.files.isEmpty) return;
     final updated = [...widget.files, ...result.files];
@@ -925,7 +1200,10 @@ class _FileUploadSectionState extends State<FileUploadSection> {
               final ext = (file.extension ?? '').toLowerCase();
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -936,7 +1214,11 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                 ),
                 child: Row(
                   children: [
-                    Icon(_iconForFile(ext), color: _colorForFile(ext), size: 20),
+                    Icon(
+                      _iconForFile(ext),
+                      color: _colorForFile(ext),
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -965,7 +1247,11 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                     ),
                     GestureDetector(
                       onTap: () => _removeFile(idx),
-                      child: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
@@ -1032,43 +1318,46 @@ class AddTaskTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.fromLTRB(25, 55, 25, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_back, size: 24),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-            decoration: BoxDecoration(
+    padding: const EdgeInsets.fromLTRB(25, 55, 25, 0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                ),
-              ],
+              shape: BoxShape.circle,
             ),
-            child: Text(
-              'Add Task',
-              style: GoogleFonts.outfit(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryTeal,
+            child: const Icon(Icons.arrow_back, size: 24),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
               ),
+            ],
+          ),
+          child: Text(
+            'Add Task',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryTeal,
             ),
           ),
-          const SizedBox(width: 36),
-        ],
-      ),
-    );
+        ),
+        const SizedBox(width: 36),
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1105,7 +1394,10 @@ class AddTaskGroupDropdown extends StatelessWidget {
             child: DropdownButton<String>(
               isExpanded: true,
               value: selectedGroup?['id'] as String?,
-              hint: Text('Select a group', style: GoogleFonts.outfit(color: Colors.grey[400])),
+              hint: Text(
+                'Select a group',
+                style: GoogleFonts.outfit(color: Colors.grey[400]),
+              ),
               icon: Icon(Icons.expand_more, color: Colors.grey[300]),
               items: userGroups
                   .map((g) => g as Map<String, dynamic>)
@@ -1158,53 +1450,56 @@ class IndependentTaskDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 5, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
-                color: AppColors.primaryTeal,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+    width: double.infinity,
+    decoration: const BoxDecoration(color: Colors.white),
+    padding: EdgeInsets.fromLTRB(
+      25,
+      MediaQuery.of(context).padding.top + 5,
+      5,
+      10,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTeal,
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
           ),
-          const SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  'Independent\nTask',
-                  style: GoogleFonts.outfit(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryTeal,
-                    height: 1.1,
-                  ),
+        ),
+        const SizedBox(height: 5),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                'Independent\nTask',
+                style: GoogleFonts.outfit(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                  height: 1.1,
                 ),
               ),
-              Transform.translate(
-                offset: const Offset(-20, -10),
-                child: Image.asset(
-                  'assets/images/independent_task.png', 
-                  height: 95,
-                  fit: BoxFit.contain,
-                  errorBuilder: (ctx, e, s) => const SizedBox(height: 95),
-                ),
+            ),
+            Transform.translate(
+              offset: const Offset(-20, -10),
+              child: Image.asset(
+                'assets/images/independent_task.png',
+                height: 95,
+                fit: BoxFit.contain,
+                errorBuilder: (ctx, e, s) => const SizedBox(height: 95),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }

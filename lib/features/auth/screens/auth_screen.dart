@@ -143,6 +143,10 @@ class _AuthScreenState extends State<AuthScreen> {
       _showError('Username tidak boleh kosong');
       return;
     }
+    if (username.length > 20) {
+      _showError('Username maksimal 20 karakter');
+      return;
+    }
     if (email.isEmpty) {
       _showError('Email tidak boleh kosong');
       return;
@@ -205,29 +209,38 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.outfit()),
-        backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(15),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 1500),
+          content: Text(message, style: GoogleFonts.outfit()),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(15),
+        ),
+      );
   }
 
   void _showSuccess(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.outfit()),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(15),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 1500),
+          content: Text(message, style: GoogleFonts.outfit()),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(15),
+        ),
+      );
   }
 
   @override
@@ -509,6 +522,7 @@ class _RegisterForm extends StatelessWidget {
         label: 'Username',
         hint: 'Masukkan username Anda',
         icon: Icons.person_outline,
+        maxLength: 20,
       ),
       const SizedBox(height: 20),
       AuthTextField(

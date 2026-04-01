@@ -146,8 +146,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await _supabase.from('tasks').delete().eq('id', taskId);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus task: $e')),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Gagal menghapus task: $e')),
         );
         _fetchTasks();
       }

@@ -61,119 +61,132 @@ class DashboardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 26,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
-                          ? NetworkImage(profile!['avatar_url']) as ImageProvider
-                          : const AssetImage('assets/images/default_profile.png'),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: CircleAvatar(
+                          radius: 26,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundImage:
+                              profile?['avatar_url'] != null &&
+                                  profile!['avatar_url'].toString().isNotEmpty
+                              ? NetworkImage(profile!['avatar_url'])
+                                    as ImageProvider
+                              : const AssetImage(
+                                  'assets/images/default_profile.png',
+                                ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          role,
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            color: AppColors.primaryTeal,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(width: 15),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.length > 15
+                                ? '${name.substring(0, 15)}...'
+                                : name,
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              role,
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                color: AppColors.primaryTeal,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
+                  ),
+                  GestureDetector(
+                    onTap: onNotificationTap,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Stack(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Icon(
+                              Icons.notifications_outlined,
+                              color: AppColors.primaryTeal,
+                              size: 24,
+                            ),
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: onNotificationTap,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Stack(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          color: AppColors.primaryTeal,
-                          size: 24,
-                        ),
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+              const SizedBox(height: 25),
+              Text(
+                'Task Overview',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 15),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _OverviewCard(count: '$allTasksCount', label: 'All tasks'),
+                    _OverviewCard(count: '$doneTasksCount', label: 'Done'),
+                    _OverviewCard(
+                      count: '$inProgressCount',
+                      label: 'In progress',
+                    ),
+                    _OverviewCard(count: '$upcomingCount', label: 'Upcoming'),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 25),
-          Text(
-            'Task Overview',
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 15),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _OverviewCard(count: '$allTasksCount', label: 'All tasks'),
-                _OverviewCard(count: '$doneTasksCount', label: 'Done'),
-                _OverviewCard(count: '$inProgressCount', label: 'In progress'),
-                _OverviewCard(count: '$upcomingCount', label: 'Upcoming'),
-              ],
-            ),
-          ),
-        ],
           ),
         ),
       ],
@@ -190,35 +203,35 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-      width: 85,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            count,
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+    width: 85,
+    padding: const EdgeInsets.all(12),
+    margin: const EdgeInsets.only(right: 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          count,
+          style: GoogleFonts.outfit(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              color: Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 11,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }
 
 /// Kartu tugas grup di scroll horizontal dashboard.
@@ -350,8 +363,18 @@ class IndependentTaskItem extends StatelessWidget {
 
   String _formatDate(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
@@ -438,31 +461,31 @@ class DashboardSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Search a task....',
-            prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 22),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-            hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+    padding: const EdgeInsets.symmetric(horizontal: 25),
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: 'Search a task....',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 22),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
         ),
       ),
-    );
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -481,26 +504,26 @@ class DashboardSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          GestureDetector(
-            onTap: onSeeAll,
-            child: Text(
-              'See all',
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+    padding: const EdgeInsets.symmetric(horizontal: 25),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        GestureDetector(
+          onTap: onSeeAll,
+          child: Text(
+            'See all',
+            style: GoogleFonts.outfit(
+              color: AppColors.primaryTeal,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 }

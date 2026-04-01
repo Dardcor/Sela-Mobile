@@ -205,11 +205,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (results == null ||
                                       (results as List).isEmpty) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      ScaffoldMessenger.of(context,
+                                      )..clearSnackBars()..showSnackBar(
+                                        const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
                                             'Invalid or expired code',
                                           ),
                                         ),
@@ -226,9 +224,8 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (mounted) {
                                     Navigator.pop(ctx);
                                     _fetch();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
+                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                      const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
                                           'Successfully joined group! ✅',
                                         ),
                                         backgroundColor: AppColors.primaryTeal,
@@ -237,9 +234,8 @@ class _GroupScreenState extends State<GroupScreen> {
                                   }
                                 } catch (e) {
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
+                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                      const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
                                           'Failed to join. You may already be a member.',
                                         ),
                                       ),

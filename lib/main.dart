@@ -55,6 +55,9 @@ class MyApp extends StatelessWidget {
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryTeal),
       useMaterial3: true,
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
     ),
 
     initialRoute: '/',

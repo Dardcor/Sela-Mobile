@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -64,24 +65,29 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   Future<void> _save() async {
     if (titleCtrl.text.isEmpty) return;
     if (isGroup && selectedGroup == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a group')),
-      );
+      ScaffoldMessenger.of(context,
+      )..clearSnackBars()..showSnackBar(const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Please select a group')));
       return;
     }
     setState(() => isLoading = true);
     try {
       // 1. Simpan task ke tabel tasks
-      final taskRes = await supabase.from('tasks').insert({
-        'title': titleCtrl.text,
-        'description': descCtrl.text,
-        'due_date': dateCtrl.text.isNotEmpty
-            ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
-            : null,
-        'is_group': isGroup,
-        'group_id': isGroup ? selectedGroup['id'] : null,
-        'created_by': supabase.auth.currentUser!.id,
-      }).select().single();
+      final taskRes = await supabase
+          .from('tasks')
+          .insert({
+            'title': titleCtrl.text,
+            'description': descCtrl.text,
+            'due_date': dateCtrl.text.isNotEmpty
+                ? DateFormat(
+                    'MM/dd/yyyy',
+                  ).parse(dateCtrl.text).toIso8601String()
+                : null,
+            'is_group': isGroup,
+            'group_id': isGroup ? selectedGroup['id'] : null,
+            'created_by': supabase.auth.currentUser!.id,
+          })
+          .select()
+          .single();
 
       final taskId = taskRes['id'] as String;
 
@@ -97,11 +103,32 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
       // 3. Upload files ke Supabase storage bucket "task-files"
       for (final file in _files) {
+        final path = '$taskId/${file.name}';
+        bool uploadSuccess = false;
+
         if (file.bytes != null) {
-          final path = '$taskId/${file.name}';
+          // File dari web (karena withData: true)
           await supabase.storage
               .from('task-files')
               .uploadBinary(path, file.bytes!);
+          uploadSuccess = true;
+        } else if (file.path != null) {
+          // File dari device asli (Android/iOS)
+          await supabase.storage
+              .from('task-files')
+              .upload(path, File(file.path!));
+          uploadSuccess = true;
+        }
+
+        if (uploadSuccess) {
+          await supabase.from('task_files').insert({
+            'task_id': taskId,
+            'file_name': file.name,
+            'file_path': path,
+            'file_type': file.extension,
+            'file_size': file.size,
+            'uploaded_by': supabase.auth.currentUser!.id,
+          });
         }
       }
 
@@ -118,9 +145,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(context,
+      )..clearSnackBars()..showSnackBar(SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e')));
     }
   }
 
@@ -140,16 +166,20 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 isGroup: isGroup,
                 onGroupTap: () {
                   if (!isGroup) {
-                    pageController.animateToPage(0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut);
+                    pageController.animateToPage(
+                      0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   }
                 },
                 onIndividualTap: () {
                   if (isGroup) {
-                    pageController.animateToPage(1,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut);
+                    pageController.animateToPage(
+                      1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   }
                 },
               ),
@@ -162,10 +192,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                       isGroup = index == 0;
                     });
                   },
-                  children: [
-                    _buildForm(true),
-                    _buildForm(false),
-                  ],
+                  children: [_buildForm(true), _buildForm(false)],
                 ),
               ),
             ],

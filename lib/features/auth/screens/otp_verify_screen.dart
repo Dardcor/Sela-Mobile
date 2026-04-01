@@ -20,8 +20,8 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
 
   Future<void> _handleVerifyOTP() async {
     if (_otpCode == null || _otpCode!.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the 6-digit code')),
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Please enter the 6-digit code')),
       );
       return;
     }
@@ -43,14 +43,14 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(milliseconds: 1500), content: Text(e.message), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.red),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Verification failed: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -62,14 +62,14 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
     try {
       await supabase.auth.resetPasswordForEmail(widget.email);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('New code sent to your email')),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('New code sent to your email')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to resend: $e'), backgroundColor: Colors.red),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to resend: $e'), backgroundColor: Colors.red),
         );
       }
     }

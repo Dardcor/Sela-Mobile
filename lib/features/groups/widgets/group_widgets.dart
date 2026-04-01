@@ -5,18 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
 
-
 /// Kartu grup di GroupScreen yang menampilkan avatar anggota,
 /// nama grup, dan tombol detail.
 class GroupCard extends StatelessWidget {
   final dynamic team;
   final VoidCallback onDetailTap;
 
-  const GroupCard({
-    super.key,
-    required this.team,
-    required this.onDetailTap,
-  });
+  const GroupCard({super.key, required this.team, required this.onDetailTap});
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +51,17 @@ class GroupCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 16,
                         backgroundImage:
-                            members[idx]['profiles']?['avatar_url'] != null && members[idx]['profiles']['avatar_url'].toString().isNotEmpty
-                                ? NetworkImage(
-                                        members[idx]['profiles']['avatar_url'])
-                                    as ImageProvider
-                                : const AssetImage('assets/images/default_profile.png'),
+                            members[idx]['profiles']?['avatar_url'] != null &&
+                                members[idx]['profiles']['avatar_url']
+                                    .toString()
+                                    .isNotEmpty
+                            ? NetworkImage(
+                                    members[idx]['profiles']['avatar_url'],
+                                  )
+                                  as ImageProvider
+                            : const AssetImage(
+                                'assets/images/default_profile.png',
+                              ),
                       ),
                     ),
                   ),
@@ -108,7 +109,10 @@ class GroupCard extends StatelessWidget {
             children: [
               Text(
                 '${members.length} Member',
-                style: GoogleFonts.outfit(color: AppColors.textGray, fontSize: 13),
+                style: GoogleFonts.outfit(
+                  color: AppColors.textGray,
+                  fontSize: 13,
+                ),
               ),
               GestureDetector(
                 onTap: onDetailTap,
@@ -144,11 +148,7 @@ class GroupCodeSection extends StatelessWidget {
   final String label;
   final String? code;
 
-  const GroupCodeSection({
-    super.key,
-    required this.label,
-    required this.code,
-  });
+  const GroupCodeSection({super.key, required this.label, required this.code});
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +168,10 @@ class GroupCodeSection extends StatelessWidget {
           children: [
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(15),
@@ -189,10 +192,7 @@ class GroupCodeSection extends StatelessWidget {
               onTap: () => Clipboard.setData(ClipboardData(text: code ?? '')),
             ),
             const SizedBox(width: 10),
-            _IconActionButton(
-              icon: Icons.refresh_rounded,
-              onTap: () {},
-            ),
+            _IconActionButton(icon: Icons.refresh_rounded, onTap: () {}),
           ],
         ),
       ],
@@ -259,19 +259,26 @@ class GroupInputField extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: enabled ? AppColors.primaryTeal : Colors.grey[300]!, width: 1.2),
+              border: Border.all(
+                color: enabled ? AppColors.primaryTeal : Colors.grey[300]!,
+                width: 1.2,
+              ),
               color: enabled ? Colors.transparent : Colors.grey[50],
             ),
             child: TextField(
               controller: controller,
               enabled: enabled,
               keyboardType: isNum ? TextInputType.number : TextInputType.text,
-              style: GoogleFonts.outfit(color: enabled ? Colors.black : Colors.grey),
+              style: GoogleFonts.outfit(
+                color: enabled ? Colors.black : Colors.grey,
+              ),
               decoration: InputDecoration(
                 hintText: hint,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-                hintStyle: GoogleFonts.outfit(color: enabled ? Colors.grey[300] : Colors.grey[200]),
+                hintStyle: GoogleFonts.outfit(
+                  color: enabled ? Colors.grey[300] : Colors.grey[200],
+                ),
               ),
             ),
           ),
@@ -345,7 +352,10 @@ class GroupDropdownField extends StatelessWidget {
                         value: e,
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          child: Text(e, style: GoogleFonts.outfit(color: Colors.black)),
+                          child: Text(
+                            e,
+                            style: GoogleFonts.outfit(color: Colors.black),
+                          ),
                         ),
                       ),
                     )
@@ -380,12 +390,14 @@ class GroupDropdownField extends StatelessWidget {
 // YourProgressSection — Daftar subtask milik user yang login.
 // ─────────────────────────────────────────────────────────────────────────────
 class YourProgressSection extends StatelessWidget {
+  final String taskTitle;
   final List subtasks;
   final String userId;
   final Function(String subtaskId, int progress) onStatusChanged;
 
   const YourProgressSection({
     super.key,
+    required this.taskTitle,
     required this.subtasks,
     required this.userId,
     required this.onStatusChanged,
@@ -442,14 +454,18 @@ class YourProgressSection extends StatelessWidget {
             )
           else
             ...userSubtasks.map((st) {
-              final progressData = (st['subtask_progress'] as List?)?.firstWhere(
-                (p) => p['user_id'] == userId,
-                orElse: () => null,
-              );
-              final currentProgress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+              final progressData = (st['subtask_progress'] as List?)
+                  ?.firstWhere(
+                    (p) => p['user_id'] == userId,
+                    orElse: () => null,
+                  );
+              final currentProgress =
+                  (progressData?['progress'] as num?)?.toInt() ?? 0;
 
               return _YourSubtaskItem(
-                title: st['title'],
+                taskTitle: taskTitle,
+                title: st['title'] ?? '',
+                description: st['description'] ?? '',
                 progress: currentProgress,
                 onChanged: (val) => onStatusChanged(st['id'], val),
               );
@@ -461,76 +477,144 @@ class YourProgressSection extends StatelessWidget {
 }
 
 class _YourSubtaskItem extends StatelessWidget {
+  final String taskTitle;
   final String title;
+  final String description;
   final int progress;
   final Function(int) onChanged;
 
   const _YourSubtaskItem({
+    required this.taskTitle,
     required this.title,
+    required this.description,
     required this.progress,
     required this.onChanged,
   });
 
+  void _showDetailDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                taskTitle,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Detail:',
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  color: Colors.grey[400],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                description.isEmpty
+                    ? 'No description available for this subtask.'
+                    : description,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    'Close',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    String statusText = 'Upcoming';
-    if (progress >= 100) statusText = 'Done';
-    else if (progress > 0) statusText = 'In progress';
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          PopupMenuButton<int>(
-            onSelected: onChanged,
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(value: 0, child: Text('Upcoming')),
-              const PopupMenuItem(value: 50, child: Text('In progress')),
-              const PopupMenuItem(value: 100, child: Text('Done')),
+          Row(
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _showDetailDialog(context),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  color: AppColors.primaryTeal,
+                  size: 16,
+                ),
+              ),
             ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.accentTeal, // Warna biru status bar
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accentTeal.withOpacity(0.2),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    statusText,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.expand_more_rounded, color: Colors.white, size: 16),
-                ],
-              ),
+          ),
+          Checkbox(
+            value: progress == 100,
+            activeColor: AppColors.primaryTeal,
+            checkColor: Colors.white,
+            side: const BorderSide(color: AppColors.primaryTeal, width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
             ),
+            onChanged: (val) {
+              if (val == true) {
+                onChanged(100);
+              } else {
+                onChanged(0);
+              }
+            },
           ),
         ],
       ),
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GroupDetailHeader — Header navigasi detail tugas grup.
@@ -547,7 +631,12 @@ class GroupDetailHeader extends StatelessWidget {
         color: Colors.white,
         // Garis lurus sesuai permintaan sebelumnya
       ),
-      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 0, 5),
+      padding: EdgeInsets.fromLTRB(
+        25,
+        MediaQuery.of(context).padding.top + 5,
+        0,
+        5,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -607,19 +696,71 @@ class GroupDetailHeader extends StatelessWidget {
 class GroupMainCard extends StatelessWidget {
   final dynamic task;
   final double progress;
+  final List<Map<String, dynamic>> taskFiles;
 
   const GroupMainCard({
     super.key,
     required this.task,
     required this.progress,
+    this.taskFiles = const [],
   });
 
   String _formatDate(String? s) {
     if (s == null) return '';
     try {
       final dt = DateTime.parse(s);
-      return '${dt.day} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.month - 1]}';
-    } catch (_) { return ''; }
+      return '${dt.day} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.month - 1]}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  IconData _iconForFileExt(String ext) {
+    switch (ext) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      case 'xls':
+      case 'xlsx':
+        return Icons.table_chart_rounded;
+      case 'ppt':
+      case 'pptx':
+        return Icons.slideshow_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Icons.image_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
+    }
+  }
+
+  Color _colorForFileExt(String ext) {
+    switch (ext) {
+      case 'pdf':
+        return Colors.red;
+      case 'doc':
+      case 'docx':
+        return Colors.blue;
+      case 'xls':
+      case 'xlsx':
+        return Colors.green;
+      case 'ppt':
+      case 'pptx':
+        return Colors.orange;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'webp':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -651,7 +792,11 @@ class GroupMainCard extends StatelessWidget {
                   color: AppColors.primaryTeal,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.menu_book_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const Spacer(),
               TaskProgressIndicator(
@@ -665,7 +810,10 @@ class GroupMainCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             task['title'] ?? '',
-            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold),
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -677,48 +825,80 @@ class GroupMainCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          // Link docs (Gambar 1 & 2)
-          ...links.map((link) => Padding(
-            padding: const EdgeInsets.only(bottom: 5),
-            child: Text(
-              link['url'] ?? '',
-              style: GoogleFonts.outfit(
-                fontSize: 10,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          )),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
-                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'Report',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+          // Links
+          ...links.map(
+            (link) => Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                children: [
+                  Icon(Icons.link_rounded, color: Colors.blue[400], size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      link['url'] ?? '',
+                      style: GoogleFonts.outfit(
+                        fontSize: 10,
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
+          ),
+          // Files yang dilampirkan
+          if (taskFiles.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ...taskFiles.map((file) {
+              final fileName = file['name'] as String? ?? 'file';
+              final ext = fileName.contains('.')
+                  ? fileName.split('.').last.toLowerCase()
+                  : '';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _iconForFileExt(ext),
+                      color: _colorForFileExt(ext),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          const SizedBox(height: 15),
+          Text(
+            '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
+            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -733,7 +913,8 @@ class CreateSubtaskSection extends StatefulWidget {
   final List members;
   final bool isLeader;
   final bool isLoading;
-  final Function(String title, String? assignedTo, String description) onCreateManual;
+  final Function(String title, String? assignedTo, String description)
+  onCreateManual;
   final VoidCallback onCreateAutomatic;
 
   const CreateSubtaskSection({
@@ -766,14 +947,16 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
 
   void _showLeaderOnlySnackBar() {
     ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Only group leaders can create subtasks'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          duration: Duration(milliseconds: 1500),
+          content: Text('Only group leaders can create subtasks'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   void _switchTab(int index) {
@@ -811,11 +994,18 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               ),
               if (!widget.isLeader) ...[
                 const SizedBox(width: 8),
-                Icon(Icons.lock_outline_rounded, size: 16, color: Colors.grey[400]),
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Leader only',
-                  style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[400]),
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    color: Colors.grey[400],
+                  ),
                 ),
               ],
             ],
@@ -853,10 +1043,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                 physics: const BouncingScrollPhysics(),
                 clipBehavior: Clip.antiAlias,
                 onPageChanged: (i) => setState(() => _activeTab = i),
-                children: [
-                  _buildAutomatic(),
-                  _buildManual(),
-                ],
+                children: [_buildAutomatic(), _buildManual()],
               ),
             ),
           ),
@@ -898,12 +1085,30 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (!widget.isLoading) ...[
-                    const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                   ],
                   widget.isLoading
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Create', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Create',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -948,7 +1153,9 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                         value: _selectedMemberId,
                         members: widget.members,
                         enabled: widget.isLeader,
-                        onChanged: widget.isLeader ? (v) => setState(() => _selectedMemberId = v) : (v) {},
+                        onChanged: widget.isLeader
+                            ? (v) => setState(() => _selectedMemberId = v)
+                            : (v) {},
                       ),
                     ),
                   ),
@@ -972,7 +1179,11 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             onTap: () {
               if (widget.isLoading) return;
               if (widget.isLeader) {
-                widget.onCreateManual(_titleCtrl.text, _selectedMemberId, _descCtrl.text);
+                widget.onCreateManual(
+                  _titleCtrl.text,
+                  _selectedMemberId,
+                  _descCtrl.text,
+                );
                 _titleCtrl.clear();
                 _descCtrl.clear();
                 setState(() => _selectedMemberId = null);
@@ -989,8 +1200,22 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               ),
               child: Center(
                 child: widget.isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Create', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Create',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -1000,13 +1225,16 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
   }
 }
 
-
 class _TabItem extends StatelessWidget {
   final String title;
   final bool active;
   final VoidCallback onTap;
 
-  const _TabItem({required this.title, required this.active, required this.onTap});
+  const _TabItem({
+    required this.title,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1015,7 +1243,12 @@ class _TabItem extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: active ? AppColors.primaryTeal : Colors.transparent, width: 2.5)),
+            border: Border(
+              bottom: BorderSide(
+                color: active ? AppColors.primaryTeal : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
           ),
           child: Center(
             child: Text(
@@ -1060,20 +1293,38 @@ class _DropdownPerson extends StatelessWidget {
           padding: const EdgeInsets.only(left: 14, right: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: enabled ? AppColors.primaryTeal : Colors.grey[300]!, width: 1.2),
+            border: Border.all(
+              color: enabled ? AppColors.primaryTeal : Colors.grey[300]!,
+              width: 1.2,
+            ),
             color: enabled ? Colors.transparent : Colors.grey[50],
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               isExpanded: true,
               value: value,
-              hint: Text(hint, style: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 12)),
-              icon: Icon(Icons.expand_more_rounded, color: enabled ? Colors.grey[300] : Colors.grey[200]),
+              hint: Text(
+                hint,
+                style: GoogleFonts.outfit(
+                  color: Colors.grey[300],
+                  fontSize: 12,
+                ),
+              ),
+              icon: Icon(
+                Icons.expand_more_rounded,
+                color: enabled ? Colors.grey[300] : Colors.grey[200],
+              ),
               items: members.map((m) {
                 final p = m['profiles'];
                 return DropdownMenuItem<String>(
                   value: p['id'],
-                  child: Text(p['full_name'] ?? 'Member', style: GoogleFonts.outfit(fontSize: 13, color: enabled ? Colors.black : Colors.grey)),
+                  child: Text(
+                    p['full_name'] ?? 'Member',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      color: enabled ? Colors.black : Colors.grey,
+                    ),
+                  ),
                 );
               }).toList(),
               onChanged: enabled ? onChanged : null,
@@ -1088,7 +1339,11 @@ class _DropdownPerson extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               label,
-              style: GoogleFonts.outfit(color: enabled ? AppColors.primaryTeal : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
+              style: GoogleFonts.outfit(
+                color: enabled ? AppColors.primaryTeal : Colors.grey,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -1096,7 +1351,6 @@ class _DropdownPerson extends StatelessWidget {
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GroupMemberSection — Kartu "Member & Progres" di GroupDetailScreen.
@@ -1136,17 +1390,13 @@ class GroupMemberSection extends StatelessWidget {
           ),
           const SizedBox(height: 15),
           ...members.map(
-            (m) => GroupMemberProgressTile(
-              member: m,
-              allSubtasks: subtasks,
-            ),
+            (m) => GroupMemberProgressTile(member: m, allSubtasks: subtasks),
           ),
         ],
       ),
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GroupMemberProgressTile — Tile ekspansi untuk satu anggota beserta subtask-nya.
@@ -1163,7 +1413,8 @@ class GroupMemberProgressTile extends StatefulWidget {
   });
 
   @override
-  State<GroupMemberProgressTile> createState() => _GroupMemberProgressTileState();
+  State<GroupMemberProgressTile> createState() =>
+      _GroupMemberProgressTileState();
 }
 
 class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
@@ -1173,7 +1424,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
   Widget build(BuildContext context) {
     final profile = widget.member['profiles'];
     final userId = profile['id'];
-    
+
     final userSubtasks = widget.allSubtasks.where((st) {
       final progress = (st['subtask_progress'] as List?);
       return progress?.any((p) => p['user_id'] == userId) ?? false;
@@ -1184,7 +1435,9 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
       decoration: BoxDecoration(
         color: _isExpanded ? AppColors.lightTeal : Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: _isExpanded ? null : Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: _isExpanded
+            ? null
+            : Border(bottom: BorderSide(color: Colors.grey.shade100)),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1194,11 +1447,18 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
           leading: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: _isExpanded ? Colors.white : AppColors.primaryTeal.withOpacity(0.3), width: 2),
+              border: Border.all(
+                color: _isExpanded
+                    ? Colors.white
+                    : AppColors.primaryTeal.withOpacity(0.3),
+                width: 2,
+              ),
             ),
             child: CircleAvatar(
               radius: 18,
-              backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
+              backgroundImage:
+                  profile?['avatar_url'] != null &&
+                      profile!['avatar_url'].toString().isNotEmpty
                   ? NetworkImage(profile!['avatar_url']) as ImageProvider
                   : const AssetImage('assets/images/default_profile.png'),
             ),
@@ -1206,20 +1466,20 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
           title: Text(
             profile?['full_name'] ?? 'Member',
             style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold, 
-              fontSize: 16, 
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
               color: _isExpanded ? Colors.white : AppColors.primaryTeal,
             ),
           ),
           subtitle: Text(
             '${userSubtasks.length} SubTask',
             style: GoogleFonts.outfit(
-              fontSize: 12, 
+              fontSize: 12,
               color: _isExpanded ? Colors.white.withOpacity(0.8) : Colors.grey,
             ),
           ),
           trailing: Icon(
-            _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, 
+            _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
             color: _isExpanded ? Colors.white : Colors.grey,
           ),
           children: [
@@ -1228,18 +1488,20 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 children: userSubtasks.map((st) {
-                  final progressData = (st['subtask_progress'] as List?)?.firstWhere(
-                    (p) => p['user_id'] == userId,
-                    orElse: () => null,
-                  );
-                  final progress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+                  final progressData = (st['subtask_progress'] as List?)
+                      ?.firstWhere(
+                        (p) => p['user_id'] == userId,
+                        orElse: () => null,
+                      );
+                  final progress =
+                      (progressData?['progress'] as num?)?.toInt() ?? 0;
                   String statusText = 'Upcoming';
                   Color statusColor = AppColors.lightTeal; // Light blue
-                  if (progress >= 100) { 
-                    statusText = 'Done'; 
+                  if (progress >= 100) {
+                    statusText = 'Done';
                     statusColor = AppColors.primaryTeal; // Teal
-                  } else if (progress > 0) { 
-                    statusText = 'In progress'; 
+                  } else if (progress > 0) {
+                    statusText = 'In progress';
                     statusColor = AppColors.accentTeal; // Blue
                   }
 
@@ -1251,8 +1513,8 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                         Text(
                           st['title'],
                           style: GoogleFonts.outfit(
-                            fontSize: 14, 
-                            fontWeight: FontWeight.bold, 
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
@@ -1277,8 +1539,6 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
   }
 }
 
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // WorkInGroupHeader — Header layar Work In Group (back + judul + ilustrasi).
 // Diekstrak dari WorkInGroupScreen untuk isolasi rebuild.
@@ -1294,7 +1554,12 @@ class WorkInGroupHeader extends StatelessWidget {
         color: Colors.white,
         // Lengkungan dihapus, sekarang garis lurus
       ),
-      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 0, 5),
+      padding: EdgeInsets.fromLTRB(
+        25,
+        MediaQuery.of(context).padding.top + 5,
+        0,
+        5,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1307,7 +1572,11 @@ class WorkInGroupHeader extends StatelessWidget {
                 color: AppColors.primaryTeal,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           const SizedBox(height: 5),

@@ -12,9 +12,11 @@ class IndependentTaskDetailScreen extends StatefulWidget {
       _IndependentTaskDetailScreenState();
 }
 
-class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScreen> {
+class _IndependentTaskDetailScreenState
+    extends State<IndependentTaskDetailScreen> {
   final supabase = Supabase.instance.client;
   dynamic _taskData;
+  List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
   bool _isCreating = false;
 
@@ -31,38 +33,71 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
     try {
       final data = await supabase
           .from('tasks')
-          .select('*, subtasks(*, subtask_progress(*, profiles(*))))')
+          .select(
+            '*, subtasks(*, subtask_progress(*, profiles(*))), task_links(*), task_files(*)',
+          )
           .eq('id', taskId)
           .single();
+
+      // Data task_files yang otomatis terambil dari relasi database
+      final files =
+          (data['task_files'] as List?)
+              ?.map((f) => {'name': f['file_name']})
+              .toList() ??
+          [];
 
       if (mounted) {
         setState(() {
           _taskData = data;
+          _taskFiles = files;
           _isLoading = false;
           _isCreating = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _isLoading = false; _isCreating = false; });
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+          _isCreating = false;
+        });
     }
   }
 
   double _calculateProgress(dynamic task) {
-    if (task == null || task['subtasks'] == null || (task['subtasks'] as List).isEmpty) return 0.0;
+    if (task == null ||
+        task['subtasks'] == null ||
+        (task['subtasks'] as List).isEmpty)
+      return 0.0;
     final subtasks = task['subtasks'] as List;
     double total = 0;
     for (var st in subtasks) {
       final pl = st['subtask_progress'] as List? ?? [];
       if (pl.isNotEmpty) {
-        total += pl.map((p) => (p['progress'] as num).toDouble()).reduce((a, b) => a + b) / pl.length;
+        total +=
+            pl
+                .map((p) => (p['progress'] as num).toDouble())
+                .reduce((a, b) => a + b) /
+            pl.length;
       }
     }
     return (total / (subtasks.length * 100)).clamp(0.0, 1.0);
   }
 
-  Future<void> _handleCreateManual(String title, String? _, String description) async {
+  Future<void> _handleCreateManual(
+    String title,
+    String? _,
+    String description,
+  ) async {
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a subtask title'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Please enter a subtask title'),
+            backgroundColor: Colors.red,
+          ),
+        );
       return;
     }
     final user = supabase.auth.currentUser;
@@ -70,11 +105,15 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
 
     setState(() => _isCreating = true);
     try {
-      final st = await supabase.from('subtasks').insert({
-        'task_id': _taskData['id'],
-        'title': title,
-        'description': description,
-      }).select().single();
+      final st = await supabase
+          .from('subtasks')
+          .insert({
+            'task_id': _taskData['id'],
+            'title': title,
+            'description': description,
+          })
+          .select()
+          .single();
 
       await supabase.from('subtask_progress').insert({
         'subtask_id': st['id'],
@@ -83,12 +122,28 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created successfully'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('Subtask created successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         setState(() => _isCreating = false);
       }
     }
@@ -100,11 +155,15 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
 
     setState(() => _isCreating = true);
     try {
-      final st = await supabase.from('subtasks').insert({
-        'task_id': _taskData['id'],
-        'title': 'Auto Task 1',
-        'description': 'Automatically generated task',
-      }).select().single();
+      final st = await supabase
+          .from('subtasks')
+          .insert({
+            'task_id': _taskData['id'],
+            'title': 'Auto Task 1',
+            'description': 'Automatically generated task',
+          })
+          .select()
+          .single();
 
       await supabase.from('subtask_progress').insert({
         'subtask_id': st['id'],
@@ -113,12 +172,28 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created automatically'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('Subtask created automatically'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         setState(() => _isCreating = false);
       }
     }
@@ -127,18 +202,49 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
   Future<void> _handleStatusChanged(String subtaskId, int progress) async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
+
+    // --- OPTIMISTIC UI UPDATE: Ubah status secara instan tanpa menunggu database ---
+    setState(() {
+      if (_taskData != null && _taskData['subtasks'] != null) {
+        for (var st in _taskData['subtasks']) {
+          if (st['id'] == subtaskId) {
+            final progressList = st['subtask_progress'] as List?;
+            if (progressList != null) {
+              for (var p in progressList) {
+                if (p['user_id'] == user.id) {
+                  p['progress'] = progress;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+    });
+
     try {
-      await supabase.from('subtask_progress')
+      await supabase
+          .from('subtask_progress')
           .update({'progress': progress})
           .eq('subtask_id', subtaskId)
           .eq('user_id', user.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status updated successfully'), backgroundColor: Colors.green));
-      }
-      await _fetchFullTaskData(_taskData['id']);
+
+      // Ambil data lagi di background tanpa menghalangi UI
+      _fetchFullTaskData(_taskData['id']);
     } catch (e) {
+      // Jika gagal, revert ke data aslinya
+      _fetchFullTaskData(_taskData['id']);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed to update status: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     }
   }
@@ -146,7 +252,11 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
   @override
   Widget build(BuildContext context) {
     if (_taskData == null && _isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
     }
 
     final task = _taskData;
@@ -168,7 +278,11 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
                 children: [
                   const IndependentTaskDetailHeader(),
                   const SizedBox(height: 10),
-                  TaskDetailCard(task: task, progress: progress),
+                  TaskDetailCard(
+                    task: task,
+                    progress: progress,
+                    taskFiles: _taskFiles,
+                  ),
                   const SizedBox(height: 25),
                   IndependentCreateSubtaskSection(
                     isLoading: _isCreating,
@@ -177,6 +291,7 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
                   ),
                   const SizedBox(height: 25),
                   TaskProgressCard(
+                    taskTitle: task['title'] ?? '',
                     subtasks: subtasks,
                     userId: currentUserId,
                     onStatusChanged: _handleStatusChanged,
@@ -192,4 +307,3 @@ class _IndependentTaskDetailScreenState extends State<IndependentTaskDetailScree
     );
   }
 }
-

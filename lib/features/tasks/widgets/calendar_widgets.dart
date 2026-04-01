@@ -460,9 +460,8 @@ class _TaskCard extends StatelessWidget {
       confirmDismiss: (_) async {
         if (!isOwner) {
           // Member tidak bisa hapus task — tampilkan info
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text(
                 'Hanya pembuat task yang dapat menghapus task ini',
                 style: GoogleFonts.outfit(),
               ),

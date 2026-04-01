@@ -22,6 +22,7 @@ class GroupDetailScreen extends StatefulWidget {
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
   final supabase = Supabase.instance.client;
   dynamic _taskData;
+  List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
 
   @override
@@ -40,9 +41,18 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
       final data = await supabase
           .from('tasks')
-          .select('*, groups(*), subtasks(*, subtask_progress(*, profiles(*))), task_links(*)')
+          .select(
+            '*, groups(*), subtasks(*, subtask_progress(*, profiles(*))), task_links(*), task_files(*)',
+          )
           .eq('id', taskId)
           .single();
+
+      // Data task_files yang otomatis terambil dari relasi database
+      final files =
+          (data['task_files'] as List?)
+              ?.map((f) => {'name': f['file_name']})
+              .toList() ??
+          [];
 
       // Fetch group members separately to get member list for dropdown
       final groupId = data['group_id'];
@@ -59,7 +69,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           .eq('user_id', user.id)
           .maybeSingle();
 
-      final isLeaderFromDb = leaderCheck != null && leaderCheck['role'] == 'leader';
+      final isLeaderFromDb =
+          leaderCheck != null && leaderCheck['role'] == 'leader';
 
       if (mounted) {
         setState(() {
@@ -68,6 +79,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             'group_members': membersData,
             'current_user_is_leader': isLeaderFromDb,
           };
+          _taskFiles = files;
           _isLoading = false;
         });
       }
@@ -77,13 +89,17 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   double _calculateProgress(dynamic task) {
-    if (task == null || task['subtasks'] == null || (task['subtasks'] as List).isEmpty) return 0.0;
+    if (task == null ||
+        task['subtasks'] == null ||
+        (task['subtasks'] as List).isEmpty)
+      return 0.0;
     final subtasks = task['subtasks'] as List;
     double total = 0;
     for (var st in subtasks) {
       final pl = st['subtask_progress'] as List? ?? [];
       if (pl.isNotEmpty) {
-        total += pl
+        total +=
+            pl
                 .map((p) => (p['progress'] as num).toDouble())
                 .reduce((a, b) => a + b) /
             pl.length;
@@ -92,23 +108,47 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     return (total / (subtasks.length * 100)).clamp(0.0, 1.0);
   }
 
-  Future<void> _handleCreateManual(String title, String? assignedTo, String description) async {
+  Future<void> _handleCreateManual(
+    String title,
+    String? assignedTo,
+    String description,
+  ) async {
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter subtask title'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Please enter subtask title'),
+            backgroundColor: Colors.red,
+          ),
+        );
       return;
     }
     if (assignedTo == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a member'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Please select a member'),
+            backgroundColor: Colors.red,
+          ),
+        );
       return;
     }
-    
+
     setState(() => _isLoading = true);
     try {
-      final st = await supabase.from('subtasks').insert({
-        'task_id': _taskData['id'],
-        'title': title,
-        'description': description,
-      }).select().single();
+      final st = await supabase
+          .from('subtasks')
+          .insert({
+            'task_id': _taskData['id'],
+            'title': title,
+            'description': description,
+          })
+          .select()
+          .single();
 
       await supabase.from('subtask_progress').insert({
         'subtask_id': st['id'],
@@ -117,12 +157,28 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtask created successfully'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('Subtask created successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create subtask: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed to create subtask: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         setState(() => _isLoading = false);
       }
     }
@@ -131,17 +187,26 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   Future<void> _handleCreateAutomatic() async {
     final members = _taskData['group_members'] as List;
     if (members.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No members in group'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('No members in group'),
+            backgroundColor: Colors.red,
+          ),
+        );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       for (int i = 0; i < members.length; i++) {
-        final st = await supabase.from('subtasks').insert({
-          'task_id': _taskData['id'],
-          'title': 'Auto Task ${i + 1}',
-        }).select().single();
+        final st = await supabase
+            .from('subtasks')
+            .insert({'task_id': _taskData['id'], 'title': 'Auto Task ${i + 1}'})
+            .select()
+            .single();
 
         await supabase.from('subtask_progress').insert({
           'subtask_id': st['id'],
@@ -150,12 +215,28 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         });
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subtasks created automatically'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('Subtasks created automatically'),
+              backgroundColor: Colors.green,
+            ),
+          );
       }
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         setState(() => _isLoading = false);
       }
     }
@@ -165,18 +246,48 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    // --- OPTIMISTIC UI UPDATE: Ubah status secara instan tanpa menunggu database ---
+    setState(() {
+      if (_taskData != null && _taskData['subtasks'] != null) {
+        for (var st in _taskData['subtasks']) {
+          if (st['id'] == subtaskId) {
+            final progressList = st['subtask_progress'] as List?;
+            if (progressList != null) {
+              for (var p in progressList) {
+                if (p['user_id'] == user.id) {
+                  p['progress'] = progress;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+    });
+
     try {
-      await supabase.from('subtask_progress')
+      await supabase
+          .from('subtask_progress')
           .update({'progress': progress})
           .eq('subtask_id', subtaskId)
           .eq('user_id', user.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Status updated successfully'), backgroundColor: Colors.green));
-      }
-      await _fetchFullTaskData(_taskData['id']);
+
+      // Ambil data lagi di background tanpa menghalangi UI
+      _fetchFullTaskData(_taskData['id']);
     } catch (e) {
+      // Jika gagal, revert ke data aslinya
+      _fetchFullTaskData(_taskData['id']);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update status: ${e.toString()}'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Failed to update status: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     }
   }
@@ -184,7 +295,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_taskData == null && _isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
     }
 
     final task = _taskData;
@@ -206,7 +321,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             children: [
               const GroupDetailHeader(),
               const SizedBox(height: 10),
-              GroupMainCard(task: task, progress: progress),
+              GroupMainCard(
+                task: task,
+                progress: progress,
+                taskFiles: _taskFiles,
+              ),
               const SizedBox(height: 25),
               // ✅ New Create Subtask Section (Gambar 1 & 2)
               CreateSubtaskSection(
@@ -219,6 +338,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               const SizedBox(height: 25),
               // ✅ Your Progres (Gambar 1)
               YourProgressSection(
+                taskTitle: task['title'] ?? '',
                 subtasks: subtasks,
                 userId: currentUserId,
                 onStatusChanged: _handleStatusChanged,
@@ -238,4 +358,3 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     );
   }
 }
-

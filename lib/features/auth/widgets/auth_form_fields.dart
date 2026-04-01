@@ -9,6 +9,7 @@ class AuthTextField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final TextInputType keyboardType;
+  final int? maxLength;
 
   const AuthTextField({
     super.key,
@@ -17,6 +18,7 @@ class AuthTextField extends StatelessWidget {
     required this.hint,
     required this.icon,
     this.keyboardType = TextInputType.text,
+    this.maxLength,
   });
 
   @override
@@ -24,16 +26,24 @@ class AuthTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      maxLength: maxLength,
       style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
       decoration: InputDecoration(
+        counterText: '',
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
-        floatingLabelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
+        floatingLabelStyle: GoogleFonts.outfit(
+          fontSize: 14,
+          color: Colors.black87,
+        ),
         hintText: hint,
         hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.black54),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: Colors.grey[400]!),
@@ -74,19 +84,27 @@ class AuthPasswordField extends StatelessWidget {
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
-        floatingLabelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
+        floatingLabelStyle: GoogleFonts.outfit(
+          fontSize: 14,
+          color: Colors.black87,
+        ),
         hintText: hint,
         hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
         prefixIcon: const Icon(Icons.lock_outline, color: Colors.black54),
         suffixIcon: IconButton(
           icon: Icon(
-            obscure ? Icons.remove_red_eye_outlined : Icons.visibility_off_outlined,
+            obscure
+                ? Icons.remove_red_eye_outlined
+                : Icons.visibility_off_outlined,
             color: Colors.black54,
           ),
           onPressed: onToggle,
           splashRadius: 20,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide(color: Colors.grey[400]!),

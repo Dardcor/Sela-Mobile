@@ -67,8 +67,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+      SnackBar(duration: const Duration(milliseconds: 1500), content: Text(message), backgroundColor: Colors.red),
     );
   }
 

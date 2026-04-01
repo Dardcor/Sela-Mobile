@@ -52,20 +52,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     // Listen for profile_abilities changes for current user
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'profile_abilities',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: userId,
-      ),
-      callback: (payload) {
-        debugPrint('Profile Realtime: Abilities updated!');
-        _fetchProfile();
-      },
-    ).subscribe();
+    _realtimeChannel!
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'profile_abilities',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint('Profile Realtime: Abilities updated!');
+            _fetchProfile();
+          },
+        )
+        .subscribe();
   }
 
   @override
@@ -82,11 +84,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (userId == null) return;
 
       // Fetch profile
-      final profileData = await supabase.from('profiles').select().eq('id', userId).single();
-      
+      final profileData = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .single();
+
       // Fetch abilities
-      final abilitiesData = await supabase.from('profile_abilities').select('ability').eq('user_id', userId);
-      final List<String> fetchedAbilities = (abilitiesData as List).map((e) => e['ability'] as String).toList();
+      final abilitiesData = await supabase
+          .from('profile_abilities')
+          .select('ability')
+          .eq('user_id', userId);
+      final List<String> fetchedAbilities = (abilitiesData as List)
+          .map((e) => e['ability'] as String)
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -101,21 +112,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateProfile(String name, String className) async {
+    if (name.length > 20) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Username maksimal 20 karakter'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      await supabase.from('profiles').update({
-        'full_name': name,
-        'class_name': className,
-      }).eq('id', userId);
+      await supabase
+          .from('profiles')
+          .update({'full_name': name, 'class_name': className})
+          .eq('id', userId);
 
       _fetchProfile();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
+        ScaffoldMessenger.of(context,
+        )..clearSnackBars()..showSnackBar(SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to update profile: $e')));
       }
     }
   }
@@ -123,30 +144,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _updateProfilePhoto(String imagePath) async {
     try {
       setState(() => isUploadingPhoto = true);
-      
+
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
 
       final avatarUrl = await _uploadAvatar(imagePath, userId);
       if (avatarUrl == null) {
-        throw Exception('Upload failed. Pastikan Storage Bucket "profiles" sudah dibuat di Supabase.');
+        throw Exception(
+          'Upload failed. Pastikan Storage Bucket "profiles" sudah dibuat di Supabase.',
+        );
       }
 
-      await supabase.from('profiles').update({
-        'avatar_url': avatarUrl,
-      }).eq('id', userId);
+      await supabase
+          .from('profiles')
+          .update({'avatar_url': avatarUrl})
+          .eq('id', userId);
 
       await _fetchProfile();
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile photo updated successfully!')),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Profile photo updated successfully!')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -160,11 +184,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'avatars/$fileName';
 
-      await supabase.storage.from('profiles').upload(
-        storagePath,
-        file,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+      await supabase.storage
+          .from('profiles')
+          .upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
 
       return supabase.storage.from('profiles').getPublicUrl(storagePath);
     } catch (e) {
@@ -182,9 +208,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Insert new
       if (newAbilities.isNotEmpty) {
-        await supabase.from('profile_abilities').insert(
-          newAbilities.map((a) => {'user_id': userId, 'ability': a}).toList(),
-        );
+        await supabase
+            .from('profile_abilities')
+            .insert(
+              newAbilities
+                  .map((a) => {'user_id': userId, 'ability': a})
+                  .toList(),
+            );
       }
 
       _fetchProfile();
@@ -207,49 +237,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditAbility() {
     showDialog(
       context: context,
-      builder: (context) => EditAbilityModal(
-        abilities: abilities,
-        onSave: _updateAbilities,
-      ),
+      builder: (context) =>
+          EditAbilityModal(abilities: abilities, onSave: _updateAbilities),
     );
   }
 
   @override
   Widget build(BuildContext context) => RefreshIndicator(
-        onRefresh: _fetchProfile,
-        color: AppColors.primaryTeal,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const ProfileHeader(),
-                  const SizedBox(height: 20),
-                  UserInfoCard(
-                    profile: profile,
-                    onEditTap: _showEditProfile,
-                  ),
-                  const SizedBox(height: 35),
-                  // Abilities Card
-                  AbilitiesCard(
-                    abilities: abilities,
-                    onEditTap: _showEditAbility,
-                  ),
-                  const SizedBox(height: 140),
-                ],
-              ),
-            ),
-            if (isUploadingPhoto)
-              Container(
-                color: Colors.black.withOpacity(0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                ),
-              ),
-          ],
+    onRefresh: _fetchProfile,
+    color: AppColors.primaryTeal,
+    child: Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const ProfileHeader(),
+              const SizedBox(height: 20),
+              UserInfoCard(profile: profile, onEditTap: _showEditProfile),
+              const SizedBox(height: 35),
+              // Abilities Card
+              AbilitiesCard(abilities: abilities, onEditTap: _showEditAbility),
+              const SizedBox(height: 140),
+            ],
+          ),
         ),
-      );
+        if (isUploadingPhoto)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+      ],
+    ),
+  );
 }
-

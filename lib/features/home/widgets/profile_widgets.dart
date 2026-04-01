@@ -35,7 +35,12 @@ class ProfileHeader extends StatelessWidget {
         ),
         // Konten asli — menentukan tinggi Stack yang dilaporkan ke Column
         Padding(
-          padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 20, 25, 30),
+          padding: EdgeInsets.fromLTRB(
+            25,
+            MediaQuery.of(context).padding.top + 20,
+            25,
+            30,
+          ),
           child: Row(
             children: [
               // Tombol back — kiri
@@ -44,7 +49,11 @@ class ProfileHeader extends StatelessWidget {
                   if (Navigator.canPop(context)) {
                     Navigator.pop(context);
                   } else {
-                    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/dashboard',
+                      (route) => false,
+                    );
                   }
                 },
                 child: Container(
@@ -53,13 +62,20 @@ class ProfileHeader extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 24),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    color: AppColors.primaryTeal,
+                    size: 24,
+                  ),
                 ),
               ),
               const Spacer(),
               // Judul — pill putih tengah
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 35,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(40),
@@ -84,7 +100,11 @@ class ProfileHeader extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.logout_rounded, color: AppColors.primaryTeal, size: 24),
+                  child: const Icon(
+                    Icons.logout_rounded,
+                    color: AppColors.primaryTeal,
+                    size: 24,
+                  ),
                 ),
               ),
             ],
@@ -98,16 +118,31 @@ class ProfileHeader extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Logout', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to logout?', style: GoogleFonts.outfit()),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.outfit(),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.outfit(color: Colors.grey),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Logout', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.outfit(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -129,7 +164,11 @@ class UserInfoCard extends StatelessWidget {
   final Map<String, dynamic>? profile;
   final VoidCallback onEditTap;
 
-  const UserInfoCard({super.key, required this.profile, required this.onEditTap});
+  const UserInfoCard({
+    super.key,
+    required this.profile,
+    required this.onEditTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,26 +198,49 @@ class UserInfoCard extends StatelessWidget {
             child: CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.lightTealBg,
-              backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty
+              backgroundImage:
+                  profile?['avatar_url'] != null &&
+                      profile!['avatar_url'].toString().isNotEmpty
                   ? NetworkImage(profile!['avatar_url']) as ImageProvider
                   : const AssetImage('assets/images/default_profile.png'),
             ),
           ),
           const SizedBox(height: 15),
-          Text(
-            profile?['full_name'] ?? profile?['username'] ?? 'User Name',
-            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-            textAlign: TextAlign.center,
+          Builder(
+            builder: (_) {
+              final displayName =
+                  profile?['full_name'] ?? profile?['username'] ?? 'User Name';
+              final truncated = displayName.length > 15
+                  ? '${displayName.substring(0, 15)}...'
+                  : displayName;
+              return Text(
+                truncated,
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
           const SizedBox(height: 4),
           Text(
             'Mahasiswa',
-            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500),
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             profile?['class_name'] ?? 'Class Name',
-            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500),
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 15),
           _SmallEditButton(label: 'Edit Profile', onTap: onEditTap),
@@ -195,7 +257,11 @@ class AbilitiesCard extends StatelessWidget {
   final List<String> abilities;
   final VoidCallback onEditTap;
 
-  const AbilitiesCard({super.key, required this.abilities, required this.onEditTap});
+  const AbilitiesCard({
+    super.key,
+    required this.abilities,
+    required this.onEditTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +283,9 @@ class AbilitiesCard extends StatelessWidget {
                   spacing: 12,
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
-                  children: abilities.isEmpty 
-                    ? [const SizedBox(height: 40)] 
-                    : abilities.map((a) => _AbilityTag(label: a)).toList(),
+                  children: abilities.isEmpty
+                      ? [const SizedBox(height: 40)]
+                      : abilities.map((a) => _AbilityTag(label: a)).toList(),
                 ),
                 const SizedBox(height: 20),
                 _SmallEditButton(label: 'Edit ability', onTap: onEditTap),
@@ -295,12 +361,15 @@ class _AbilityTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _DashPainter(color: AppColors.primaryTeal, strokeWidth: 1.2, dash: 4, gap: 3),
+      painter: _DashPainter(
+        color: AppColors.primaryTeal,
+        strokeWidth: 1.2,
+        dash: 4,
+        gap: 3,
+      ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
         child: Text(
           label,
           style: GoogleFonts.outfit(
@@ -320,7 +389,12 @@ class _DashPainter extends CustomPainter {
   final double dash;
   final double gap;
 
-  _DashPainter({required this.color, required this.strokeWidth, required this.dash, required this.gap});
+  _DashPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.dash,
+    required this.gap,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -363,8 +437,8 @@ class EditProfileModal extends StatefulWidget {
   final Function(String path) onPhotoChange;
 
   const EditProfileModal({
-    super.key, 
-    required this.profile, 
+    super.key,
+    required this.profile,
     required this.onSave,
     required this.onPhotoChange,
   });
@@ -376,7 +450,12 @@ class EditProfileModal extends StatefulWidget {
 class _EditProfileModalState extends State<EditProfileModal> {
   late TextEditingController _nameCtrl;
   String? _selectedClass;
-  final List<String> _classes = ['2 - D3 IT B', '2 - D3 IT A', '1 - D3 IT B', '1 - D3 IT A'];
+  final List<String> _classes = [
+    '2 - D3 IT B',
+    '2 - D3 IT A',
+    '1 - D3 IT B',
+    '1 - D3 IT A',
+  ];
 
   @override
   void initState() {
@@ -413,8 +492,8 @@ class _EditProfileModalState extends State<EditProfileModal> {
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Gagal membuka galeri: $e')),
+                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                        SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Gagal membuka galeri: $e')),
                       );
                     }
                   }
@@ -425,14 +504,24 @@ class _EditProfileModalState extends State<EditProfileModal> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.lightTealBg, width: 1),
+                        border: Border.all(
+                          color: AppColors.lightTealBg,
+                          width: 1,
+                        ),
                       ),
                       child: CircleAvatar(
                         radius: 45,
                         backgroundColor: AppColors.lightTealBg,
-                        backgroundImage: widget.profile?['avatar_url'] != null && widget.profile!['avatar_url'].toString().isNotEmpty
-                            ? NetworkImage(widget.profile!['avatar_url']) as ImageProvider
-                            : const AssetImage('assets/images/default_profile.png'),
+                        backgroundImage:
+                            widget.profile?['avatar_url'] != null &&
+                                widget.profile!['avatar_url']
+                                    .toString()
+                                    .isNotEmpty
+                            ? NetworkImage(widget.profile!['avatar_url'])
+                                  as ImageProvider
+                            : const AssetImage(
+                                'assets/images/default_profile.png',
+                              ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -450,7 +539,12 @@ class _EditProfileModalState extends State<EditProfileModal> {
               const SizedBox(height: 30),
               _buildField('Username', _nameCtrl),
               const SizedBox(height: 25),
-              _buildDropdown('Class', _selectedClass, _classes, (val) => setState(() => _selectedClass = val)),
+              _buildDropdown(
+                'Class',
+                _selectedClass,
+                _classes,
+                (val) => setState(() => _selectedClass = val),
+              ),
               const SizedBox(height: 40),
               GestureDetector(
                 onTap: () {
@@ -467,7 +561,11 @@ class _EditProfileModalState extends State<EditProfileModal> {
                   child: Center(
                     child: Text(
                       'Save',
-                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ),
@@ -491,8 +589,10 @@ class _EditProfileModalState extends State<EditProfileModal> {
           ),
           child: TextField(
             controller: ctrl,
+            maxLength: label == 'Username' ? 20 : null,
             style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]),
             decoration: const InputDecoration(
+              counterText: '',
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 18),
             ),
@@ -518,7 +618,12 @@ class _EditProfileModalState extends State<EditProfileModal> {
     );
   }
 
-  Widget _buildDropdown(String label, String? value, List<String> items, Function(String?) onChanged) {
+  Widget _buildDropdown(
+    String label,
+    String? value,
+    List<String> items,
+    Function(String?) onChanged,
+  ) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -535,7 +640,18 @@ class _EditProfileModalState extends State<EditProfileModal> {
               value: value,
               icon: const Icon(Icons.expand_more_rounded, color: Colors.grey),
               items: items
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]))))
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                  )
                   .toList(),
               onChanged: onChanged,
             ),
@@ -569,7 +685,11 @@ class EditAbilityModal extends StatefulWidget {
   final List<String> abilities;
   final Function(List<String> newAbilities) onSave;
 
-  const EditAbilityModal({super.key, required this.abilities, required this.onSave});
+  const EditAbilityModal({
+    super.key,
+    required this.abilities,
+    required this.onSave,
+  });
 
   @override
   State<EditAbilityModal> createState() => _EditAbilityModalState();
@@ -620,10 +740,22 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(entry.value, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w500)),
+                                Text(
+                                  entry.value,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                                 GestureDetector(
-                                  onTap: () => setState(() => _currentAbilities.removeAt(entry.key)),
-                                  child: const Icon(Icons.remove_rounded, color: AppColors.primaryTeal, size: 28),
+                                  onTap: () => setState(
+                                    () => _currentAbilities.removeAt(entry.key),
+                                  ),
+                                  child: const Icon(
+                                    Icons.remove_rounded,
+                                    color: AppColors.primaryTeal,
+                                    size: 28,
+                                  ),
                                 ),
                               ],
                             ),
@@ -639,7 +771,10 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                               controller: _newAbilityCtrl,
                               decoration: InputDecoration(
                                 hintText: 'Type new ability',
-                                hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 16),
+                                hintStyle: GoogleFonts.outfit(
+                                  color: Colors.grey[400],
+                                  fontSize: 16,
+                                ),
                                 border: InputBorder.none,
                               ),
                               onSubmitted: (_) => _addAbility(),
@@ -647,7 +782,11 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                           ),
                           GestureDetector(
                             onTap: _addAbility,
-                            child: const Icon(Icons.add_rounded, color: AppColors.primaryTeal, size: 28),
+                            child: const Icon(
+                              Icons.add_rounded,
+                              color: AppColors.primaryTeal,
+                              size: 28,
+                            ),
                           ),
                         ],
                       ),
@@ -672,7 +811,11 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                   child: Center(
                     child: Text(
                       'Save',
-                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ),
