@@ -767,12 +767,14 @@ class GroupMainCard extends StatelessWidget {
   final dynamic task;
   final double progress;
   final List<Map<String, dynamic>> taskFiles;
+  final Function(Map<String, dynamic> file)? onFileTap;
 
   const GroupMainCard({
     super.key,
     required this.task,
     required this.progress,
     this.taskFiles = const [],
+    this.onFileTap,
   });
 
   String _formatDate(String? s) {
@@ -831,6 +833,14 @@ class GroupMainCard extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  String _resolveFileExt(Map<String, dynamic> file, String fileName) {
+    final type = (file['type'] as String?)?.trim().toLowerCase() ?? '';
+    if (type.isNotEmpty) {
+      return type.startsWith('.') ? type.substring(1) : type;
+    }
+    return fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
   }
 
   @override
@@ -938,41 +948,43 @@ class GroupMainCard extends StatelessWidget {
             const SizedBox(height: 10),
             ...taskFiles.map((file) {
               final fileName = file['name'] as String? ?? 'file';
-              final ext = fileName.contains('.')
-                  ? fileName.split('.').last.toLowerCase()
-                  : '';
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _iconForFileExt(ext),
-                      color: _colorForFileExt(ext),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        fileName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              final ext = _resolveFileExt(file, fileName);
+              return InkWell(
+                onTap: onFileTap == null ? null : () => onFileTap!(file),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _iconForFileExt(ext),
+                        color: _colorForFileExt(ext),
+                        size: 20,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          fileName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),

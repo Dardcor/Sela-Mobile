@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/shared_widgets/task_progress_indicator.dart';
 import '../widgets/group_widgets.dart';
 
 /// GroupDetailScreen — Kerangka layar detail tugas grup.
@@ -50,7 +50,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       // Data task_files yang otomatis terambil dari relasi database
       final files =
           (data['task_files'] as List?)
-              ?.map((f) => {'name': f['file_name']})
+              ?.map(
+                (f) => {
+                  'name': f['file_name'],
+                  'path': f['file_path'],
+                  'type': f['file_type'],
+                },
+              )
               .toList() ??
           [];
 
@@ -292,6 +298,68 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
   }
 
+  Future<void> _handleFileTap(Map<String, dynamic> file) async {
+    final path = (file['path'] as String?)?.trim() ?? '';
+    if (path.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('File path is missing'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      return;
+    }
+
+    try {
+      final signedUrl = await supabase.storage
+          .from('task-files')
+          .createSignedUrl(path, 300);
+      final uri = Uri.tryParse(signedUrl);
+
+      if (uri == null) {
+        throw Exception('Invalid preview URL');
+      }
+
+      var opened = false;
+      try {
+        opened = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (_) {
+        opened = false;
+      }
+
+      if (!opened) {
+        opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('Failed to open file preview'),
+              backgroundColor: Colors.red,
+            ),
+          );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Failed to open file preview'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_taskData == null && _isLoading) {
@@ -325,6 +393,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 task: task,
                 progress: progress,
                 taskFiles: _taskFiles,
+                onFileTap: _handleFileTap,
               ),
               const SizedBox(height: 25),
               // ✅ New Create Subtask Section (Gambar 1 & 2)

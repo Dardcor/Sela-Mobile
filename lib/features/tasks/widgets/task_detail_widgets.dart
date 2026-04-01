@@ -11,12 +11,14 @@ class TaskDetailCard extends StatelessWidget {
   final dynamic task;
   final double progress;
   final List<Map<String, dynamic>> taskFiles;
+  final ValueChanged<Map<String, dynamic>>? onFileTap;
 
   const TaskDetailCard({
     super.key,
     required this.task,
     required this.progress,
     this.taskFiles = const [],
+    this.onFileTap,
   });
 
   String _formatDateShort(DateTime dt) {
@@ -83,6 +85,36 @@ class TaskDetailCard extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  String _displayFileType(Map<String, dynamic> file) {
+    final rawType = (file['type'] as String?)?.trim().toLowerCase() ?? '';
+    if (rawType.isNotEmpty) {
+      if (rawType.contains('pdf')) return 'pdf';
+      if (rawType.startsWith('image/')) {
+        return rawType.split('/').last.split('+').first.split(';').first;
+      }
+      if (rawType.contains('word')) return 'docx';
+      if (rawType.contains('spreadsheet') || rawType.contains('excel')) {
+        return 'xlsx';
+      }
+      if (rawType.contains('presentation') || rawType.contains('powerpoint')) {
+        return 'pptx';
+      }
+
+      return rawType
+          .split('/')
+          .last
+          .split('.')
+          .last
+          .split('+')
+          .first
+          .split(';')
+          .first;
+    }
+
+    final fileName = file['name'] as String? ?? '';
+    return fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
   }
 
   @override
@@ -202,41 +234,53 @@ class TaskDetailCard extends StatelessWidget {
             const SizedBox(height: 10),
             ...taskFiles.map((file) {
               final fileName = file['name'] as String? ?? 'file';
-              final ext = fileName.contains('.')
-                  ? fileName.split('.').last.toLowerCase()
-                  : '';
+              final ext = _displayFileType(file);
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[50],
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[200]!),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _iconForFileExt(ext),
-                      color: _colorForFileExt(ext),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        fileName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: onFileTap == null ? null : () => onFileTap!(file),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _iconForFileExt(ext),
+                            color: _colorForFileExt(ext),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              fileName,
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.grey,
+                            size: 18,
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               );
             }),
