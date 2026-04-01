@@ -52,29 +52,52 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      // ✅ Fetch created_by dan is_group untuk keperluan cek permission hapus
+      // Gunakan query sederhana dengan relasi default '*' untuk mencegah error missing columns
       final data = await _supabase
           .from('tasks')
-          .select('id, title, description, due_date, start_date, created_by, is_group')
-          .order('due_date', ascending: true);
+          .select();
+          
+      final List<Map<String, dynamic>> allTasks = List<Map<String, dynamic>>.from(data);
+      
+      // Sort tasks: due_date terdekat, null di akhir
+      allTasks.sort((a, b) {
+        if (a['due_date'] == null && b['due_date'] == null) return 0;
+        if (a['due_date'] == null) return 1;
+        if (b['due_date'] == null) return -1;
+        try {
+          return DateTime.parse(a['due_date'].toString()).compareTo(DateTime.parse(b['due_date'].toString()));
+        } catch (_) {
+          return 0;
+        }
+      });
 
       if (mounted) {
         setState(() {
-          _upcomingTasks = (data as List).map((t) {
-            final DateTime? dueDate = t['due_date'] != null
-                ? DateTime.parse(t['due_date']).toLocal()
-                : null;
-            String dateLabel = 'No date';
+          _upcomingTasks = allTasks.where((t) {
+            final status = t['status']?.toString() ?? '';
+            return status.trim().toLowerCase() != 'done';
+          }).map<Map<String, dynamic>>((t) {
+            DateTime? dueDate;
+            if (t['due_date'] != null) {
+              try {
+                dueDate = DateTime.parse(t['due_date'].toString()).toLocal();
+              } catch (_) {}
+            }
+
+            DateTime? startDate;
+            if (t['start_date'] != null) {
+              try {
+                startDate = DateTime.parse(t['start_date'].toString()).toLocal();
+              } catch (_) {}
+            }
+
+            String dateLabel = 'No date set';
             String statusLabel = 'Upcoming';
 
             if (dueDate != null) {
               final now = DateTime.now();
               final today = DateTime(now.year, now.month, now.day);
-              final target =
-                  DateTime(dueDate.year, dueDate.month, dueDate.day);
+              final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
               final diff = target.difference(today).inDays;
 
               if (diff == 0) {
@@ -84,8 +107,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 dateLabel = 'Tomorrow';
                 statusLabel = 'Next 1 day';
               } else if (diff > 1) {
-                dateLabel =
-                    '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
+                dateLabel = '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
                 statusLabel = 'Next $diff days';
               } else if (diff < 0) {
                 dateLabel = 'Passed';
@@ -93,24 +115,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
               }
             }
 
-            return {
-              'title': t['title'],
+            return <String, dynamic>{
+              'title': t['title'] ?? 'Untitled Task',
               'date_label': dateLabel,
               'status_label': statusLabel,
               'due_date': dueDate,
-              'start_date': t['start_date'] != null
-                  ? DateTime.parse(t['start_date']).toLocal()
-                  : null,
+              'start_date': startDate,
               'id': t['id'],
-              // ✅ Simpan created_by untuk validasi permission hapus
               'created_by': t['created_by'],
-              'is_group': t['is_group'] ?? false,
+              'is_group': t['is_group'] == true,
             };
           }).toList();
           _isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('Error fetching calendar tasks: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

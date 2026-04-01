@@ -15,6 +15,7 @@ import 'features/groups/screens/group_screen.dart';
 import 'features/home/screens/profile_screen.dart';
 import 'features/groups/screens/group_detail_screen.dart';
 import 'features/tasks/screens/independent_task_detail_screen.dart';
+import 'features/notifications/screens/notification_screen.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -78,6 +79,7 @@ class MyApp extends StatelessWidget {
       '/work_in_group_detail': (context) => const GroupDetailScreen(),
       '/independent_task_detail': (context) =>
           const IndependentTaskDetailScreen(),
+      '/notifications': (context) => const NotificationScreen(),
     },
   );
 }

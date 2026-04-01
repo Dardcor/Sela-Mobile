@@ -18,6 +18,8 @@ class DashboardHeader extends StatelessWidget {
   final int doneTasksCount;
   final int inProgressCount;
   final int upcomingCount;
+  final int unreadCount;
+  final VoidCallback onNotificationTap;
 
   const DashboardHeader({
     super.key,
@@ -26,6 +28,8 @@ class DashboardHeader extends StatelessWidget {
     required this.doneTasksCount,
     required this.inProgressCount,
     required this.upcomingCount,
+    this.unreadCount = 0,
+    required this.onNotificationTap,
   });
 
   @override
@@ -110,17 +114,38 @@ class DashboardHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.primaryTeal,
-                    size: 24,
+              GestureDetector(
+                onTap: onNotificationTap,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.notifications_outlined,
+                          color: AppColors.primaryTeal,
+                          size: 24,
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

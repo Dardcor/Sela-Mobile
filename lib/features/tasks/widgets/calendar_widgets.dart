@@ -351,60 +351,56 @@ class _TaskCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ikon peringatan
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Colors.red[400],
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Hapus Task?',
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
               const SizedBox(height: 10),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 1.3,
+                  ),
+                  children: const [
+                    TextSpan(text: 'Are you sure you want\nto '),
+                    TextSpan(
+                      text: 'delete',
+                      style: TextStyle(color: AppColors.primaryTeal),
+                    ),
+                    TextSpan(text: ' this task?'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 25),
               Text(
-                'Apa anda yakin ingin menghapus task ini?',
+                task['title'] ?? '',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  color: Colors.grey[600],
+                  fontSize: 15,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 35),
               Row(
                 children: [
-                  // Tombol Tidak
+                  // Tombol Cancel
                   Expanded(
                     child: GestureDetector(
                       onTap: () => Navigator.of(ctx).pop(false),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          border: Border.all(
-                            color: AppColors.primaryTeal,
-                            width: 1.5,
-                          ),
+                          color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Center(
                           child: Text(
-                            'Tidak',
+                            'Cancel',
                             style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryTeal,
-                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -412,23 +408,23 @@ class _TaskCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  // Tombol Ya
+                  // Tombol Accept
                   Expanded(
                     child: GestureDetector(
                       onTap: () => Navigator.of(ctx).pop(true),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          color: Colors.red[400],
+                          color: AppColors.primaryTeal,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Center(
                           child: Text(
-                            'Ya',
+                            'Accept',
                             style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -452,30 +448,13 @@ class _TaskCard extends StatelessWidget {
     return Dismissible(
       key: Key(task['id'].toString()),
       direction: DismissDirection.endToStart,
-      // ✅ Background merah muncul saat swipe
+      // ✅ Background muncul saat swipe, sesuai desain Figma (hanya ikon teal)
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 25),
+        padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 15),
-        decoration: BoxDecoration(
-          color: Colors.red[50],
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              'Hapus',
-              style: GoogleFonts.outfit(
-                color: Colors.red[400],
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.delete_rounded, color: Colors.red[400], size: 28),
-          ],
-        ),
+        color: Colors.transparent,
+        child: const Icon(Icons.delete_outline_rounded, color: AppColors.primaryTeal, size: 28),
       ),
       // ✅ confirmDismiss: cek permission dulu, lalu tampilkan popup konfirmasi
       confirmDismiss: (_) async {

@@ -436,6 +436,8 @@ ALTER TABLE public.groups REPLICA IDENTITY FULL;
 ALTER TABLE public.tasks REPLICA IDENTITY FULL;
 ALTER TABLE public.subtasks REPLICA IDENTITY FULL;
 ALTER TABLE public.subtask_progress REPLICA IDENTITY FULL;
+ALTER TABLE public.group_members REPLICA IDENTITY FULL;
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 
 DO $$
 BEGIN
@@ -450,12 +452,151 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 ALTER PUBLICATION supabase_realtime SET TABLE 
-    public.profiles, 
-    public.groups, 
-    public.group_members, 
-    public.tasks, 
-    public.subtasks, 
-    public.subtask_progress, 
-    public.task_links,
-    public.task_files,
+    public.profiles,
+    public.groups,
+    public.group_members,
+    public.tasks,
+    public.subtasks,
+    public.subtask_progress,
+    public.notifications,
     public.profile_abilities;
+
+CREATE TABLE IF NOT EXISTS "public"."notifications" (
+    "id" uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    "user_id" uuid REFERENCES "public"."profiles"(id) ON DELETE CASCADE,
+    "title" text NOT NULL,
+    "message" text NOT NULL,
+    "type" text,
+    "related_id" uuid,
+    "is_read" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+CREATE POLICY "Users can view own notifications"
+    ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
+CREATE POLICY "Users can update own notifications"
+    ON notifications FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "System can insert notifications" ON notifications;
+CREATE POLICY "System can insert notifications"
+    ON notifications FOR INSERT WITH CHECK (true);
+
+CREATE OR REPLACE FUNCTION public.notify_task_created()
+RETURNS trigger AS $$
+DECLARE
+    v_member RECORD;
+    v_title  text;
+    v_msg    text;
+BEGIN
+    v_title := CASE WHEN new.is_group THEN 'Group Task' ELSE 'Individual Task' END;
+    v_msg   := 'Task "' || new.title || '" berhasil dibuat';
+
+    INSERT INTO public.notifications (user_id, title, message, type, related_id)
+    VALUES (new.created_by, v_title, v_msg, 'task', new.id);
+
+    IF new.is_group = true AND new.group_id IS NOT NULL THEN
+        FOR v_member IN
+            SELECT user_id FROM public.group_members
+            WHERE group_id = new.group_id
+              AND user_id <> new.created_by
+        LOOP
+            INSERT INTO public.notifications (user_id, title, message, type, related_id)
+            VALUES (
+                v_member.user_id,
+                v_title,
+                'Task baru "' || new.title || '" ditambahkan ke grup kamu',
+                'task',
+                new.id
+            );
+        END LOOP;
+    END IF;
+
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_notify_task_created ON tasks;
+CREATE TRIGGER tr_notify_task_created
+    AFTER INSERT ON tasks
+    FOR EACH ROW EXECUTE FUNCTION public.notify_task_created();
+
+CREATE OR REPLACE FUNCTION public.notify_group_joined()
+RETURNS trigger AS $$
+DECLARE
+    v_group_name text;
+    v_member     RECORD;
+BEGIN
+    SELECT name INTO v_group_name FROM public.groups WHERE id = new.group_id;
+
+    INSERT INTO public.notifications (user_id, title, message, type, related_id)
+    VALUES (
+        new.user_id,
+        'Bergabung ke Grup',
+        'Kamu telah bergabung ke grup "' || COALESCE(v_group_name, 'grup') || '"',
+        'group',
+        new.group_id
+    );
+
+    FOR v_member IN
+        SELECT user_id FROM public.group_members
+        WHERE group_id = new.group_id
+          AND user_id <> new.user_id
+    LOOP
+        INSERT INTO public.notifications (user_id, title, message, type, related_id)
+        VALUES (
+            v_member.user_id,
+            'Anggota Baru',
+            'Ada anggota baru yang bergabung ke grup "' || COALESCE(v_group_name, 'grup') || '"',
+            'group',
+            new.group_id
+        );
+    END LOOP;
+
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_notify_group_joined ON group_members;
+CREATE TRIGGER tr_notify_group_joined
+    AFTER INSERT ON group_members
+    FOR EACH ROW EXECUTE FUNCTION public.notify_group_joined();
+
+CREATE OR REPLACE FUNCTION public.notify_task_status_changed()
+RETURNS trigger AS $$
+DECLARE
+    v_member RECORD;
+    v_msg    text;
+BEGIN
+    IF OLD.status = NEW.status THEN
+        RETURN NEW;
+    END IF;
+
+    v_msg := 'Task "' || NEW.title || '" diperbarui menjadi ' || NEW.status;
+
+    INSERT INTO public.notifications (user_id, title, message, type, related_id)
+    VALUES (NEW.created_by, 'Update Task', v_msg, 'task', NEW.id);
+
+    IF NEW.is_group = true AND NEW.group_id IS NOT NULL THEN
+        FOR v_member IN
+            SELECT user_id FROM public.group_members
+            WHERE group_id = NEW.group_id
+              AND user_id <> NEW.created_by
+        LOOP
+            INSERT INTO public.notifications (user_id, title, message, type, related_id)
+            VALUES (v_member.user_id, 'Update Task', v_msg, 'task', NEW.id);
+        END LOOP;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS tr_notify_task_status_changed ON tasks;
+CREATE TRIGGER tr_notify_task_status_changed
+    AFTER UPDATE OF status ON tasks
+    FOR EACH ROW EXECUTE FUNCTION public.notify_task_status_changed();

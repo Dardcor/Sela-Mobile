@@ -20,21 +20,27 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final supabase = Supabase.instance.client;
-  static Map<String, dynamic>? _cachedProfile;
-  static List<dynamic>? _cachedGroups;
-  static List<dynamic>? _cachedIndependent;
+  Map<String, dynamic>? _cachedProfile;
+  List<dynamic>? _cachedGroups;
+  List<dynamic>? _cachedIndependent;
   
   // Realtime channel
   RealtimeChannel? _realtimeChannel;
 
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
+  int _unreadNotificationsCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchData();
     _setupRealtimeListener();
+    _searchCtrl.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {}); // Rebuild with filtered lists
   }
 
   void _setupRealtimeListener() {
@@ -42,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (user == null) return;
 
     // ✅ Single Channel untuk semua perubahan database
-    _realtimeChannel = supabase.channel('db-changes');
+    _realtimeChannel = supabase.channel('dashboard-db-changes-${user.id}');
 
     // 1. Listen Profile changes
     _realtimeChannel!.onPostgresChanges(
@@ -84,6 +90,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     );
 
+    // 4. Listen Notifications changes
+    _realtimeChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: user.id,
+      ),
+      callback: (payload) {
+        debugPrint('Realtime: Notifications updated!');
+        _fetchNotificationsCount();
+      },
+    );
+
     _realtimeChannel!.subscribe((status, [error]) {
       debugPrint('Realtime Status: $status');
       if (error != null) debugPrint('Realtime Error: $error');
@@ -100,6 +122,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchData() async {
+    await Future.wait([
+      _fetchContent(),
+      _fetchNotificationsCount(),
+    ]);
+  }
+
+  Future<void> _fetchNotificationsCount() async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final res = await supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', user.id)
+          .eq('is_read', false)
+          .count(CountOption.exact);
+
+      if (mounted) {
+        setState(() {
+          _unreadNotificationsCount = res.count;
+        });
+      }
+    } catch (e) {
+      debugPrint('Err Notifications Count: $e');
+    }
+  }
+
+  Future<void> _fetchContent() async {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
@@ -109,6 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .select()
           .eq('id', user.id)
           .maybeSingle();
+      debugPrint('Dashboard: Profile fetch done for ${user.id}');
 
       List groupTasksList = [];
       try {
@@ -145,8 +197,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             };
           }).toList();
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('Group tasks fetch err: $e');
+        debugPrint(stack.toString());
       }
 
       final independentData = await supabase
@@ -163,6 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _cachedIndependent = independentData as List;
           _isLoading = false;
         });
+        debugPrint('Dashboard: Successfully loaded ${_cachedGroups?.length} group tasks and ${_cachedIndependent?.length} independent tasks');
       }
     } catch (e) {
       debugPrint('Err Dashboard: $e');
@@ -195,10 +249,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final groups = _cachedGroups ?? [];
-    final independent = _cachedIndependent ?? [];
+    final query = _searchCtrl.text.trim().toLowerCase();
+    
+    final groups = (_cachedGroups ?? []).where((t) {
+      if (query.isEmpty) return true;
+      final title = (t['title'] ?? '').toString().toLowerCase();
+      return title.contains(query);
+    }).toList();
+    
+    final independent = (_cachedIndependent ?? []).where((t) {
+      if (query.isEmpty) return true;
+      final title = (t['title'] ?? '').toString().toLowerCase();
+      return title.contains(query);
+    }).toList();
 
-    final allTasksCount = groups.length + independent.length;
+    final allTasksCount = (_cachedGroups?.length ?? 0) + (_cachedIndependent?.length ?? 0);
     
     int doneTasksCount = 0;
     int inProgressCount = 0;
@@ -219,8 +284,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
-    groups.forEach(_countTask);
-    independent.forEach(_countTask);
+    (_cachedGroups ?? []).forEach(_countTask);
+    (_cachedIndependent ?? []).forEach(_countTask);
 
     return RefreshIndicator(
       onRefresh: _fetchData,
@@ -236,6 +301,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               doneTasksCount: doneTasksCount,
               inProgressCount: inProgressCount,
               upcomingCount: upcomingCount,
+              unreadCount: _unreadNotificationsCount,
+              onNotificationTap: () => Navigator.pushNamed(context, '/notifications'),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -251,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-          SliverToBoxAdapter(child: _buildWorkInGroupList()),
+          SliverToBoxAdapter(child: _buildWorkInGroupList(groups)),
           const SliverToBoxAdapter(child: SizedBox(height: 25)),
           SliverToBoxAdapter(
             child: DashboardSectionHeader(
@@ -261,15 +328,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-          _buildIndependentTaskListSliver(),
+          _buildIndependentTaskListSliver(independent),
           const SliverToBoxAdapter(child: SizedBox(height: 110)),
         ],
       ),
     );
   }
 
-  Widget _buildWorkInGroupList() {
-    if (_cachedGroups == null || _cachedGroups!.isEmpty) {
+  Widget _buildWorkInGroupList(List<dynamic> groups) {
+    if (groups.isEmpty) {
       return Container(
         height: 130,
         alignment: Alignment.center,
@@ -290,19 +357,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 25),
         physics: const BouncingScrollPhysics(),
-        itemCount: _cachedGroups!.length,
+        itemCount: groups.length,
         // ✅ Setiap kartu adalah widget terpisah — rebuild terisolasi per item
         itemBuilder: (context, index) => GroupTaskCard(
-          task: _cachedGroups![index],
-          progress: _calculateProgress(_cachedGroups![index]),
-          onTap: () => Navigator.pushNamed(context, '/work_in_group_detail', arguments: _cachedGroups![index]),
+          task: groups[index],
+          progress: _calculateProgress(groups[index]),
+          onTap: () => Navigator.pushNamed(context, '/work_in_group_detail', arguments: groups[index]),
         ),
       ),
     );
   }
 
-  Widget _buildIndependentTaskListSliver() {
-    if (_cachedIndependent == null || _cachedIndependent!.isEmpty) {
+  Widget _buildIndependentTaskListSliver(List<dynamic> independent) {
+    if (independent.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -323,10 +390,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         delegate: SliverChildBuilderDelegate(
           // ✅ Setiap item adalah widget terpisah — rebuild terisolasi per item
           (context, index) => IndependentTaskItem(
-            task: _cachedIndependent![index],
-            onTap: () => Navigator.pushNamed(context, '/independent_task_detail', arguments: _cachedIndependent![index]),
+            task: independent[index],
+            onTap: () => Navigator.pushNamed(context, '/independent_task_detail', arguments: independent[index]),
           ),
-          childCount: _cachedIndependent!.length,
+          childCount: independent.length,
         ),
       ),
     );
