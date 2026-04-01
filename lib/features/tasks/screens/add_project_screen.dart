@@ -28,6 +28,12 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   final dateCtrl = TextEditingController();
   final descCtrl = TextEditingController();
 
+  // Error states
+  String? titleError;
+  String? dateError;
+  String? descError;
+  String? groupError;
+
   // Multiple links
   List<String> _links = [];
 
@@ -63,12 +69,37 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 
   Future<void> _save() async {
-    if (titleCtrl.text.isEmpty) return;
+    setState(() {
+      titleError = null;
+      dateError = null;
+      descError = null;
+      groupError = null;
+    });
+
+    bool hasError = false;
+
+    if (titleCtrl.text.isEmpty) {
+      titleError = 'Title is required';
+      hasError = true;
+    }
+    if (dateCtrl.text.isEmpty) {
+      dateError = 'Due Date is required';
+      hasError = true;
+    }
+    if (descCtrl.text.isEmpty) {
+      descError = 'Description is required';
+      hasError = true;
+    }
     if (isGroup && selectedGroup == null) {
-      ScaffoldMessenger.of(context,
-      )..clearSnackBars()..showSnackBar(const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Please select a group')));
+      groupError = 'Please select a group';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setState(() {});
       return;
     }
+
     setState(() => isLoading = true);
     try {
       // 1. Simpan task ke tabel tasks
@@ -145,8 +176,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoading = false);
-      ScaffoldMessenger.of(context,
-      )..clearSnackBars()..showSnackBar(SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            duration: const Duration(milliseconds: 1500),
+            content: Text('Error: $e'),
+          ),
+        );
     }
   }
 
@@ -215,6 +252,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               label: 'Title',
               hint: 'Enter a task title',
               controller: titleCtrl,
+              errorText: titleError,
+              onChanged: (val) {
+                if (titleError != null) setState(() => titleError = null);
+              },
             ),
             const SizedBox(height: 25),
             LabeledInputField(
@@ -222,7 +263,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               hint: 'mm/dd/yyyy',
               controller: dateCtrl,
               icon: Icons.calendar_today_rounded,
+              errorText: dateError,
               onTap: () async {
+                if (dateError != null) setState(() => dateError = null);
                 final d = await showDatePicker(
                   context: context,
                   initialDate: DateTime.now(),
@@ -239,7 +282,11 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               AddTaskGroupDropdown(
                 userGroups: userGroups,
                 selectedGroup: selectedGroup,
-                onChanged: (v) => setState(() => selectedGroup = v),
+                errorText: groupError,
+                onChanged: (v) {
+                  if (groupError != null) setState(() => groupError = null);
+                  setState(() => selectedGroup = v);
+                },
               ),
               const SizedBox(height: 25),
             ],
@@ -248,6 +295,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               hint: 'Description',
               controller: descCtrl,
               lines: 4,
+              errorText: descError,
+              onChanged: (val) {
+                if (descError != null) setState(() => descError = null);
+              },
             ),
             const SizedBox(height: 30),
             // Divider "Support"

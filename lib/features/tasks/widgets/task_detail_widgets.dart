@@ -903,6 +903,8 @@ class LabeledInputField extends StatelessWidget {
   final VoidCallback? onTap;
   final int lines;
   final Color bgColor;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
   const LabeledInputField({
     super.key,
@@ -913,52 +915,75 @@ class LabeledInputField extends StatelessWidget {
     this.onTap,
     this.lines = 1,
     this.bgColor = AppColors.bgLight,
+    this.errorText,
+    this.onChanged,
   });
 
   @override
-  Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      Container(
-        height: lines == 1 ? 52 : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+  Widget build(BuildContext context) {
+    final hasError = errorText != null && errorText!.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              height: lines == 1 ? 52 : null,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: hasError ? Colors.red : AppColors.primaryTeal,
+                  width: 1.2,
+                ),
+              ),
+              child: TextField(
+                controller: controller,
+                maxLines: lines,
+                readOnly: onTap != null,
+                onTap: onTap,
+                onChanged: onChanged,
+                decoration: InputDecoration(
+                  hintText: hint,
+                  border: InputBorder.none,
+                  hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                  suffixIcon: icon != null
+                      ? Icon(icon, color: Colors.grey[400])
+                      : null,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 14,
+              top: -10,
+              child: Container(
+                color: bgColor,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  label,
+                  style: GoogleFonts.outfit(
+                    color: hasError ? Colors.red : AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        child: TextField(
-          controller: controller,
-          maxLines: lines,
-          readOnly: onTap != null,
-          onTap: onTap,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: InputBorder.none,
-            hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
-            suffixIcon: icon != null
-                ? Icon(icon, color: Colors.grey[400])
-                : null,
-          ),
-        ),
-      ),
-      Positioned(
-        left: 14,
-        top: -10,
-        child: Container(
-          color: bgColor,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: AppColors.primaryTeal,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 16),
+            child: Text(
+              errorText!,
+              style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
             ),
           ),
-        ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1388,6 +1413,7 @@ class AddTaskGroupDropdown extends StatelessWidget {
   final dynamic selectedGroup;
   final ValueChanged<dynamic> onChanged;
   final Color bgColor;
+  final String? errorText;
 
   const AddTaskGroupDropdown({
     super.key,
@@ -1395,65 +1421,84 @@ class AddTaskGroupDropdown extends StatelessWidget {
     required this.selectedGroup,
     required this.onChanged,
     this.bgColor = AppColors.bgLight,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
+    final hasError = errorText != null && errorText!.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: selectedGroup?['id'] as String?,
-              hint: Text(
-                'Select a group',
-                style: GoogleFonts.outfit(color: Colors.grey[400]),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: hasError ? Colors.red : AppColors.primaryTeal,
+                  width: 1.2,
+                ),
               ),
-              icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-              items: userGroups
-                  .map((g) => g as Map<String, dynamic>)
-                  .map(
-                    (e) => DropdownMenuItem<String>(
-                      value: e['id'] as String,
-                      child: Text(
-                        e['name'] ?? '',
-                        style: GoogleFonts.outfit(color: Colors.black),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  onChanged(userGroups.firstWhere((g) => g['id'] == v));
-                }
-              },
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: selectedGroup?['id'] as String?,
+                  hint: Text(
+                    'Select a group',
+                    style: GoogleFonts.outfit(color: Colors.grey[400]),
+                  ),
+                  icon: Icon(Icons.expand_more, color: Colors.grey[300]),
+                  items: userGroups
+                      .map((g) => g as Map<String, dynamic>)
+                      .map(
+                        (e) => DropdownMenuItem<String>(
+                          value: e['id'] as String,
+                          child: Text(
+                            e['name'] ?? '',
+                            style: GoogleFonts.outfit(color: Colors.black),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      onChanged(userGroups.firstWhere((g) => g['id'] == v));
+                    }
+                  },
+                ),
+              ),
             ),
-          ),
+            Positioned(
+              left: 14,
+              top: -10,
+              child: Container(
+                color: bgColor,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'Grup',
+                  style: GoogleFonts.outfit(
+                    color: hasError ? Colors.red : AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        Positioned(
-          left: 14,
-          top: -10,
-          child: Container(
-            color: bgColor,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+        if (hasError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 16),
             child: Text(
-              'Grup',
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+              errorText!,
+              style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
             ),
           ),
-        ),
       ],
     );
   }

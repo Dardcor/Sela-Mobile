@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
-import '../../../core/shared_widgets/screen_header_bar.dart';
-import '../../../core/shared_widgets/search_bar_with_button.dart';
 import '../../../core/shared_widgets/success_dialog.dart';
 import '../widgets/group_widgets.dart';
 
@@ -18,6 +14,7 @@ class GroupScreen extends StatefulWidget {
 
 class _GroupScreenState extends State<GroupScreen> {
   final supabase = Supabase.instance.client;
+  List<dynamic> _allTeams = [];
   List<dynamic> teams = [];
   bool isLoading = true;
   final _searchCtrl = TextEditingController();
@@ -28,12 +25,6 @@ class _GroupScreenState extends State<GroupScreen> {
     'Administrasi Jaringan',
     'Konsep Jaringan',
     'Pemrograman Web',
-  ];
-  final List<String> _classes = [
-    '1 – D3 IT A',
-    '2 – D3 IT B',
-    '3 – D4 SDT A',
-    '4 – D4 IT B',
   ];
 
   RealtimeChannel? _realtimeChannel;
@@ -89,11 +80,37 @@ class _GroupScreenState extends State<GroupScreen> {
           .from('groups')
           .select('*, group_members(*, profiles(*))')
           .order('created_at', ascending: false);
-      if (mounted) setState(() => teams = res);
+      _allTeams = res;
+      _applySearch();
     } catch (e) {
       debugPrint('fetch teams info: $e');
-    } finally {
       if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  void _applySearch() {
+    final keyword = _searchCtrl.text.trim().toLowerCase();
+    final filteredTeams = keyword.isEmpty
+        ? List<dynamic>.from(_allTeams)
+        : _allTeams.where((team) {
+            final name = (team['name'] ?? '').toString().toLowerCase();
+            final courseName = (team['course_name'] ?? '')
+                .toString()
+                .toLowerCase();
+            final className = (team['class_name'] ?? '')
+                .toString()
+                .toLowerCase();
+
+            return name.contains(keyword) ||
+                courseName.contains(keyword) ||
+                className.contains(keyword);
+          }).toList();
+
+    if (mounted) {
+      setState(() {
+        teams = filteredTeams;
+        isLoading = false;
+      });
     }
   }
 
@@ -204,20 +221,19 @@ class _GroupScreenState extends State<GroupScreen> {
                                   );
                                   if (results == null ||
                                       (results as List).isEmpty) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context)
-                                        ..clearSnackBars()
-                                        ..showSnackBar(
-                                          const SnackBar(
-                                            duration: Duration(
-                                              milliseconds: 1500,
-                                            ),
-                                            content: Text(
-                                              'Invalid or expired code',
-                                            ),
+                                    if (!ctx.mounted) return;
+                                    ScaffoldMessenger.of(ctx)
+                                      ..clearSnackBars()
+                                      ..showSnackBar(
+                                        const SnackBar(
+                                          duration: Duration(
+                                            milliseconds: 1500,
                                           ),
-                                        );
-                                    }
+                                          content: Text(
+                                            'Invalid or expired code',
+                                          ),
+                                        ),
+                                      );
                                     return;
                                   }
                                   final g = results[0];
@@ -226,39 +242,32 @@ class _GroupScreenState extends State<GroupScreen> {
                                     'user_id': supabase.auth.currentUser!.id,
                                     'role': 'member',
                                   });
-                                  if (mounted) {
-                                    Navigator.pop(ctx);
-                                    _fetch();
-                                    ScaffoldMessenger.of(context)
-                                      ..clearSnackBars()
-                                      ..showSnackBar(
-                                        const SnackBar(
-                                          duration: Duration(
-                                            milliseconds: 1500,
-                                          ),
-                                          content: Text(
-                                            'Successfully joined group! ✅',
-                                          ),
-                                          backgroundColor:
-                                              AppColors.primaryTeal,
+                                  if (!ctx.mounted) return;
+                                  Navigator.pop(ctx);
+                                  _fetch();
+                                  ScaffoldMessenger.of(ctx)
+                                    ..clearSnackBars()
+                                    ..showSnackBar(
+                                      const SnackBar(
+                                        duration: Duration(milliseconds: 1500),
+                                        content: Text(
+                                          'Successfully joined group! ✅',
                                         ),
-                                      );
-                                  }
+                                        backgroundColor: AppColors.primaryTeal,
+                                      ),
+                                    );
                                 } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context)
-                                      ..clearSnackBars()
-                                      ..showSnackBar(
-                                        const SnackBar(
-                                          duration: Duration(
-                                            milliseconds: 1500,
-                                          ),
-                                          content: Text(
-                                            'Failed to join. You may already be a member.',
-                                          ),
+                                  if (!ctx.mounted) return;
+                                  ScaffoldMessenger.of(ctx)
+                                    ..clearSnackBars()
+                                    ..showSnackBar(
+                                      const SnackBar(
+                                        duration: Duration(milliseconds: 1500),
+                                        content: Text(
+                                          'Failed to join. You may already be a member.',
                                         ),
-                                      );
-                                  }
+                                      ),
+                                    );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -326,8 +335,9 @@ class _GroupScreenState extends State<GroupScreen> {
                               onPressed: inProc
                                   ? null
                                   : () async {
-                                      if (curCourse == null || curNo == null)
+                                      if (curCourse == null || curNo == null) {
                                         return;
+                                      }
                                       setS(() => inProc = true);
                                       final inv = List.generate(
                                         6,
@@ -367,15 +377,13 @@ class _GroupScreenState extends State<GroupScreen> {
                                                   supabase.auth.currentUser!.id,
                                               'role': 'leader',
                                             });
-                                        if (mounted) {
-                                          Navigator.pop(ctx);
-                                          _fetch();
-                                          SuccessDialog.show(
-                                            context,
-                                            message:
-                                                'Group successfully created',
-                                          );
-                                        }
+                                        if (!ctx.mounted) return;
+                                        Navigator.pop(ctx);
+                                        _fetch();
+                                        SuccessDialog.show(
+                                          ctx,
+                                          message: 'Group successfully created',
+                                        );
                                       } catch (e) {
                                         debugPrint('create err: $e');
                                         setS(() => inProc = false);
@@ -635,6 +643,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                       .from('group_members')
                                       .delete()
                                       .eq('id', m['id']);
+                                  if (!ctx.mounted) return;
                                   Navigator.pop(ctx);
                                   _fetch();
                                 },
@@ -785,6 +794,8 @@ class _GroupScreenState extends State<GroupScreen> {
             ),
             child: TextField(
               controller: _searchCtrl,
+              onChanged: (_) => _applySearch(),
+              onSubmitted: (_) => _applySearch(),
               decoration: InputDecoration(
                 hintText: 'Search',
                 border: InputBorder.none,
@@ -799,7 +810,7 @@ class _GroupScreenState extends State<GroupScreen> {
         ),
         const SizedBox(width: 12),
         GestureDetector(
-          onTap: () {},
+          onTap: _applySearch,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -834,26 +845,4 @@ class _GroupScreenState extends State<GroupScreen> {
       ],
     ),
   );
-}
-
-class _IconCircleButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _IconCircleButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primaryTeal,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-    );
-  }
 }
