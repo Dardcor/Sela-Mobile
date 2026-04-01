@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
 
@@ -158,23 +159,41 @@ class TaskDetailCard extends StatelessWidget {
             ...(task['task_links'] as List).map(
               (link) => Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: Row(
-                  children: [
-                    Icon(Icons.link_rounded, color: Colors.blue[400], size: 14),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        link['url'] ?? '',
-                        style: GoogleFonts.outfit(
-                          fontSize: 10,
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                child: InkWell(
+                  onTap: () async {
+                    String urlString = link['url'] ?? '';
+                    if (urlString.isEmpty) return;
+                    if (!urlString.startsWith('http://') &&
+                        !urlString.startsWith('https://')) {
+                      urlString = 'https://$urlString';
+                    }
+                    await launchUrl(
+                      Uri.parse(urlString),
+                      mode: LaunchMode.externalApplication,
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.link_rounded,
+                        color: Colors.blue[400],
+                        size: 14,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          link['url'] ?? '',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

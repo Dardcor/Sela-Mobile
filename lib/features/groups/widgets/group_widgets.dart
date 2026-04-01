@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
 
@@ -187,15 +188,84 @@ class GroupCodeSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            _IconActionButton(
-              icon: Icons.copy_all_rounded,
-              onTap: () => Clipboard.setData(ClipboardData(text: code ?? '')),
-            ),
-            const SizedBox(width: 10),
-            _IconActionButton(icon: Icons.refresh_rounded, onTap: () {}),
+            AnimatedCopyButton(textToCopy: code ?? '', isCircle: false),
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Animated copy button that transitions to a checkmark when pressed
+class AnimatedCopyButton extends StatefulWidget {
+  final String textToCopy;
+  final bool isCircle;
+
+  const AnimatedCopyButton({
+    super.key,
+    required this.textToCopy,
+    this.isCircle = false,
+  });
+
+  @override
+  State<AnimatedCopyButton> createState() => _AnimatedCopyButtonState();
+}
+
+class _AnimatedCopyButtonState extends State<AnimatedCopyButton> {
+  bool _isCopied = false;
+
+  void _handleCopy() async {
+    if (_isCopied) return;
+
+    await Clipboard.setData(ClipboardData(text: widget.textToCopy));
+
+    if (mounted) {
+      setState(() => _isCopied = true);
+    }
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() => _isCopied = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleCopy,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: widget.isCircle
+            ? const EdgeInsets.all(8)
+            : const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _isCopied ? Colors.green : AppColors.primaryTeal,
+          shape: widget.isCircle ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: widget.isCircle ? null : BorderRadius.circular(12),
+          boxShadow: widget.isCircle
+              ? null
+              : [
+                  BoxShadow(
+                    color: (_isCopied ? Colors.green : AppColors.primaryTeal)
+                        .withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) =>
+              ScaleTransition(scale: animation, child: child),
+          child: Icon(
+            _isCopied ? Icons.check_rounded : Icons.copy_all_rounded,
+            key: ValueKey<bool>(_isCopied),
+            color: Colors.white,
+            size: widget.isCircle ? 20 : 24,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -829,23 +899,37 @@ class GroupMainCard extends StatelessWidget {
           ...links.map(
             (link) => Padding(
               padding: const EdgeInsets.only(bottom: 5),
-              child: Row(
-                children: [
-                  Icon(Icons.link_rounded, color: Colors.blue[400], size: 14),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      link['url'] ?? '',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
+              child: InkWell(
+                onTap: () async {
+                  String urlString = link['url'] ?? '';
+                  if (urlString.isEmpty) return;
+                  if (!urlString.startsWith('http://') &&
+                      !urlString.startsWith('https://')) {
+                    urlString = 'https://$urlString';
+                  }
+                  await launchUrl(
+                    Uri.parse(urlString),
+                    mode: LaunchMode.externalApplication,
+                  );
+                },
+                child: Row(
+                  children: [
+                    Icon(Icons.link_rounded, color: Colors.blue[400], size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        link['url'] ?? '',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

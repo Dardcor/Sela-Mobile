@@ -15,6 +15,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final _supabase = Supabase.instance.client;
   bool _isLoading = true;
   List<Map<String, dynamic>> _upcomingTasks = [];
+  List<Map<String, dynamic>> _allTasks = [];
   DateTime _selectedDate = DateTime.now();
 
   RealtimeChannel? _realtimeChannel;
@@ -31,15 +32,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _setupRealtimeListener() {
     _realtimeChannel = _supabase.channel('calendar-db-changes');
 
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'tasks',
-      callback: (payload) {
-        debugPrint('Calendar Realtime: Task changed! Refreshing...');
-        _fetchTasks();
-      },
-    ).subscribe();
+    _realtimeChannel!
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'tasks',
+          callback: (payload) {
+            debugPrint('Calendar Realtime: Task changed! Refreshing...');
+            _fetchTasks();
+          },
+        )
+        .subscribe();
   }
 
   @override
@@ -53,19 +56,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _fetchTasks() async {
     try {
       // Gunakan query sederhana dengan relasi default '*' untuk mencegah error missing columns
-      final data = await _supabase
-          .from('tasks')
-          .select();
-          
-      final List<Map<String, dynamic>> allTasks = List<Map<String, dynamic>>.from(data);
-      
+      final data = await _supabase.from('tasks').select();
+
+      final List<Map<String, dynamic>> allTasks =
+          List<Map<String, dynamic>>.from(data);
+
       // Sort tasks: due_date terdekat, null di akhir
       allTasks.sort((a, b) {
         if (a['due_date'] == null && b['due_date'] == null) return 0;
         if (a['due_date'] == null) return 1;
         if (b['due_date'] == null) return -1;
         try {
-          return DateTime.parse(a['due_date'].toString()).compareTo(DateTime.parse(b['due_date'].toString()));
+          return DateTime.parse(
+            a['due_date'].toString(),
+          ).compareTo(DateTime.parse(b['due_date'].toString()));
         } catch (_) {
           return 0;
         }
@@ -73,10 +77,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       if (mounted) {
         setState(() {
-          _upcomingTasks = allTasks.where((t) {
+          _allTasks = allTasks.map<Map<String, dynamic>>((t) {
             final status = t['status']?.toString() ?? '';
-            return status.trim().toLowerCase() != 'done';
-          }).map<Map<String, dynamic>>((t) {
+            final isCompleted = status.trim().toLowerCase() == 'done';
+
             DateTime? dueDate;
             if (t['due_date'] != null) {
               try {
@@ -87,18 +91,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
             DateTime? startDate;
             if (t['start_date'] != null) {
               try {
-                startDate = DateTime.parse(t['start_date'].toString()).toLocal();
+                startDate = DateTime.parse(
+                  t['start_date'].toString(),
+                ).toLocal();
               } catch (_) {}
             }
 
             String dateLabel = 'No date set';
             String statusLabel = 'Upcoming';
+            bool isOverdue = false;
 
             if (dueDate != null) {
               final now = DateTime.now();
               final today = DateTime(now.year, now.month, now.day);
               final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
               final diff = target.difference(today).inDays;
+
+              if (diff < 0) {
+                isOverdue = true;
+              }
 
               if (diff == 0) {
                 dateLabel = 'Today';
@@ -107,7 +118,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 dateLabel = 'Tomorrow';
                 statusLabel = 'Next 1 day';
               } else if (diff > 1) {
-                dateLabel = '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
+                dateLabel =
+                    '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
                 statusLabel = 'Next $diff days';
               } else if (diff < 0) {
                 dateLabel = 'Passed';
@@ -124,8 +136,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               'id': t['id'],
               'created_by': t['created_by'],
               'is_group': t['is_group'] == true,
+              'is_completed': isCompleted,
+              'is_overdue': isOverdue,
             };
           }).toList();
+
+          _upcomingTasks = _allTasks.where((t) => !t['is_completed']).toList();
           _isLoading = false;
         });
       }
@@ -146,9 +162,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await _supabase.from('tasks').delete().eq('id', taskId);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Gagal menghapus task: $e')),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text('Gagal menghapus task: $e'),
+            ),
+          );
         _fetchTasks();
       }
     }
@@ -156,16 +177,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   String _getMonthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return months[month - 1];
   }
 
   void _onMonthChanged(int increment) {
     setState(() {
-      _selectedDate =
-          DateTime(_selectedDate.year, _selectedDate.month + increment, 1);
+      _selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month + increment,
+        1,
+      );
     });
   }
 
@@ -197,7 +231,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     padding: const EdgeInsets.only(top: 210),
                     child: CalendarCard(
                       selectedDate: _selectedDate,
-                      upcomingTasks: _upcomingTasks,
+                      upcomingTasks: _allTasks,
                       onPageChanged: _onPageChanged,
                     ),
                   ),

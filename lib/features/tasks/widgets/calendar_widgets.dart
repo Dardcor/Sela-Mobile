@@ -33,97 +33,130 @@ class CalendarHeader extends StatelessWidget {
         ),
         // Konten — tidak punya height constraint, bebas dari overflow
         Padding(
-          padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 20, 25, 30),
+          padding: EdgeInsets.fromLTRB(
+            25,
+            MediaQuery.of(context).padding.top + 20,
+            25,
+            30,
+          ),
           child: Column(
             children: [
-          // Baris 1: back button kiri | judul pill tengah | spacer kanan
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else {
-                    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_back, color: AppColors.primaryTeal, size: 24),
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(40),
-                ),
-                child: Text(
-                  'Calender',
-                  style: GoogleFonts.outfit(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryTeal,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const SizedBox(width: 44), // spacer penyeimbang
-            ],
-          ),
-          const SizedBox(height: 30),
-          // Baris 2: navigasi bulan terpusat
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () => onMonthChanged(-1),
-                child: const Icon(Icons.chevron_left, color: Colors.white, size: 32),
-              ),
-              Column(
+              // Baris 1: back button kiri | judul pill tengah | spacer kanan
+              Row(
                 children: [
-                  Text(
-                    _getMonthName(selectedDate.month),
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  GestureDetector(
+                    onTap: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/dashboard',
+                          (route) => false,
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: AppColors.primaryTeal,
+                        size: 24,
+                      ),
                     ),
                   ),
-                  Text(
-                    '${selectedDate.year}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.85),
-                      fontWeight: FontWeight.w500,
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 35,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(40),
+                    ),
+                    child: Text(
+                      'Calender',
+                      style: GoogleFonts.outfit(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryTeal,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  const SizedBox(width: 44), // spacer penyeimbang
+                ],
+              ),
+              const SizedBox(height: 30),
+              // Baris 2: navigasi bulan terpusat
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => onMonthChanged(-1),
+                    child: const Icon(
+                      Icons.chevron_left,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        _getMonthName(selectedDate.month),
+                        style: GoogleFonts.outfit(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '${selectedDate.year}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.85),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () => onMonthChanged(1),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white,
+                      size: 32,
                     ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () => onMonthChanged(1),
-                child: const Icon(Icons.chevron_right, color: Colors.white, size: 32),
-              ),
             ],
-          ),
-        ],
           ),
         ),
       ],
     );
   }
 
-
   String _getMonthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return months[month - 1];
   }
@@ -169,89 +202,155 @@ class CalendarCard extends StatelessWidget {
         startingDayOfWeek: StartingDayOfWeek.monday,
         onPageChanged: onPageChanged,
         daysOfWeekHeight: 45,
-        rowHeight: 45, 
-        
+        rowHeight: 45,
+
         availableGestures: AvailableGestures.horizontalSwipe,
-        
+
         calendarStyle: CalendarStyle(
           outsideDaysVisible: true,
           cellMargin: EdgeInsets.zero,
           cellPadding: EdgeInsets.zero,
-          defaultTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
-          weekendTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
+          defaultTextStyle: GoogleFonts.outfit(
+            color: Colors.black,
+            fontSize: 16,
+          ),
+          weekendTextStyle: GoogleFonts.outfit(
+            color: Colors.black,
+            fontSize: 16,
+          ),
           todayDecoration: const BoxDecoration(color: Colors.transparent),
           todayTextStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 16),
-          outsideTextStyle: GoogleFonts.outfit(color: Colors.grey[300], fontSize: 16),
+          outsideTextStyle: GoogleFonts.outfit(
+            color: Colors.grey[300],
+            fontSize: 16,
+          ),
         ),
-        
+
         daysOfWeekStyle: DaysOfWeekStyle(
-          weekdayStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
-          weekendStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
+          weekdayStyle: GoogleFonts.outfit(
+            color: Colors.grey[400],
+            fontSize: 13,
+          ),
+          weekendStyle: GoogleFonts.outfit(
+            color: Colors.grey[400],
+            fontSize: 13,
+          ),
         ),
 
         calendarBuilders: CalendarBuilders(
-          defaultBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
-          todayBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
-          selectedBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks),
-          outsideBuilder: (context, day, focusedDay) => _customDayBuilder(day, upcomingTasks, isOutside: true),
+          defaultBuilder: (context, day, focusedDay) =>
+              _customDayBuilder(day, upcomingTasks),
+          todayBuilder: (context, day, focusedDay) =>
+              _customDayBuilder(day, upcomingTasks),
+          selectedBuilder: (context, day, focusedDay) =>
+              _customDayBuilder(day, upcomingTasks),
+          outsideBuilder: (context, day, focusedDay) =>
+              _customDayBuilder(day, upcomingTasks, isOutside: true),
         ),
       ),
     );
   }
 
-  Widget? _customDayBuilder(DateTime day, List<Map<String, dynamic>> tasks, {bool isOutside = false}) {
+  Widget? _customDayBuilder(
+    DateTime day,
+    List<Map<String, dynamic>> tasks, {
+    bool isOutside = false,
+  }) {
     final normalizedDay = DateTime(day.year, day.month, day.day);
-    
+
     // 1. Circle highlight (due date)
-    bool isCircle = tasks.any((t) => 
-       t['due_date'] != null && 
-       isSameDay(t['due_date'], normalizedDay));
-    
+    final circleTasks = tasks
+        .where(
+          (t) =>
+              t['due_date'] != null && isSameDay(t['due_date'], normalizedDay),
+        )
+        .toList();
+    bool isCircle = circleTasks.isNotEmpty;
+
     // 2. Range highlight helper
-    bool dayHasRange(DateTime d) {
-      final nd = DateTime(d.year, d.month, d.day);
-      return tasks.any((t) {
-        if (t['start_date'] == null || t['due_date'] == null) return false;
-        if (isSameDay(t['start_date'], t['due_date'])) return false;
-        final start = DateTime(t['start_date'].year, t['start_date'].month, t['start_date'].day);
-        final end = DateTime(t['due_date'].year, t['due_date'].month, t['due_date'].day);
-        return (nd.isAtSameMomentAs(start) || nd.isAfter(start)) && 
-               (nd.isAtSameMomentAs(end) || nd.isBefore(end));
-      });
+    bool isTaskInRange(Map<String, dynamic> t, DateTime d) {
+      if (t['start_date'] == null || t['due_date'] == null) return false;
+      if (isSameDay(t['start_date'], t['due_date'])) return false;
+      final start = DateTime(
+        t['start_date'].year,
+        t['start_date'].month,
+        t['start_date'].day,
+      );
+      final end = DateTime(
+        t['due_date'].year,
+        t['due_date'].month,
+        t['due_date'].day,
+      );
+      return (d.isAtSameMomentAs(start) || d.isAfter(start)) &&
+          (d.isAtSameMomentAs(end) || d.isBefore(end));
     }
 
-    bool inRange = dayHasRange(normalizedDay);
-    
+    final rangeTasks = tasks
+        .where((t) => isTaskInRange(t, normalizedDay))
+        .toList();
+    bool inRange = rangeTasks.isNotEmpty;
+
     if (isCircle || inRange) {
-      // Determine rounding: 
-      // Round LEFT if: today is inRange AND (yesterday is NOT inRange OR today is Monday)
-      // Round RIGHT if: today is inRange AND (tomorrow is NOT inRange OR today is Sunday)
-      bool isStart = inRange && (!dayHasRange(normalizedDay.subtract(const Duration(days: 1))) || normalizedDay.weekday == DateTime.monday);
-      bool isEnd = inRange && (!dayHasRange(normalizedDay.add(const Duration(days: 1))) || normalizedDay.weekday == DateTime.sunday);
+      // 3. Faded logic
+      bool isFaded = true;
+      for (var t in circleTasks) {
+        if (t['is_completed'] != true && t['is_overdue'] != true) {
+          isFaded = false;
+          break;
+        }
+      }
+      if (isFaded) {
+        for (var t in rangeTasks) {
+          if (t['is_completed'] != true && t['is_overdue'] != true) {
+            isFaded = false;
+            break;
+          }
+        }
+      }
+
+      bool dayHasRange(DateTime d) {
+        final nd = DateTime(d.year, d.month, d.day);
+        return tasks.any((t) => isTaskInRange(t, nd));
+      }
+
+      bool isStart =
+          inRange &&
+          (!dayHasRange(normalizedDay.subtract(const Duration(days: 1))) ||
+              normalizedDay.weekday == DateTime.monday);
+      bool isEnd =
+          inRange &&
+          (!dayHasRange(normalizedDay.add(const Duration(days: 1))) ||
+              normalizedDay.weekday == DateTime.sunday);
 
       return _buildDayCell(
-        day, 
-        isCircle: isCircle, 
-        inRange: inRange, 
-        isStart: isStart, 
+        day,
+        isCircle: isCircle,
+        inRange: inRange,
+        isStart: isStart,
         isEnd: isEnd,
         isOutside: isOutside,
+        isFaded: isFaded,
       );
     }
     return null;
   }
 
-  Widget _buildDayCell(DateTime day, {
-    required bool isCircle, 
-    required bool inRange, 
-    bool isStart = false, 
+  Widget _buildDayCell(
+    DateTime day, {
+    required bool isCircle,
+    required bool inRange,
+    bool isStart = false,
     bool isEnd = false,
     bool isOutside = false,
+    bool isFaded = false,
   }) {
+    final rangeColor = isFaded ? Colors.grey[200]! : AppColors.lightTealBg;
+    final circleColor = isFaded ? Colors.grey[400]! : AppColors.primaryTeal;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2.5),
       decoration: BoxDecoration(
-        color: inRange ? AppColors.lightTealBg : Colors.transparent,
+        color: inRange ? rangeColor : Colors.transparent,
         borderRadius: BorderRadius.horizontal(
           left: isStart ? const Radius.circular(25) : Radius.zero,
           right: isEnd ? const Radius.circular(25) : Radius.zero,
@@ -262,15 +361,19 @@ class CalendarCard extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: isCircle ? AppColors.primaryTeal : Colors.transparent,
+            color: isCircle ? circleColor : Colors.transparent,
             shape: BoxShape.circle,
           ),
           child: Center(
             child: Text(
               '${day.day}',
               style: GoogleFonts.outfit(
-                color: isCircle ? Colors.white : (isOutside ? Colors.grey[300] : Colors.black),
-                fontWeight: isCircle || inRange ? FontWeight.bold : FontWeight.normal,
+                color: isCircle
+                    ? Colors.white
+                    : (isOutside ? Colors.grey[300] : Colors.black),
+                fontWeight: isCircle || inRange
+                    ? FontWeight.bold
+                    : FontWeight.normal,
                 fontSize: 16,
               ),
             ),
@@ -316,11 +419,15 @@ class UpcomingTaskSection extends StatelessWidget {
               ),
             )
           else
-            ...tasks.map((task) => _TaskCard(
-              task: task,
-              currentUserId: currentUserId,
-              onDelete: () => onDelete(task['id']),
-            )).toList(),
+            ...tasks
+                .map(
+                  (task) => _TaskCard(
+                    task: task,
+                    currentUserId: currentUserId,
+                    onDelete: () => onDelete(task['id']),
+                  ),
+                )
+                .toList(),
         ],
       ),
     );
@@ -343,9 +450,7 @@ class _TaskCard extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -454,24 +559,32 @@ class _TaskCard extends StatelessWidget {
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 15),
         color: Colors.transparent,
-        child: const Icon(Icons.delete_outline_rounded, color: AppColors.primaryTeal, size: 28),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: AppColors.primaryTeal,
+          size: 28,
+        ),
       ),
       // ✅ confirmDismiss: cek permission dulu, lalu tampilkan popup konfirmasi
       confirmDismiss: (_) async {
         if (!isOwner) {
           // Member tidak bisa hapus task — tampilkan info
-          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(duration: const Duration(milliseconds: 1500), content: Text(
-                'Hanya pembuat task yang dapat menghapus task ini',
-                style: GoogleFonts.outfit(),
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(
+                  'Hanya pembuat task yang dapat menghapus task ini',
+                  style: GoogleFonts.outfit(),
+                ),
+                backgroundColor: Colors.orange[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              backgroundColor: Colors.orange[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+            );
           return false;
         }
         // Pembuat task: tampilkan dialog konfirmasi
@@ -534,4 +647,3 @@ class _TaskCard extends StatelessWidget {
     );
   }
 }
-

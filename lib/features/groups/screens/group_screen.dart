@@ -205,13 +205,18 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (results == null ||
                                       (results as List).isEmpty) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context,
-                                      )..clearSnackBars()..showSnackBar(
-                                        const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
-                                            'Invalid or expired code',
+                                      ScaffoldMessenger.of(context)
+                                        ..clearSnackBars()
+                                        ..showSnackBar(
+                                          const SnackBar(
+                                            duration: Duration(
+                                              milliseconds: 1500,
+                                            ),
+                                            content: Text(
+                                              'Invalid or expired code',
+                                            ),
                                           ),
-                                        ),
-                                      );
+                                        );
                                     }
                                     return;
                                   }
@@ -224,22 +229,35 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (mounted) {
                                     Navigator.pop(ctx);
                                     _fetch();
-                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                      const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
-                                          'Successfully joined group! ✅',
+                                    ScaffoldMessenger.of(context)
+                                      ..clearSnackBars()
+                                      ..showSnackBar(
+                                        const SnackBar(
+                                          duration: Duration(
+                                            milliseconds: 1500,
+                                          ),
+                                          content: Text(
+                                            'Successfully joined group! ✅',
+                                          ),
+                                          backgroundColor:
+                                              AppColors.primaryTeal,
                                         ),
-                                        backgroundColor: AppColors.primaryTeal,
-                                      ),
-                                    );
+                                      );
                                   }
                                 } catch (e) {
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                      const SnackBar(duration: Duration(milliseconds: 1500), content: Text(
-                                          'Failed to join. You may already be a member.',
+                                    ScaffoldMessenger.of(context)
+                                      ..clearSnackBars()
+                                      ..showSnackBar(
+                                        const SnackBar(
+                                          duration: Duration(
+                                            milliseconds: 1500,
+                                          ),
+                                          content: Text(
+                                            'Failed to join. You may already be a member.',
+                                          ),
                                         ),
-                                      ),
-                                    );
+                                      );
                                   }
                                 }
                               },
@@ -514,16 +532,9 @@ class _GroupScreenState extends State<GroupScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        _IconCircleButton(
-                          icon: Icons.copy_all_rounded,
-                          onTap: () => Clipboard.setData(
-                            ClipboardData(text: team['invitation_code'] ?? ''),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _IconCircleButton(
-                          icon: Icons.refresh_rounded,
-                          onTap: () {},
+                        AnimatedCopyButton(
+                          textToCopy: team['invitation_code'] ?? '',
+                          isCircle: true,
                         ),
                       ],
                     ),
