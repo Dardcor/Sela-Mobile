@@ -975,7 +975,7 @@ class LabeledInputField extends StatelessWidget {
           children: [
             Container(
               height: lines == 1 ? 52 : null,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.only(left: 16, right: 0),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
@@ -992,9 +992,20 @@ class LabeledInputField extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: hint,
                   border: InputBorder.none,
-                  hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                  hintStyle: GoogleFonts.outfit(
+                    color: Colors.grey[400],
+                    fontSize: 14,
+                  ),
+                  contentPadding: EdgeInsets.only(
+                    right: icon == null ? 16 : 0,
+                    top: lines > 1 ? 16 : 14, // Adjusted for single line vertical centering
+                    bottom: lines > 1 ? 16 : 14, // Adjusted for single line vertical centering
+                  ),
                   suffixIcon: icon != null
-                      ? Icon(icon, color: Colors.grey[400])
+                      ? Transform.translate(
+                          offset: const Offset(4, 0),
+                          child: Icon(icon, color: Colors.grey[400]),
+                        )
                       : null,
                 ),
               ),
@@ -1050,13 +1061,19 @@ class LinkListSection extends StatefulWidget {
 
 class _LinkListSectionState extends State<LinkListSection> {
   final _ctrl = TextEditingController();
+  String? _error;
 
   void _addLink() {
     final text = _ctrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      setState(() => _error = 'Link is required');
+      return;
+    }
+    
     final updated = [...widget.links, text];
     widget.onLinksChanged(updated);
     _ctrl.clear();
+    if (_error != null) setState(() => _error = null);
   }
 
   void _removeLink(int index) {
@@ -1130,19 +1147,24 @@ class _LinkListSectionState extends State<LinkListSection> {
           ),
         // Baris input link + tombol Add
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: LabeledInputField(
                 label: 'Link',
                 hint: 'Enter a link',
                 controller: _ctrl,
+                errorText: _error,
+                onChanged: (val) {
+                  if (_error != null) setState(() => _error = null);
+                },
               ),
             ),
             const SizedBox(width: 12),
             GestureDetector(
               onTap: _addLink,
               child: Container(
+                margin: const EdgeInsets.only(top: 0),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 25,
                   vertical: 12,
@@ -1480,7 +1502,6 @@ class AddTaskGroupDropdown extends StatelessWidget {
           children: [
             Container(
               height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
@@ -1488,33 +1509,58 @@ class AddTaskGroupDropdown extends StatelessWidget {
                   width: 1.2,
                 ),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: selectedGroup?['id'] as String?,
-                  hint: Text(
-                    'Select a group',
-                    style: GoogleFonts.outfit(color: Colors.grey[400]),
-                  ),
-                  icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-                  items: userGroups
-                      .map((g) => g as Map<String, dynamic>)
-                      .map(
-                        (e) => DropdownMenuItem<String>(
-                          value: e['id'] as String,
-                          child: Text(
-                            e['name'] ?? '',
-                            style: GoogleFonts.outfit(color: Colors.black),
-                          ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return DropdownMenu<String>(
+                    width: constraints.maxWidth,
+                    initialSelection: selectedGroup?['id'] as String?,
+                    onSelected: (v) {
+                      if (v != null) {
+                        onChanged(userGroups.firstWhere((g) => g['id'] == v));
+                      }
+                    },
+                    trailingIcon: Transform.translate(
+                      offset: const Offset(4, 0),
+                      child: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
+                    ),
+                    selectedTrailingIcon: Transform.translate(
+                      offset: const Offset(4, 0),
+                      child: Icon(Icons.expand_less_rounded, color: Colors.grey[400]),
+                    ),
+                    textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 13),
+                    menuStyle: MenuStyle(
+                      backgroundColor: WidgetStateProperty.all(Colors.white),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      onChanged(userGroups.firstWhere((g) => g['id'] == v));
-                    }
-                  },
-                ),
+                      ),
+                    ),
+                    inputDecorationTheme: InputDecorationTheme(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintStyle: GoogleFonts.outfit(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      contentPadding: const EdgeInsets.only(left: 16, bottom: 8),
+                    ),
+                    hintText: 'Select a group',
+                    dropdownMenuEntries: userGroups
+                        .map((g) => g as Map<String, dynamic>)
+                        .map(
+                          (e) => DropdownMenuEntry<String>(
+                            value: e['id'] as String,
+                            label: e['name'] ?? '',
+                            style: MenuItemButton.styleFrom(
+                              textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 13),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
             ),
             Positioned(

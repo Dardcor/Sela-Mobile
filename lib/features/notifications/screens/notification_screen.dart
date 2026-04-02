@@ -121,37 +121,55 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          // Header - Custom logic to match Image 2
-          NotificationHeader(onBack: () => Navigator.pop(context)),
-          
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryTeal))
-                : _notifications.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey[300]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No notifications yet',
-                              style: GoogleFonts.outfit(color: Colors.grey[400]),
+      body: RefreshIndicator(
+        onRefresh: _fetchNotifications,
+        color: AppColors.primaryTeal,
+        edgeOffset: MediaQuery.of(context).padding.top + 10,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Header - Now part of scroll view to allow pull-to-refresh from top
+            SliverToBoxAdapter(
+              child: NotificationHeader(onBack: () => Navigator.pop(context)),
+            ),
+            
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
+              sliver: _isLoading
+                  ? const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)),
+                    )
+                  : _notifications.isEmpty
+                      ? SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey[300]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No notifications yet',
+                                  style: GoogleFonts.outfit(color: Colors.grey[400]),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => NotificationCard(
+                              notification: _notifications[index],
+                            ),
+                            childCount: _notifications.length,
+                          ),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) => NotificationCard(
-                          notification: _notifications[index],
-                        ),
-                      ),
-          ),
-        ],
+            ),
+            // Bottom spacing similar to dashboard
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
+          ],
+        ),
       ),
     );
   }

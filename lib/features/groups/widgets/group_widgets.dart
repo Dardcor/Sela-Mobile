@@ -240,15 +240,14 @@ class _AnimatedCopyButtonState extends State<AnimatedCopyButton> {
             ? const EdgeInsets.all(8)
             : const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: _isCopied ? Colors.green : AppColors.primaryTeal,
+          color: AppColors.primaryTeal,
           shape: widget.isCircle ? BoxShape.circle : BoxShape.rectangle,
           borderRadius: widget.isCircle ? null : BorderRadius.circular(12),
           boxShadow: widget.isCircle
               ? null
               : [
                   BoxShadow(
-                    color: (_isCopied ? Colors.green : AppColors.primaryTeal)
-                        .withOpacity(0.2),
+                    color: AppColors.primaryTeal.withOpacity(0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -402,36 +401,57 @@ class GroupDropdownField extends StatelessWidget {
         children: [
           Container(
             height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: AppColors.primaryTeal, width: 1.2),
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: value,
-                hint: Text(
-                  hint,
-                  style: GoogleFonts.outfit(color: Colors.grey[300]),
-                ),
-                icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-                items: items
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: Text(
-                            e,
-                            style: GoogleFonts.outfit(color: Colors.black),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return DropdownMenu<String>(
+                  width: constraints.maxWidth,
+                  initialSelection: value,
+                  onSelected: onChanged,
+                  trailingIcon: Transform.translate(
+                    offset: const Offset(4, 0),
+                    child: Icon(Icons.expand_more_rounded, color: Colors.grey[300]),
+                  ),
+                  selectedTrailingIcon: Transform.translate(
+                    offset: const Offset(4, 0),
+                    child: Icon(Icons.expand_less_rounded, color: Colors.grey[300]),
+                  ),
+                  textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
+                  menuStyle: MenuStyle(
+                    backgroundColor: WidgetStateProperty.all(Colors.white),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                  inputDecorationTheme: InputDecorationTheme(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintStyle: GoogleFonts.outfit(
+                      color: Colors.grey[300],
+                      fontSize: 14,
+                    ),
+                    contentPadding: const EdgeInsets.only(left: 18, bottom: 8),
+                  ),
+                  hintText: hint,
+                  dropdownMenuEntries: items
+                      .map(
+                        (e) => DropdownMenuEntry<String>(
+                          value: e,
+                          label: e,
+                          style: MenuItemButton.styleFrom(
+                            textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 14),
                           ),
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onChanged,
-              ),
+                      )
+                      .toList(),
+                );
+              },
             ),
           ),
           Positioned(

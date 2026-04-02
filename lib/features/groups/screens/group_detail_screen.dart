@@ -169,7 +169,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             const SnackBar(
               duration: Duration(milliseconds: 1500),
               content: Text('Subtask created successfully'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primaryTeal,
             ),
           );
       }
@@ -227,7 +227,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             const SnackBar(
               duration: Duration(milliseconds: 1500),
               content: Text('Subtasks created automatically'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primaryTeal,
             ),
           );
       }
