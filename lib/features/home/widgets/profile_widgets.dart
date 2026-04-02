@@ -629,32 +629,58 @@ class _EditProfileModalState extends State<EditProfileModal> {
       children: [
         Container(
           height: 55,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: AppColors.primaryTeal, width: 1.2),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              icon: const Icon(Icons.expand_more_rounded, color: Colors.grey),
-              items: items
-                  .map(
-                    (e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(
-                        e,
-                        style: GoogleFonts.outfit(
-                          fontSize: 15,
-                          color: Colors.grey[700],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return DropdownMenu<String>(
+                width: constraints.maxWidth,
+                initialSelection: value,
+                onSelected: onChanged,
+                trailingIcon: Transform.translate(
+                  offset: const Offset(4, 0),
+                  child: const Icon(Icons.expand_more_rounded, color: Colors.grey),
+                ),
+                selectedTrailingIcon: Transform.translate(
+                  offset: const Offset(4, 0),
+                  child: const Icon(Icons.expand_less_rounded, color: Colors.grey),
+                ),
+                textStyle: GoogleFonts.outfit(
+                  fontSize: 15,
+                  color: Colors.grey[700],
+                ),
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStateProperty.all(Colors.white),
+                  shape: WidgetStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.only(left: 18, bottom: 2),
+                ),
+                dropdownMenuEntries: items
+                    .map(
+                      (e) => DropdownMenuEntry<String>(
+                        value: e,
+                        label: e,
+                        style: MenuItemButton.styleFrom(
+                          textStyle: GoogleFonts.outfit(
+                            fontSize: 15,
+                            color: Colors.grey[700],
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: onChanged,
-            ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ),
         Positioned(

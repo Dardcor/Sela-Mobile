@@ -227,6 +227,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   onPageChanged: (index) {
                     setState(() {
                       isGroup = index == 0;
+                      titleError = null;
+                      dateError = null;
+                      descError = null;
+                      groupError = null;
                     });
                   },
                   children: [_buildForm(true), _buildForm(false)],
@@ -242,6 +246,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
   Widget _buildForm(bool forGroup) {
     return SingleChildScrollView(
+      key: ValueKey(forGroup),
       clipBehavior: Clip.none,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -262,7 +267,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               label: 'Due Date',
               hint: 'mm/dd/yyyy',
               controller: dateCtrl,
-              icon: Icons.calendar_today_rounded,
+              icon: Icons.calendar_month_rounded,
               errorText: dateError,
               onTap: () async {
                 if (dateError != null) setState(() => dateError = null);

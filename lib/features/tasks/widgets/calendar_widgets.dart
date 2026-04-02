@@ -568,23 +568,80 @@ class _TaskCard extends StatelessWidget {
       // ✅ confirmDismiss: cek permission dulu, lalu tampilkan popup konfirmasi
       confirmDismiss: (_) async {
         if (!isOwner) {
-          // Member tidak bisa hapus task — tampilkan info
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                duration: const Duration(milliseconds: 1500),
-                content: Text(
-                  'Hanya pembuat task yang dapat menghapus task ini',
-                  style: GoogleFonts.outfit(),
-                ),
-                backgroundColor: Colors.orange[600],
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          // Member cannot delete task — show center popup dialog
+          await showDialog<void>(
+            context: context,
+            barrierDismissible: true,
+            builder: (ctx) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: AppColors.primaryTeal,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Access Denied',
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Only the task creator can delete this task.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Got it',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
+            ),
+          );
           return false;
         }
         // Pembuat task: tampilkan dialog konfirmasi

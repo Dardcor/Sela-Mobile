@@ -23,6 +23,14 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscureRegisterPassword = true;
   bool _rememberMe = false;
 
+  final List<String> _classes = [
+    '2 - D3 IT B',
+    '2 - D3 IT A',
+    '1 - D3 IT B',
+    '1 - D3 IT A',
+  ];
+  String? _selectedClass = '2 - D3 IT B';
+
   final _emailLoginController = TextEditingController();
   final _passwordLoginController = TextEditingController();
 
@@ -74,6 +82,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _usernameRegisterController.clear();
     _emailRegisterController.clear();
     _passwordRegisterController.clear();
+    setState(() => _selectedClass = _classes[0]);
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -159,13 +168,21 @@ class _AuthScreenState extends State<AuthScreen> {
       _showError('Password minimal 6 karakter');
       return;
     }
+    if (_selectedClass == null || _selectedClass!.isEmpty) {
+      _showError('Kelas tidak boleh kosong');
+      return;
+    }
 
     setState(() => isLoading = true);
     try {
       final res = await supabase.auth.signUp(
         email: email,
         password: password,
-        data: {'full_name': username, 'username': username},
+        data: {
+          'full_name': username,
+          'username': username,
+          'class_name': _selectedClass,
+        },
       );
 
       // Kita tidak perlu manual upsert_profile di sini lagi karena
@@ -328,13 +345,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          AnimatedSize(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            child: SizedBox(
-                              height: isLogin ? 400 : 480,
-                              child: PageView(
-                                controller: _pageController,
+                          SizedBox(
+                            height: 540,
+                            child: PageView(
+                              controller: _pageController,
                                 physics: const BouncingScrollPhysics(),
                                 onPageChanged: (index) {
                                   if (mounted)
@@ -385,6 +399,13 @@ class _AuthScreenState extends State<AuthScreen> {
                                           _passwordRegisterController,
                                       obscurePassword: _obscureRegisterPassword,
                                       isLoading: isLoading,
+                                      selectedClass: _selectedClass,
+                                      classes: _classes,
+                                      onClassChanged: (val) {
+                                        if (val != null) {
+                                          setState(() => _selectedClass = val);
+                                        }
+                                      },
                                       onToggleObscure: () => setState(
                                         () => _obscureRegisterPassword =
                                             !_obscureRegisterPassword,
@@ -395,7 +416,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ],
                               ),
                             ),
-                          ),
                           const SizedBox(height: 50),
                         ],
                       ),
@@ -438,9 +458,11 @@ class _LoginForm extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      AuthTextField(
+  Widget build(BuildContext context) => SingleChildScrollView(
+    physics: const NeverScrollableScrollPhysics(),
+    child: Column(
+      children: [
+        AuthTextField(
         controller: emailController,
         label: 'Email Address',
         hint: 'contoh@email.com',
@@ -489,7 +511,8 @@ class _LoginForm extends StatelessWidget {
       ),
       const SizedBox(height: 20),
     ],
-  );
+  ),
+);
 }
 
 // ────────────────────────────────────────────
@@ -501,6 +524,9 @@ class _RegisterForm extends StatelessWidget {
   final TextEditingController passwordController;
   final bool obscurePassword;
   final bool isLoading;
+  final String? selectedClass;
+  final List<String> classes;
+  final ValueChanged<String?> onClassChanged;
   final VoidCallback onToggleObscure;
   final VoidCallback onRegister;
 
@@ -510,14 +536,19 @@ class _RegisterForm extends StatelessWidget {
     required this.passwordController,
     required this.obscurePassword,
     required this.isLoading,
+    required this.selectedClass,
+    required this.classes,
+    required this.onClassChanged,
     required this.onToggleObscure,
     required this.onRegister,
   });
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      AuthTextField(
+  Widget build(BuildContext context) => SingleChildScrollView(
+    physics: const NeverScrollableScrollPhysics(),
+    child: Column(
+      children: [
+        AuthTextField(
         controller: usernameController,
         label: 'Username',
         hint: 'Masukkan username Anda',
@@ -540,6 +571,15 @@ class _RegisterForm extends StatelessWidget {
         obscure: obscurePassword,
         onToggle: onToggleObscure,
       ),
+      const SizedBox(height: 20),
+      AuthDropdownField(
+        label: 'Class',
+        hint: 'Pilih Kelas',
+        value: selectedClass,
+        items: classes,
+        onChanged: onClassChanged,
+        icon: Icons.school_outlined,
+      ),
       const SizedBox(height: 40),
       AuthSubmitButton(
         label: 'Register',
@@ -548,5 +588,6 @@ class _RegisterForm extends StatelessWidget {
       ),
       const SizedBox(height: 20),
     ],
-  );
+  ),
+);
 }
