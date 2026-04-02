@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
-import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/calendar_widgets.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
 
   RealtimeChannel? _realtimeChannel;
+  Timer? _refreshDebounce;
 
   String get _currentUserId => _supabase.auth.currentUser?.id ?? '';
 
@@ -39,18 +41,78 @@ class _CalendarScreenState extends State<CalendarScreen> {
           table: 'tasks',
           callback: (payload) {
             debugPrint('Calendar Realtime: Task changed! Refreshing...');
-            _fetchTasks();
+            _scheduleRefresh();
           },
         )
         .subscribe();
   }
 
+  void _scheduleRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 400), _fetchTasks);
+  }
+
   @override
   void dispose() {
+    _refreshDebounce?.cancel();
     if (_realtimeChannel != null) {
       _supabase.removeChannel(_realtimeChannel!);
     }
     super.dispose();
+  }
+
+  Future<List<Map<String, dynamic>>> _purgeExpiredTasks(
+    List<Map<String, dynamic>> tasks,
+  ) async {
+    final now = DateTime.now();
+    final deleteAfter = now.subtract(const Duration(days: 7));
+
+    final staleOwnedTaskIds = tasks
+        .where((task) {
+          final taskId = task['id']?.toString();
+          final createdBy = task['created_by']?.toString() ?? '';
+          final status = task['status']?.toString().trim().toLowerCase() ?? '';
+
+          if (taskId == null || taskId.isEmpty) {
+            return false;
+          }
+
+          if (createdBy != _currentUserId || status == 'done') {
+            return false;
+          }
+
+          final dueValue = task['due_date'];
+          if (dueValue == null) {
+            return false;
+          }
+
+          try {
+            final dueDate = DateTime.parse(dueValue.toString()).toLocal();
+            return dueDate.isBefore(deleteAfter);
+          } catch (_) {
+            return false;
+          }
+        })
+        .map((task) => task['id'].toString())
+        .toList();
+
+    if (staleOwnedTaskIds.isEmpty) {
+      return tasks;
+    }
+
+    try {
+      for (var i = 0; i < staleOwnedTaskIds.length; i += 50) {
+        final batch = staleOwnedTaskIds.skip(i).take(50).toList();
+        await _supabase.from('tasks').delete().inFilter('id', batch);
+      }
+    } catch (e) {
+      debugPrint('Error purging expired tasks: $e');
+      return tasks;
+    }
+
+    return tasks
+        .where((task) => !staleOwnedTaskIds.contains(task['id'].toString()))
+        .toList();
   }
 
   Future<void> _fetchTasks() async {
@@ -58,8 +120,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       // Gunakan query sederhana dengan relasi default '*' untuk mencegah error missing columns
       final data = await _supabase.from('tasks').select();
 
-      final List<Map<String, dynamic>> allTasks =
-          List<Map<String, dynamic>>.from(data);
+      final rawTasks = List<Map<String, dynamic>>.from(data);
+      final List<Map<String, dynamic>> allTasks = await _purgeExpiredTasks(
+        rawTasks,
+      );
 
       // Sort tasks: due_date terdekat, null di akhir
       allTasks.sort((a, b) {

@@ -36,12 +36,17 @@ class DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = profile?['full_name'] ?? profile?['username'] ?? 'User';
     final role = profile?['class_name'] ?? 'Mahasiswa';
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final topInset = MediaQuery.paddingOf(context).top;
+    final isTablet = screenWidth >= 600;
+    final horizontalPadding = isTablet ? 32.0 : 25.0;
+    final avatarRadius = isTablet ? 30.0 : 26.0;
 
-    return Stack(
-      children: [
-        // Background teal — fixed height, tidak membatasi konten
-        Container(
-          height: MediaQuery.of(context).padding.top + 230,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+
+        return Container(
           decoration: const BoxDecoration(
             color: AppColors.primaryTeal,
             borderRadius: BorderRadius.only(
@@ -49,78 +54,89 @@ class DashboardHeader extends StatelessWidget {
               bottomRight: Radius.circular(30),
             ),
           ),
-        ),
-        // Konten — tidak punya height constraint, bebas dari overflow
-        Padding(
           padding: EdgeInsets.fromLTRB(
-            25,
-            MediaQuery.of(context).padding.top + 20,
-            25,
+            horizontalPadding,
+            topInset + 20,
+            horizontalPadding,
             30,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: CircleAvatar(
+                            radius: avatarRadius,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
+                            backgroundImage:
+                                profile?['avatar_url'] != null &&
+                                    profile!['avatar_url'].toString().isNotEmpty
+                                ? NetworkImage(profile!['avatar_url'])
+                                      as ImageProvider
+                                : const AssetImage(
+                                    'assets/images/default_profile.png',
+                                  ),
+                          ),
                         ),
-                        child: CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          backgroundImage:
-                              profile?['avatar_url'] != null &&
-                                  profile!['avatar_url'].toString().isNotEmpty
-                              ? NetworkImage(profile!['avatar_url'])
-                                    as ImageProvider
-                              : const AssetImage(
-                                  'assets/images/default_profile.png',
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.outfit(
+                                  fontSize: isTablet ? 20 : 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name.length > 15
-                                ? '${name.substring(0, 15)}...'
-                                : name,
-                            style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              role,
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                color: AppColors.primaryTeal,
-                                fontWeight: FontWeight.w600,
                               ),
-                            ),
+                              const SizedBox(height: 4),
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: isTablet
+                                      ? availableWidth * 0.45
+                                      : availableWidth * 0.55,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  role,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    color: AppColors.primaryTeal,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   GestureDetector(
                     onTap: onNotificationTap,
                     child: Container(
@@ -130,12 +146,12 @@ class DashboardHeader extends StatelessWidget {
                       ),
                       child: Stack(
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.all(10),
+                          Padding(
+                            padding: EdgeInsets.all(isTablet ? 12 : 10),
                             child: Icon(
                               Icons.notifications_outlined,
                               color: AppColors.primaryTeal,
-                              size: 24,
+                              size: isTablet ? 26 : 24,
                             ),
                           ),
                           if (unreadCount > 0)
@@ -188,8 +204,8 @@ class DashboardHeader extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -251,11 +267,15 @@ class GroupTaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final members = (task['_members'] as List? ?? []);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final cardWidth = (screenWidth * (screenWidth >= 600 ? 0.38 : 0.62))
+        .clamp(190.0, 320.0)
+        .toDouble();
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 220,
+        width: cardWidth,
         padding: const EdgeInsets.all(15),
         margin: const EdgeInsets.only(right: 15, bottom: 5),
         decoration: BoxDecoration(
@@ -316,13 +336,17 @@ class GroupTaskCard extends StatelessWidget {
             const Spacer(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                MemberAvatarStack(
-                  members: members,
-                  maxVisible: 4,
-                  avatarRadius: 11,
-                  overlap: 15,
+                Flexible(
+                  child: MemberAvatarStack(
+                    members: members,
+                    maxVisible: 4,
+                    avatarRadius: 11,
+                    overlap: 15,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -334,6 +358,7 @@ class GroupTaskCard extends StatelessWidget {
                   ),
                   child: Text(
                     'detail',
+                    maxLines: 1,
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 10,
@@ -429,10 +454,14 @@ class IndependentTaskItem extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     dateStr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(color: Colors.grey, fontSize: 11),
                   ),
                 ],
@@ -461,7 +490,9 @@ class DashboardSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 25),
+    padding: EdgeInsets.symmetric(
+      horizontal: MediaQuery.sizeOf(context).width >= 600 ? 32 : 25,
+    ),
     child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -504,14 +535,24 @@ class DashboardSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 25),
+    padding: EdgeInsets.symmetric(
+      horizontal: MediaQuery.sizeOf(context).width >= 600 ? 32 : 25,
+    ),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
+        const SizedBox(width: 12),
         GestureDetector(
           onTap: onSeeAll,
           child: Text(

@@ -120,6 +120,23 @@ class _GroupScreenState extends State<GroupScreen> {
     final joinCodeCtrl = TextEditingController();
     final limitCtrl = TextEditingController(text: '4');
     bool inProc = false;
+    String? joinCodeError;
+    String? courseError;
+    String? limitError;
+    String? groupNumberError;
+
+    void showAlert(String message, {bool isSuccess = false}) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            duration: const Duration(milliseconds: 1800),
+            backgroundColor: isSuccess ? AppColors.primaryTeal : null,
+            content: Text(message),
+          ),
+        );
+    }
 
     showModalBottomSheet(
       context: context,
@@ -197,6 +214,12 @@ class _GroupScreenState extends State<GroupScreen> {
                             label: 'Code',
                             hint: 'Input a code',
                             controller: joinCodeCtrl,
+                            errorText: joinCodeError,
+                            onChanged: (_) {
+                              if (joinCodeError != null) {
+                                setS(() => joinCodeError = null);
+                              }
+                            },
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -213,7 +236,16 @@ class _GroupScreenState extends State<GroupScreen> {
                             child: ElevatedButton(
                               onPressed: () async {
                                 final c = joinCodeCtrl.text.trim();
-                                if (c.isEmpty) return;
+
+                                setS(() => joinCodeError = null);
+
+                                if (c.isEmpty) {
+                                  setS(
+                                    () => joinCodeError =
+                                        'Please enter the group code first',
+                                  );
+                                  return;
+                                }
                                 try {
                                   final results = await supabase.rpc(
                                     'find_group_by_invite_code',
@@ -221,19 +253,10 @@ class _GroupScreenState extends State<GroupScreen> {
                                   );
                                   if (results == null ||
                                       (results as List).isEmpty) {
-                                    if (!ctx.mounted) return;
-                                    ScaffoldMessenger.of(ctx)
-                                      ..clearSnackBars()
-                                      ..showSnackBar(
-                                        const SnackBar(
-                                          duration: Duration(
-                                            milliseconds: 1500,
-                                          ),
-                                          content: Text(
-                                            'Invalid or expired code',
-                                          ),
-                                        ),
-                                      );
+                                    setS(
+                                      () => joinCodeError =
+                                          'Invalid or expired group code',
+                                    );
                                     return;
                                   }
                                   final g = results[0];
@@ -245,29 +268,14 @@ class _GroupScreenState extends State<GroupScreen> {
                                   if (!ctx.mounted) return;
                                   Navigator.pop(ctx);
                                   _fetch();
-                                  ScaffoldMessenger.of(ctx)
-                                    ..clearSnackBars()
-                                    ..showSnackBar(
-                                      const SnackBar(
-                                        duration: Duration(milliseconds: 1500),
-                                        content: Text(
-                                          'Successfully joined group! ✅',
-                                        ),
-                                        backgroundColor: AppColors.primaryTeal,
-                                      ),
-                                    );
+                                  showAlert(
+                                    'Successfully joined group! ✅',
+                                    isSuccess: true,
+                                  );
                                 } catch (e) {
-                                  if (!ctx.mounted) return;
-                                  ScaffoldMessenger.of(ctx)
-                                    ..clearSnackBars()
-                                    ..showSnackBar(
-                                      const SnackBar(
-                                        duration: Duration(milliseconds: 1500),
-                                        content: Text(
-                                          'Failed to join. You may already be a member.',
-                                        ),
-                                      ),
-                                    );
+                                  showAlert(
+                                    'Failed to join. You may already be a member.',
+                                  );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -277,7 +285,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                 ),
                               ),
                               child: Text(
-                                'Go to Group',
+                                'Join',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -296,8 +304,12 @@ class _GroupScreenState extends State<GroupScreen> {
                             label: 'Title Group',
                             hint: 'select course',
                             value: curCourse,
+                            errorText: courseError,
                             items: _courses,
-                            onChanged: (v) => setS(() => curCourse = v),
+                            onChanged: (v) => setS(() {
+                              curCourse = v;
+                              courseError = null;
+                            }),
                           ),
                           const SizedBox(height: 25),
                           Row(
@@ -308,6 +320,12 @@ class _GroupScreenState extends State<GroupScreen> {
                                   hint: 'total member',
                                   controller: limitCtrl,
                                   isNum: true,
+                                  errorText: limitError,
+                                  onChanged: (_) {
+                                    if (limitError != null) {
+                                      setS(() => limitError = null);
+                                    }
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 15),
@@ -316,13 +334,17 @@ class _GroupScreenState extends State<GroupScreen> {
                                   label: 'Number Group',
                                   hint: 'choose a number',
                                   value: curNo,
+                                  errorText: groupNumberError,
                                   items: const [
                                     'Kelompok 1',
                                     'Kelompok 2',
                                     'Kelompok 3',
                                     'Kelompok 4',
                                   ],
-                                  onChanged: (v) => setS(() => curNo = v),
+                                  onChanged: (v) => setS(() {
+                                    curNo = v;
+                                    groupNumberError = null;
+                                  }),
                                 ),
                               ),
                             ],
@@ -335,7 +357,47 @@ class _GroupScreenState extends State<GroupScreen> {
                               onPressed: inProc
                                   ? null
                                   : () async {
-                                      if (curCourse == null || curNo == null) {
+                                      final limitText = limitCtrl.text.trim();
+                                      final parsedLimit = int.tryParse(
+                                        limitText,
+                                      );
+
+                                      setS(() {
+                                        courseError = null;
+                                        limitError = null;
+                                        groupNumberError = null;
+                                      });
+
+                                      if (curCourse == null) {
+                                        setS(
+                                          () => courseError =
+                                              'Please select a course',
+                                        );
+                                        return;
+                                      }
+
+                                      if (curNo == null) {
+                                        setS(
+                                          () => groupNumberError =
+                                              'Please choose a group number',
+                                        );
+                                        return;
+                                      }
+
+                                      if (limitText.isEmpty) {
+                                        setS(
+                                          () => limitError =
+                                              'Please fill in the member limit',
+                                        );
+                                        return;
+                                      }
+
+                                      if (parsedLimit == null ||
+                                          parsedLimit <= 0) {
+                                        setS(
+                                          () => limitError =
+                                              'Member limit must be greater than 0',
+                                        );
                                         return;
                                       }
                                       setS(() => inProc = true);
@@ -359,9 +421,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                               'group_number': int.parse(
                                                 curNo!.split(' ')[1],
                                               ),
-                                              'member_limit': int.parse(
-                                                limitCtrl.text,
-                                              ),
+                                              'member_limit': parsedLimit,
                                               'invitation_code': inv,
                                               'lecture_code': inv,
                                               'created_by':
@@ -387,6 +447,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                       } catch (e) {
                                         debugPrint('create err: $e');
                                         setS(() => inProc = false);
+                                        showAlert(
+                                          'Failed to create group. Please check the data and try again.',
+                                        );
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
@@ -804,20 +867,12 @@ class _GroupScreenState extends State<GroupScreen> {
                   vertical: 15,
                 ),
                 hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primaryTeal,
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        GestureDetector(
-          onTap: _applySearch,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTeal,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.search, color: Colors.white, size: 28),
           ),
         ),
         const SizedBox(width: 20),

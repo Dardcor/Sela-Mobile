@@ -47,24 +47,33 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
     if (mounted) setState(() => _isLoading = true);
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        return;
+      }
 
       final memberData = await supabase
           .from('group_members')
           .select('group_id')
           .eq('user_id', user.id);
-      final groupIds =
-          (memberData as List).map((m) => m['group_id'] as String).toList();
+      final groupIds = (memberData as List)
+          .map((m) => m['group_id'] as String)
+          .toList();
 
       if (groupIds.isEmpty) {
-        if (mounted) setState(() { _tasks = []; _isLoading = false; });
+        if (mounted) {
+          setState(() {
+            _tasks = [];
+            _isLoading = false;
+          });
+        }
         return;
       }
 
       final data = await supabase
           .from('tasks')
           .select(
-              '*, groups(id, name, course_name, class_name, group_number), subtasks(*, subtask_progress(*))')
+            '*, groups(id, name, course_name, class_name, group_number), subtasks(*, subtask_progress(*))',
+          )
           .eq('is_group', true)
           .inFilter('group_id', groupIds)
           .order('created_at', ascending: false);
@@ -88,20 +97,29 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
         };
       }).toList();
 
-      if (mounted) setState(() { _tasks = enrichedTasks; _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _tasks = enrichedTasks;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   double _calculateProgress(dynamic task) {
-    if (task['subtasks'] == null || (task['subtasks'] as List).isEmpty) return 0.0;
+    if (task['subtasks'] == null || (task['subtasks'] as List).isEmpty) {
+      return 0.0;
+    }
+
     final subtasks = task['subtasks'] as List;
     double totalProgress = 0;
     for (var st in subtasks) {
       final pl = st['subtask_progress'] as List? ?? [];
       if (pl.isNotEmpty) {
-        totalProgress += pl
+        totalProgress +=
+            pl
                 .map((p) => (p['progress'] as num).toDouble())
                 .reduce((a, b) => a + b) /
             pl.length;
@@ -113,61 +131,74 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
   List<dynamic> get _filteredTasks => _searchQuery.isEmpty
       ? _tasks
       : _tasks
-          .where((t) =>
-              (t['title'] ?? '').toLowerCase().contains(_searchQuery))
-          .toList();
+            .where(
+              (t) => (t['title'] ?? '').toLowerCase().contains(_searchQuery),
+            )
+            .toList();
 
   String _fmtDate(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${dt.day} ${months[dt.month - 1]}';
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _fetchTasks,
-            color: AppColors.primaryTeal,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // âœ… Header diisolasi â€” const, tidak pernah di-rebuild
-                const SliverToBoxAdapter(child: WorkInGroupHeader()),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                // âœ… SearchBarWithButton dari shared_widgets
-                SliverToBoxAdapter(
-                  child: SearchBarWithButton(controller: _searchCtrl),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 25)),
-                _isLoading
-                    ? const SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(50),
-                            child: CircularProgressIndicator(
-                              color: AppColors.primaryTeal,
-                            ),
+    backgroundColor: AppColors.bgLight,
+    body: Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _fetchTasks,
+          color: AppColors.primaryTeal,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // âœ… Header diisolasi â€” const, tidak pernah di-rebuild
+              const SliverToBoxAdapter(child: WorkInGroupHeader()),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              // âœ… SearchBarWithButton dari shared_widgets
+              SliverToBoxAdapter(
+                child: SearchBarWithButton(controller: _searchCtrl),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 25)),
+              _isLoading
+                  ? const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(50),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryTeal,
                           ),
                         ),
-                      )
-                    : _buildTaskListSliver(),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
-            ),
+                      ),
+                    )
+                  : _buildTaskListSliver(),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
-          AppBottomNavBar(
-            currentIndex: -1,
-            onAddTap: () => Navigator.pushNamed(context, '/add_project')
-                .then((_) => _fetchTasks()),
-          ),
-        ],
-      ),
-    );
+        ),
+        AppBottomNavBar(
+          currentIndex: -1,
+          onAddTap: () => Navigator.pushNamed(
+            context,
+            '/add_project',
+          ).then((_) => _fetchTasks()),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildTaskListSliver() {
     if (_filteredTasks.isEmpty) {
@@ -177,7 +208,11 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
             padding: const EdgeInsets.all(50),
             child: Column(
               children: [
-                Icon(Icons.assignment_outlined, color: Colors.grey[300], size: 60),
+                Icon(
+                  Icons.assignment_outlined,
+                  color: Colors.grey[300],
+                  size: 60,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No group tasks yet',
@@ -197,44 +232,42 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final t = _filteredTasks[index];
-            final progress = _calculateProgress(t);
-            final members = (t['_members'] as List? ?? []);
-            final group = t['groups'] as Map<String, dynamic>?;
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final t = _filteredTasks[index];
+          final progress = _calculateProgress(t);
+          final members = (t['_members'] as List? ?? []);
+          final group = t['groups'] as Map<String, dynamic>?;
 
-            String detailInfo = '';
-            if (t['start_date'] != null && t['due_date'] != null) {
-              final start = DateTime.parse(t['start_date']);
-              final due = DateTime.parse(t['due_date']);
-              detailInfo = '${_fmtDate(start)} – ${_fmtDate(due)}';
+          String detailInfo = '';
+          if (t['start_date'] != null && t['due_date'] != null) {
+            final start = DateTime.parse(t['start_date']);
+            final due = DateTime.parse(t['due_date']);
+            detailInfo = '${_fmtDate(start)} – ${_fmtDate(due)}';
+          }
+          if (group != null) {
+            final parts = [
+              group['class_name'],
+              group['course_name'],
+            ].where((x) => x != null && (x as String).isNotEmpty).toList();
+            if (parts.isNotEmpty) {
+              detailInfo +=
+                  '${detailInfo.isNotEmpty ? ' | ' : ''}${parts.join(' | ')}';
             }
-            if (group != null) {
-              final parts = [group['class_name'], group['course_name']]
-                  .where((x) => x != null && (x as String).isNotEmpty)
-                  .toList();
-              if (parts.isNotEmpty) {
-                detailInfo +=
-                    '${detailInfo.isNotEmpty ? ' | ' : ''}${parts.join(' | ')}';
-              }
-            }
+          }
 
-            // âœ… WorkGroupTaskCard dari local widgets â€” rebuild terisolasi per item
-            return WorkGroupTaskCard(
-              task: t,
-              progress: progress,
-              detailInfo: detailInfo,
-              members: members,
-              onDetailTap: () => Navigator.pushNamed(
-                context,
-                '/work_in_group_detail',
-                arguments: t,
-              ),
-            );
-          },
-          childCount: _filteredTasks.length,
-        ),
+          // âœ… WorkGroupTaskCard dari local widgets â€” rebuild terisolasi per item
+          return WorkGroupTaskCard(
+            task: t,
+            progress: progress,
+            detailInfo: detailInfo,
+            members: members,
+            onDetailTap: () => Navigator.pushNamed(
+              context,
+              '/work_in_group_detail',
+              arguments: t,
+            ),
+          );
+        }, childCount: _filteredTasks.length),
       ),
     );
   }

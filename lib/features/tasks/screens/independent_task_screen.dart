@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
-import '../../../core/shared_widgets/screen_header_bar.dart';
 import '../../../core/shared_widgets/search_bar_with_button.dart';
 import '../widgets/task_cards.dart';
 
@@ -19,11 +18,15 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
   List<dynamic> _tasks = [];
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _fetchTasks();
+    _searchCtrl.addListener(
+      () => setState(() => _searchQuery = _searchCtrl.text.toLowerCase()),
+    );
   }
 
   @override
@@ -50,139 +53,118 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
     }
   }
 
+  List<dynamic> get _filteredTasks => _searchQuery.isEmpty
+      ? _tasks
+      : _tasks
+            .where(
+              (t) => (t['title'] ?? '').toString().toLowerCase().contains(
+                _searchQuery,
+              ),
+            )
+            .toList();
+
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _fetchTasks,
-            color: AppColors.primaryTeal,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // âœHeader dengan Background Putih (Kotak) & Gambar
-                SliverToBoxAdapter(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                    ),
-                    padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 5, 5, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryTeal,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Independent\nTask',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryTeal,
-                                  height: 1.1,
-                                ),
-                              ),
-                            ),
-                            // Gambar digeser sedikit agar pas (offset negatif)
-                            Transform.translate(
-                              offset: const Offset(-20, -10),
-                              child: Image.asset(
-                                'assets/images/independent_task.png', 
-                                height: 95,
-                                fit: BoxFit.contain,
-                                errorBuilder: (ctx, e, s) => const SizedBox(height: 95),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+    backgroundColor: AppColors.bgLight,
+    body: Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: _fetchTasks,
+          color: AppColors.primaryTeal,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // âœHeader dengan Background Putih (Kotak) & Gambar
+              SliverToBoxAdapter(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(color: Colors.white),
+                  padding: EdgeInsets.fromLTRB(
+                    25,
+                    MediaQuery.of(context).padding.top + 5,
+                    5,
+                    10,
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                // âœSearch Bar sesuai Gambar 1
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _searchCtrl,
-                              decoration: InputDecoration(
-                                hintText: 'Search',
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                                hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          height: 52,
-                          width: 52,
-                          decoration: BoxDecoration(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: const BoxDecoration(
                             color: AppColors.primaryTeal,
-                            borderRadius: BorderRadius.circular(15),
+                            shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.search, color: Colors.white, size: 28),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Independent\nTask',
+                              style: GoogleFonts.outfit(
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryTeal,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                          // Gambar digeser sedikit agar pas (offset negatif)
+                          Transform.translate(
+                            offset: const Offset(-20, -10),
+                            child: Image.asset(
+                              'assets/images/independent_task.png',
+                              height: 95,
+                              fit: BoxFit.contain,
+                              errorBuilder: (ctx, e, s) =>
+                                  const SizedBox(height: 95),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                _isLoading
-                    ? const SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(50),
-                            child: CircularProgressIndicator(color: AppColors.primaryTeal),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+              // âœSearch bar disamakan dengan homepage
+              SliverToBoxAdapter(
+                child: SearchBarWithButton(controller: _searchCtrl),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+              _isLoading
+                  ? const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(50),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryTeal,
                           ),
                         ),
-                      )
-                    : _buildTaskListSliver(),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
-            ),
+                      ),
+                    )
+                  : _buildTaskListSliver(),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
-          const AppBottomNavBar(currentIndex: -1),
-        ],
-      ),
-    );
+        ),
+        const AppBottomNavBar(currentIndex: -1),
+      ],
+    ),
+  );
 
   Widget _buildTaskListSliver() {
-    if (_tasks.isEmpty) {
+    if (_filteredTasks.isEmpty) {
       return SliverToBoxAdapter(
         child: Center(
           child: Padding(
@@ -201,14 +183,14 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
         delegate: SliverChildBuilderDelegate(
           // âœ… Setiap kartu tugas adalah widget terpisah
           (context, index) => IndependentTaskCard(
-            task: _tasks[index],
+            task: _filteredTasks[index],
             onDetailTap: () => Navigator.pushNamed(
               context,
               '/independent_task_detail',
-              arguments: _tasks[index],
+              arguments: _filteredTasks[index],
             ),
           ),
-          childCount: _tasks.length,
+          childCount: _filteredTasks.length,
         ),
       ),
     );

@@ -307,6 +307,8 @@ class GroupInputField extends StatelessWidget {
   final bool isNum;
   final Color bgColor;
   final bool enabled;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
   const GroupInputField({
     super.key,
@@ -316,58 +318,86 @@ class GroupInputField extends StatelessWidget {
     this.isNum = false,
     this.bgColor = Colors.white,
     this.enabled = true,
+    this.errorText,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null && errorText!.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: enabled ? AppColors.primaryTeal : Colors.grey[300]!,
-                width: 1.2,
-              ),
-              color: enabled ? Colors.transparent : Colors.grey[50],
-            ),
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              keyboardType: isNum ? TextInputType.number : TextInputType.text,
-              style: GoogleFonts.outfit(
-                color: enabled ? Colors.black : Colors.grey,
-              ),
-              decoration: InputDecoration(
-                hintText: hint,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-                hintStyle: GoogleFonts.outfit(
-                  color: enabled ? Colors.grey[300] : Colors.grey[200],
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: hasError
+                        ? Colors.red
+                        : enabled
+                        ? AppColors.primaryTeal
+                        : Colors.grey[300]!,
+                    width: 1.2,
+                  ),
+                  color: enabled ? Colors.transparent : Colors.grey[50],
+                ),
+                child: TextField(
+                  controller: controller,
+                  enabled: enabled,
+                  onChanged: onChanged,
+                  keyboardType: isNum
+                      ? TextInputType.number
+                      : TextInputType.text,
+                  style: GoogleFonts.outfit(
+                    color: enabled ? Colors.black : Colors.grey,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                    hintStyle: GoogleFonts.outfit(
+                      color: enabled ? Colors.grey[300] : Colors.grey[200],
+                    ),
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                left: 14,
+                top: -10,
+                child: Container(
+                  color: bgColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    label,
+                    style: GoogleFonts.outfit(
+                      color: hasError
+                          ? Colors.red
+                          : enabled
+                          ? AppColors.primaryTeal
+                          : Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            left: 14,
-            top: -10,
-            child: Container(
-              color: bgColor,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 16),
               child: Text(
-                label,
-                style: GoogleFonts.outfit(
-                  color: enabled ? AppColors.primaryTeal : Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                errorText!,
+                style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -382,6 +412,7 @@ class GroupDropdownField extends StatelessWidget {
   final List<String> items;
   final Function(String?) onChanged;
   final Color bgColor;
+  final String? errorText;
 
   const GroupDropdownField({
     super.key,
@@ -391,65 +422,84 @@ class GroupDropdownField extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.bgColor = Colors.white,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null && errorText!.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.primaryTeal, width: 1.2),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: value,
-                hint: Text(
-                  hint,
-                  style: GoogleFonts.outfit(color: Colors.grey[300]),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: hasError ? Colors.red : AppColors.primaryTeal,
+                    width: 1.2,
+                  ),
                 ),
-                icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-                items: items
-                    .map(
-                      (e) => DropdownMenuItem(
-                        value: e,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: Text(
-                            e,
-                            style: GoogleFonts.outfit(color: Colors.black),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: value,
+                    hint: Text(
+                      hint,
+                      style: GoogleFonts.outfit(color: Colors.grey[300]),
+                    ),
+                    icon: Icon(Icons.expand_more, color: Colors.grey[300]),
+                    items: items
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                e,
+                                style: GoogleFonts.outfit(color: Colors.black),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onChanged,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 14,
-            top: -10,
-            child: Container(
-              color: bgColor,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                label,
-                style: GoogleFonts.outfit(
-                  color: AppColors.primaryTeal,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                        )
+                        .toList(),
+                    onChanged: onChanged,
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                left: 14,
+                top: -10,
+                child: Container(
+                  color: bgColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Text(
+                    label,
+                    style: GoogleFonts.outfit(
+                      color: hasError ? Colors.red : AppColors.primaryTeal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 16),
+              child: Text(
+                errorText!,
+                style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+              ),
+            ),
         ],
       ),
     );

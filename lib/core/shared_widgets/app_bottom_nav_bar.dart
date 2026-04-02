@@ -20,69 +20,88 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isTablet = screenWidth >= 600;
+    final horizontalMargin = isTablet
+        ? 32.0
+        : (screenWidth < 360 ? 16.0 : 25.0);
+    final barHeight = isTablet ? 84.0 : 80.0;
+    final fabSize = isTablet ? 56.0 : 52.0;
+
     return Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          height: 80,
-          margin: EdgeInsets.fromLTRB(25, 0, 25, bottomInset + 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(45),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NavIcon(
-                icon: Icons.home_rounded,
-                active: currentIndex == 0,
-                route: '/dashboard',
-                index: 0,
-                onTabTap: onTabTap,
-              ),
-              _NavIcon(
-                icon: Icons.calendar_month_rounded,
-                active: currentIndex == 1,
-                route: '/calendar',
-                index: 1,
-                onTabTap: onTabTap,
-              ),
-              GestureDetector(
-                onTap: onAddTap ?? () => Navigator.pushNamed(context, '/add_project'),
-                child: Container(
-                  height: 52,
-                  width: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 34),
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: barHeight,
+        margin: EdgeInsets.fromLTRB(
+          horizontalMargin,
+          0,
+          horizontalMargin,
+          bottomInset + 8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(45),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _NavIcon(
+              icon: Icons.home_rounded,
+              active: currentIndex == 0,
+              route: '/dashboard',
+              index: 0,
+              onTabTap: onTabTap,
+            ),
+            _NavIcon(
+              icon: Icons.calendar_month_rounded,
+              active: currentIndex == 1,
+              route: '/calendar',
+              index: 1,
+              onTabTap: onTabTap,
+            ),
+            GestureDetector(
+              onTap:
+                  onAddTap ??
+                  () => Navigator.pushNamed(context, '/add_project'),
+              child: Container(
+                height: fabSize,
+                width: fabSize,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: isTablet ? 36 : 34,
                 ),
               ),
-              _NavIcon(
-                icon: Icons.groups_rounded,
-                active: currentIndex == 3,
-                route: '/team',
-                index: 3,
-                onTabTap: onTabTap,
-              ),
-              _NavIcon(
-                icon: Icons.person_rounded,
-                active: currentIndex == 4,
-                route: '/profile',
-                index: 4,
-                onTabTap: onTabTap,
-              ),
-            ],
-          ),
+            ),
+            _NavIcon(
+              icon: Icons.groups_rounded,
+              active: currentIndex == 3,
+              route: '/team',
+              index: 3,
+              onTabTap: onTabTap,
+            ),
+            _NavIcon(
+              icon: Icons.person_rounded,
+              active: currentIndex == 4,
+              route: '/profile',
+              index: 4,
+              onTabTap: onTabTap,
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -130,7 +149,9 @@ class _NavIcon extends StatelessWidget {
             : null,
         child: Icon(
           icon,
-          color: active ? AppColors.primaryTeal : Colors.black.withOpacity(0.4),
+          color: active
+              ? AppColors.primaryTeal
+              : Colors.black.withValues(alpha: 0.4),
           size: 30,
         ),
       ),
