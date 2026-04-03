@@ -220,6 +220,7 @@ class _OverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 85,
+    height: 84,
     padding: const EdgeInsets.all(12),
     margin: const EdgeInsets.only(right: 12),
     decoration: BoxDecoration(
@@ -231,18 +232,30 @@ class _OverviewCard extends StatelessWidget {
       children: [
         Text(
           count,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.outfit(
             fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
-        Text(
-          label,
-          style: GoogleFonts.outfit(
-            fontSize: 11,
-            color: Colors.black54,
-            fontWeight: FontWeight.w500,
+        const Spacer(),
+        SizedBox(
+          height: 16,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ],
