@@ -198,7 +198,7 @@ class DashboardHeader extends StatelessWidget {
                       count: '$inProgressCount',
                       label: 'In progress',
                     ),
-                    _OverviewCard(count: '$upcomingCount', label: 'Upcoming'),
+                    _OverviewCard(count: '$upcomingCount', label: 'Pending'),
                   ],
                 ),
               ),
@@ -419,11 +419,17 @@ class IndependentTaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String dateStr = 'No date set';
-    if (task['start_date'] != null && task['due_date'] != null) {
+    String subtitleStr = 'No description';
+    
+    // Priority 1: Show description if available
+    if (task['description'] != null && task['description'].toString().trim().isNotEmpty) {
+      subtitleStr = task['description'].toString().trim();
+    } 
+    // Priority 2: Fallback to dates if description is empty but dates are set
+    else if (task['start_date'] != null && task['due_date'] != null) {
       final start = DateTime.parse(task['start_date']);
       final due = DateTime.parse(task['due_date']);
-      dateStr = '${_formatDate(start)} - ${_formatDate(due)}';
+      subtitleStr = '${_formatDate(start)} - ${_formatDate(due)}';
     }
 
     return GestureDetector(
@@ -472,7 +478,7 @@ class IndependentTaskItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    dateStr,
+                    subtitleStr,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(color: Colors.grey, fontSize: 11),

@@ -125,18 +125,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         rawTasks,
       );
 
-      // Sort tasks: due_date terdekat, null di akhir
+      // Sort tasks: terbaru (created_at DESC) di posisi atas
       allTasks.sort((a, b) {
-        if (a['due_date'] == null && b['due_date'] == null) return 0;
-        if (a['due_date'] == null) return 1;
-        if (b['due_date'] == null) return -1;
-        try {
-          return DateTime.parse(
-            a['due_date'].toString(),
-          ).compareTo(DateTime.parse(b['due_date'].toString()));
-        } catch (_) {
-          return 0;
-        }
+        final dateA = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(0);
+        final dateB = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(0);
+        return dateB.compareTo(dateA);
       });
 
       if (mounted) {
@@ -162,7 +155,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             }
 
             String dateLabel = 'No date set';
-            String statusLabel = 'Upcoming';
+            String statusLabel = 'Pending';
             bool isOverdue = false;
 
             if (dueDate != null) {

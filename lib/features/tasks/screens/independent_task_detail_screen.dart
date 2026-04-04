@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../widgets/task_detail_widgets.dart';
+import '../../groups/widgets/file_link_dialog.dart';
+import '../../../model/automatic.dart';
 
 class IndependentTaskDetailScreen extends StatefulWidget {
   const IndependentTaskDetailScreen({super.key});
@@ -163,21 +165,61 @@ class _IndependentTaskDetailScreenState
 
     setState(() => _isCreating = true);
     try {
-      final st = await supabase
-          .from('subtasks')
-          .insert({
-            'task_id': _taskData['id'],
-            'title': 'Auto Task 1',
-            'description': 'Automatically generated task',
-          })
-          .select()
-          .single();
+      final taskTitle = _taskData['title'] ?? 'Task';
+      final taskDescription = _taskData['description'] ?? '';
 
-      await supabase.from('subtask_progress').insert({
-        'subtask_id': st['id'],
-        'user_id': user.id,
-        'progress': 0,
-      });
+      // Collect links
+      final List<String> taskLinks = (_taskData['task_links'] as List?)
+              ?.map((l) => l['url'] as String)
+              .toList() ??
+          [];
+
+      // Collect files
+      final List<String> taskFiles = (_taskData['task_files'] as List?)
+              ?.map((f) => f['file_name'] as String)
+              .toList() ??
+          [];
+
+      // Fetch abilities pengguna dari profile_abilities
+      List<String> userAbilities = [];
+      try {
+        final abilitiesData = await supabase
+            .from('profile_abilities')
+            .select('ability')
+            .eq('user_id', user.id);
+        userAbilities = (abilitiesData as List)
+            .map((a) => a['ability'] as String)
+            .toList();
+      } catch (_) {
+        // Jika gagal fetch abilities, lanjut dengan list kosong
+      }
+
+      final arrangedTasks = await AutomaticTaskDivision.arrangeIndependentTask(
+        taskTitle: taskTitle,
+        taskDescription: taskDescription,
+        userId: user.id,
+        links: taskLinks,
+        files: taskFiles,
+        abilities: userAbilities,
+      );
+
+      for (var sub in arrangedTasks) {
+        final st = await supabase
+            .from('subtasks')
+            .insert({
+              'task_id': _taskData['id'],
+              'title': sub['title'],
+              'description': sub['description'] ?? '',
+            })
+            .select()
+            .single();
+
+        await supabase.from('subtask_progress').insert({
+          'subtask_id': st['id'],
+          'user_id': sub['user_id'],
+          'progress': 0,
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -185,8 +227,8 @@ class _IndependentTaskDetailScreenState
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Subtask created automatically'),
-              backgroundColor: Colors.green,
+              content: Text('Susunan tugas otomatis berhasil dibuat'),
+              backgroundColor: AppColors.primaryTeal,
             ),
           );
       }
@@ -196,9 +238,9 @@ class _IndependentTaskDetailScreenState
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Failed: ${e.toString()}'),
+            const SnackBar(
+              duration: Duration(milliseconds: 3000),
+              content: Text('Server is busy try again later'),
               backgroundColor: Colors.red,
             ),
           );
@@ -319,6 +361,22 @@ class _IndependentTaskDetailScreenState
     }
   }
 
+  void _showFileLinkDialog() {
+    if (_taskData == null) return;
+    showDialog(
+      context: context,
+      builder: (context) => FileLinkDialog(
+        taskId: _taskData['id'],
+        currentTask: _taskData,
+        currentLinks: _taskData['task_links'] ?? [],
+        currentFiles: _taskFiles,
+        onRefresh: () {
+          _fetchFullTaskData(_taskData['id']);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_taskData == null && _isLoading) {
@@ -353,6 +411,7 @@ class _IndependentTaskDetailScreenState
                     progress: progress,
                     taskFiles: _taskFiles,
                     onFileTap: _handleFileTap,
+                    onEditTap: _showFileLinkDialog,
                   ),
                   const SizedBox(height: 25),
                   IndependentCreateSubtaskSection(

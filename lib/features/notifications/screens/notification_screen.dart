@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../widgets/notification_widgets.dart';
 
+import '../../../core/services/notification_service.dart';
+
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -22,6 +24,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     super.initState();
     _fetchNotifications();
     _setupRealtimeListener();
+    NotificationService.setupGlobalListener(); // Extra insurance
   }
 
   void _setupRealtimeListener() {

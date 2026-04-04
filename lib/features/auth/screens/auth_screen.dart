@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +9,7 @@ import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
 import 'forgot_password_screen.dart';
+import '../../../core/services/notification_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -23,13 +26,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscureRegisterPassword = true;
   bool _rememberMe = false;
 
-  final List<String> _classes = [
-    '2 - D3 IT B',
-    '2 - D3 IT A',
-    '1 - D3 IT B',
-    '1 - D3 IT A',
-  ];
-  String? _selectedClass = '2 - D3 IT B';
+  List<String> _classes = [];
+  String? _selectedClass;
 
   final _emailLoginController = TextEditingController();
   final _passwordLoginController = TextEditingController();
@@ -45,6 +43,24 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _loadRememberedCredentials();
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    try {
+      final String response = await rootBundle.loadString('lib/data/class.json');
+      final data = json.decode(response) as List<dynamic>;
+      if (mounted) {
+        setState(() {
+          _classes = data.map((e) => e.toString()).toList();
+          if (_classes.isNotEmpty && _selectedClass == null) {
+            _selectedClass = _classes[0];
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading class.json: $e');
+    }
   }
 
   Future<void> _loadRememberedCredentials() async {
@@ -82,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _usernameRegisterController.clear();
     _emailRegisterController.clear();
     _passwordRegisterController.clear();
-    setState(() => _selectedClass = _classes[0]);
+    setState(() => _selectedClass = _classes.isNotEmpty ? _classes[0] : null);
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -124,6 +140,9 @@ class _AuthScreenState extends State<AuthScreen> {
           // Abaikan error update last_login (mungkin kolom belum ada di Supabase)
           debugPrint('Error updating last_login_at: $e');
         }
+
+        // Setup notifications
+        NotificationService.setupGlobalListener();
 
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
@@ -573,6 +592,7 @@ class _RegisterForm extends StatelessWidget {
       ),
       const SizedBox(height: 20),
       AuthDropdownField(
+        key: ValueKey(classes.length),
         label: 'Class',
         hint: 'Pilih Kelas',
         value: selectedClass,

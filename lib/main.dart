@@ -21,8 +21,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/constants/colors.dart';
 
+import 'core/services/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications
+  await NotificationService.init();
 
   try {
     await dotenv.load(fileName: ".env");
@@ -40,9 +45,16 @@ void main() async {
       const Duration(seconds: 10),
       onTimeout: () => throw Exception('Supabase initialize timeout'),
     );
-  } catch (e) {}
+  } catch (e) {
+    debugPrint('Initialization error: $e');
+  }
 
   runApp(const MyApp());
+
+  // Setup global listener after app starts for better reliability
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.setupGlobalListener();
+  });
 }
 
 class MyApp extends StatelessWidget {

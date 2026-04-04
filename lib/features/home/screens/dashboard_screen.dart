@@ -291,7 +291,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           upcomingCount++;
         }
       } else {
-        final status = t['status'] ?? 'Upcoming';
+        final status = t['status'] ?? 'Pending';
         if (status == 'Done') {
           doneTasksCount++;
         } else if (status == 'In Progress' || status == 'In progress') {

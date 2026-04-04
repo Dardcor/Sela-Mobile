@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
+import '../../../model/automatic.dart';
 import '../widgets/group_widgets.dart';
+import '../widgets/file_link_dialog.dart';
 
 /// GroupDetailScreen — Kerangka layar detail tugas grup.
 ///
@@ -55,6 +57,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   'name': f['file_name'],
                   'path': f['file_path'],
                   'type': f['file_type'],
+                  'size': f['file_size'],
                 },
               )
               .toList() ??
@@ -198,7 +201,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('No members in group'),
+            content: Text('Tidak ada anggota dalam grup'),
             backgroundColor: Colors.red,
           ),
         );
@@ -207,16 +210,68 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
     setState(() => _isLoading = true);
     try {
-      for (int i = 0; i < members.length; i++) {
+      final taskTitle = _taskData['title'] ?? 'Task';
+      final taskDescription = _taskData['description'] ?? '';
+
+      // Collect links
+      final List<String> taskLinks = (_taskData['task_links'] as List?)
+              ?.map((l) => l['url'] as String)
+              .toList() ??
+          [];
+
+      // Collect files
+      final List<String> taskFiles = (_taskData['task_files'] as List?)
+              ?.map((f) => f['file_name'] as String)
+              .toList() ??
+          [];
+
+      // Fetch abilities untuk setiap anggota dari profile_abilities
+      final List<dynamic> membersWithAbilities = [];
+      for (final m in members) {
+        final profile = m['profiles'] ?? {};
+        final userId = profile['id'] ?? '';
+        List<String> abilities = [];
+        if (userId.isNotEmpty) {
+          try {
+            final abilitiesData = await supabase
+                .from('profile_abilities')
+                .select('ability')
+                .eq('user_id', userId);
+            abilities = (abilitiesData as List)
+                .map((a) => a['ability'] as String)
+                .toList();
+          } catch (_) {
+            // Jika gagal fetch abilities, lanjut dengan list kosong
+          }
+        }
+        membersWithAbilities.add({
+          ...Map<String, dynamic>.from(m as Map),
+          'abilities': abilities,
+        });
+      }
+
+      final dividedTasks = await AutomaticTaskDivision.divideTask(
+        taskTitle: taskTitle,
+        taskDescription: taskDescription,
+        members: membersWithAbilities,
+        links: taskLinks,
+        files: taskFiles,
+      );
+
+      for (var sub in dividedTasks) {
         final st = await supabase
             .from('subtasks')
-            .insert({'task_id': _taskData['id'], 'title': 'Auto Task ${i + 1}'})
+            .insert({
+              'task_id': _taskData['id'],
+              'title': sub['title'],
+              'description': sub['description'] ?? '',
+            })
             .select()
             .single();
 
         await supabase.from('subtask_progress').insert({
           'subtask_id': st['id'],
-          'user_id': members[i]['profiles']['id'],
+          'user_id': sub['user_id'],
           'progress': 0,
         });
       }
@@ -226,7 +281,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Subtasks created automatically'),
+              content: Text('Pembagian tugas otomatis berhasil dibuat'),
               backgroundColor: AppColors.primaryTeal,
             ),
           );
@@ -237,9 +292,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Failed: ${e.toString()}'),
+            const SnackBar(
+              duration: Duration(milliseconds: 3000),
+              content: Text('Server is busy try again later'),
               backgroundColor: Colors.red,
             ),
           );
@@ -347,7 +402,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           );
       }
     } catch (_) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
@@ -358,6 +412,22 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ),
         );
     }
+  }
+
+  void _showFileLinkDialog() {
+    if (_taskData == null) return;
+    showDialog(
+      context: context,
+      builder: (context) => FileLinkDialog(
+        taskId: _taskData['id'],
+        currentTask: _taskData,
+        currentLinks: _taskData['task_links'] ?? [],
+        currentFiles: _taskFiles,
+        onRefresh: () {
+          _fetchFullTaskData(_taskData['id']);
+        },
+      ),
+    );
   }
 
   @override
@@ -394,6 +464,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 progress: progress,
                 taskFiles: _taskFiles,
                 onFileTap: _handleFileTap,
+                onEditTap: isLeader ? _showFileLinkDialog : null,
               ),
               const SizedBox(height: 25),
               // ✅ New Create Subtask Section (Gambar 1 & 2)

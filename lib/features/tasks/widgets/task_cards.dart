@@ -176,85 +176,68 @@ class IndependentTaskCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryTeal,
-                  shape: BoxShape.circle,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTeal,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.menu_book_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task['title'] ?? '',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: const Icon(
-                  Icons.menu_book_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 5),
+                Row(
                   children: [
+                    const Icon(Icons.access_time_rounded, size: 16, color: Colors.grey),
+                    const SizedBox(width: 4),
                     Text(
-                      task['title'] ?? '',
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time_rounded, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$daysLeft days left',
-                          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
-                        ),
-                        const SizedBox(width: 18),
-                        const Icon(Icons.trending_up_rounded, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Priority: ${task['priority'] ?? 'High'}',
-                          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
-                        ),
-                      ],
+                      '$daysLeft days left',
+                      style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 18),
-          const _DashedDivider(),
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _DashedPill(label: task['category'] ?? 'Konsep Jaringan'),
-              GestureDetector(
-                onTap: onDetailTap,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Text(
-                    'Detail',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: onDetailTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryTeal,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Text(
+                'Detail',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),

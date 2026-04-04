@@ -95,15 +95,6 @@ class GroupCard extends StatelessWidget {
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            'Grup',
-            style: GoogleFonts.outfit(
-              color: AppColors.primaryTeal,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
           const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -354,6 +345,9 @@ class GroupInputField extends StatelessWidget {
                   keyboardType: isNum
                       ? TextInputType.number
                       : TextInputType.text,
+                  inputFormatters: isNum
+                      ? [FilteringTextInputFormatter.digitsOnly]
+                      : null,
                   style: GoogleFonts.outfit(
                     color: enabled ? Colors.black : Colors.grey,
                   ),
@@ -438,7 +432,6 @@ class GroupDropdownField extends StatelessWidget {
             children: [
               Container(
                 height: 52,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
@@ -446,31 +439,60 @@ class GroupDropdownField extends StatelessWidget {
                     width: 1.2,
                   ),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: value,
-                    hint: Text(
-                      hint,
-                      style: GoogleFonts.outfit(color: Colors.grey[300]),
-                    ),
-                    icon: Icon(Icons.expand_more, color: Colors.grey[300]),
-                    items: items
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                e,
-                                style: GoogleFonts.outfit(color: Colors.black),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return DropdownMenu<String>(
+                      width: constraints.maxWidth,
+                      initialSelection: value,
+                      onSelected: onChanged,
+                      hintText: hint,
+                      trailingIcon: Transform.translate(
+                        offset: const Offset(4, 0),
+                        child: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
+                      ),
+                      selectedTrailingIcon: Transform.translate(
+                        offset: const Offset(4, 0),
+                        child: Icon(Icons.expand_less_rounded, color: Colors.grey[400]),
+                      ),
+                      textStyle: GoogleFonts.outfit(
+                        fontSize: 15,
+                        color: Colors.black,
+                      ),
+                      menuStyle: MenuStyle(
+                        backgroundColor: WidgetStateProperty.all(Colors.white),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                      ),
+                      inputDecorationTheme: InputDecorationTheme(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.only(left: 18, right: 18, bottom: 6),
+                        hintStyle: GoogleFonts.outfit(
+                          color: Colors.grey[300],
+                          fontSize: 15,
+                        ),
+                      ),
+                      dropdownMenuEntries: items
+                          .map(
+                            (e) => DropdownMenuEntry<String>(
+                              value: e,
+                              label: e,
+                              style: MenuItemButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 18),
+                                textStyle: GoogleFonts.outfit(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: onChanged,
-                  ),
+                          )
+                          .toList(),
+                    );
+                  },
                 ),
               ),
               Positioned(
@@ -692,26 +714,32 @@ class _YourSubtaskItem extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.outfit(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _showDetailDialog(context),
-                child: Icon(
-                  Icons.info_outline_rounded,
-                  color: AppColors.primaryTeal,
-                  size: 16,
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _showDetailDialog(context),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.primaryTeal,
+                    size: 16,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Checkbox(
             value: progress == 100,
@@ -812,11 +840,12 @@ class GroupDetailHeader extends StatelessWidget {
 // GroupMainCard — Kartu utama info tugas grup (ikon + judul + progress + tanggal).
 // Diekstrak agar rebuild hanya terjadi saat data task berubah.
 // ─────────────────────────────────────────────────────────────────────────────
-class GroupMainCard extends StatelessWidget {
+class GroupMainCard extends StatefulWidget {
   final dynamic task;
   final double progress;
   final List<Map<String, dynamic>> taskFiles;
   final Function(Map<String, dynamic> file)? onFileTap;
+  final VoidCallback? onEditTap;
 
   const GroupMainCard({
     super.key,
@@ -824,7 +853,16 @@ class GroupMainCard extends StatelessWidget {
     required this.progress,
     this.taskFiles = const [],
     this.onFileTap,
+    this.onEditTap,
   });
+
+  @override
+  State<GroupMainCard> createState() => _GroupMainCardState();
+}
+
+class _GroupMainCardState extends State<GroupMainCard> {
+  bool _isDescExpanded = false;
+  static const int _descThreshold = 120;
 
   String _formatDate(String? s) {
     if (s == null) return '';
@@ -894,7 +932,10 @@ class GroupMainCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final task = widget.task;
     final links = (task['task_links'] as List?) ?? [];
+    final description = (task['description'] as String?) ?? '';
+    final isLongDesc = description.length > _descThreshold;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25),
@@ -929,7 +970,7 @@ class GroupMainCard extends StatelessWidget {
               ),
               const Spacer(),
               TaskProgressIndicator(
-                progress: progress,
+                progress: widget.progress,
                 size: 55,
                 strokeWidth: 6,
                 fontSize: 12,
@@ -945,14 +986,38 @@ class GroupMainCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            task['description'] ?? '',
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              color: Colors.grey[600],
-              height: 1.5,
+          // Description dengan see more / see less
+          if (description.isNotEmpty) ...[
+            GestureDetector(
+              onTap: isLongDesc
+                  ? () => setState(() => _isDescExpanded = !_isDescExpanded)
+                  : null,
+              child: RichText(
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                    height: 1.5,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: (!isLongDesc || _isDescExpanded)
+                          ? description
+                          : '${description.substring(0, _descThreshold)}...',
+                    ),
+                    if (isLongDesc)
+                      TextSpan(
+                        text: _isDescExpanded ? ' see less' : ' see more...',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 15),
           // Links
           ...links.map(
@@ -993,13 +1058,13 @@ class GroupMainCard extends StatelessWidget {
             ),
           ),
           // Files yang dilampirkan
-          if (taskFiles.isNotEmpty) ...[
+          if (widget.taskFiles.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ...taskFiles.map((file) {
+            ...widget.taskFiles.map((file) {
               final fileName = file['name'] as String? ?? 'file';
               final ext = _resolveFileExt(file, fileName);
               return InkWell(
-                onTap: onFileTap == null ? null : () => onFileTap!(file),
+                onTap: widget.onFileTap == null ? null : () => widget.onFileTap!(file),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -1038,7 +1103,24 @@ class GroupMainCard extends StatelessWidget {
               );
             }),
           ],
-          const SizedBox(height: 15),
+          // Tombol Edit Task (hanya tampil jika onEditTap tersedia)
+          if (widget.onEditTap != null) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: widget.onEditTap,
+              child: Text(
+                'Edit Task',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.primaryTeal,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Text(
             '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
             style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
@@ -1640,7 +1722,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                       );
                   final progress =
                       (progressData?['progress'] as num?)?.toInt() ?? 0;
-                  String statusText = 'Upcoming';
+                  String statusText = 'Pending';
                   Color statusColor = AppColors.lightTeal; // Light blue
                   if (progress >= 100) {
                     statusText = 'Done';
@@ -1655,14 +1737,19 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          st['title'],
-                          style: GoogleFonts.outfit(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        Expanded(
+                          child: Text(
+                            st['title'],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           statusText,
                           style: GoogleFonts.outfit(

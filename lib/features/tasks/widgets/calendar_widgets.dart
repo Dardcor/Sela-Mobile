@@ -404,7 +404,7 @@ class UpcomingTaskSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upcoming Task',
+            'Pending Task',
             style: GoogleFonts.outfit(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -568,80 +568,28 @@ class _TaskCard extends StatelessWidget {
       // ✅ confirmDismiss: cek permission dulu, lalu tampilkan popup konfirmasi
       confirmDismiss: (_) async {
         if (!isOwner) {
-          // Member cannot delete task — show center popup dialog
-          await showDialog<void>(
-            context: context,
-            barrierDismissible: true,
-            builder: (ctx) => Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryTeal.withOpacity(0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: AppColors.primaryTeal,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Access Denied',
-                      style: GoogleFonts.outfit(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Only the task creator can delete this task.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: Colors.grey[500],
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(ctx).pop(),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryTeal,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Got it',
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          // Member cannot delete task — show red snackbar above navbar
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 2500),
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 85),
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                content: Text(
+                  'Only the task creator can delete this task',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-            ),
-          );
+            );
           return false;
         }
         // Pembuat task: tampilkan dialog konfirmasi

@@ -114,9 +114,119 @@ class _GroupScreenState extends State<GroupScreen> {
     }
   }
 
+  void _showDeleteGroupDialog(BuildContext context, dynamic team) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.primaryTeal,
+                size: 50,
+              ),
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  children: [
+                    const TextSpan(text: 'Are you sure you want to '),
+                    TextSpan(
+                      text: 'delete',
+                      style: const TextStyle(color: AppColors.primaryTeal),
+                    ),
+                    const TextSpan(text: ' this group?'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '${team['course_name']} - kelompok ${team['group_number']} - ${team['class_name']}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[200],
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.outfit(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          await supabase
+                              .from('groups')
+                              .delete()
+                              .eq('id', team['id']);
+                          if (context.mounted) {
+                            Navigator.pop(ctx); // close dialog
+                            Navigator.pop(context); // close modal
+                            _fetch();
+                            SuccessDialog.show(
+                              context,
+                              message: 'Group successfully deleted',
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('Delete group err: $e');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Accept',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showJoinCreateModal() {
     String? curCourse;
-    String? curNo;
+    final noCtrl = TextEditingController();
     final joinCodeCtrl = TextEditingController();
     final limitCtrl = TextEditingController(text: '4');
     bool inProc = false;
@@ -330,21 +440,17 @@ class _GroupScreenState extends State<GroupScreen> {
                               ),
                               const SizedBox(width: 15),
                               Expanded(
-                                child: GroupDropdownField(
+                                child: GroupInputField(
                                   label: 'Number Group',
-                                  hint: 'choose a number',
-                                  value: curNo,
+                                  hint: 'input number',
+                                  controller: noCtrl,
+                                  isNum: true,
                                   errorText: groupNumberError,
-                                  items: const [
-                                    'Kelompok 1',
-                                    'Kelompok 2',
-                                    'Kelompok 3',
-                                    'Kelompok 4',
-                                  ],
-                                  onChanged: (v) => setS(() {
-                                    curNo = v;
-                                    groupNumberError = null;
-                                  }),
+                                  onChanged: (_) {
+                                    if (groupNumberError != null) {
+                                      setS(() => groupNumberError = null);
+                                    }
+                                  },
                                 ),
                               ),
                             ],
@@ -376,10 +482,10 @@ class _GroupScreenState extends State<GroupScreen> {
                                         return;
                                       }
 
-                                      if (curNo == null) {
+                                      if (noCtrl.text.trim().isEmpty) {
                                         setS(
                                           () => groupNumberError =
-                                              'Please choose a group number',
+                                              'Please input a group number',
                                         );
                                         return;
                                       }
@@ -415,11 +521,11 @@ class _GroupScreenState extends State<GroupScreen> {
                                             .from('groups')
                                             .insert({
                                               'name':
-                                                  'D3 IT B - $curCourse - $curNo',
+                                                  'D3 IT B - $curCourse - Kelompok ${noCtrl.text.trim()}',
                                               'course_name': curCourse,
                                               'class_name': 'D3 IT B',
                                               'group_number': int.parse(
-                                                curNo!.split(' ')[1],
+                                                noCtrl.text.trim(),
                                               ),
                                               'member_limit': parsedLimit,
                                               'invitation_code': inv,
@@ -715,6 +821,42 @@ class _GroupScreenState extends State<GroupScreen> {
                         ),
                       );
                     }),
+                    const SizedBox(height: 40),
+                    if (isMeLeader) ...[
+                      GestureDetector(
+                        onTap: () => _showDeleteGroupDialog(ctx, team),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: AppColors.primaryTeal,
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.delete_outline_rounded,
+                                color: AppColors.primaryTeal,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Delete group',
+                                style: GoogleFonts.outfit(
+                                  color: AppColors.primaryTeal,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 50),
                   ],
                 ),

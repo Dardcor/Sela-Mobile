@@ -352,7 +352,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Save',
+                        'Create',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           color: Colors.white,
