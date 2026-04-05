@@ -3,6 +3,56 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class AutomaticTaskDivision {
+  static const _modelName = 'gemini-2.5-flash';
+
+  static GenerativeModel _createModel() {
+    final apiKey = dotenv.env['GEMINI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('GEMINI_API_KEY is not defined in .env');
+    }
+
+    return GenerativeModel(model: _modelName, apiKey: apiKey);
+  }
+
+  static Future<List<Map<String, dynamic>>> _generateTasks(
+    String prompt,
+  ) async {
+    final response = await _createModel().generateContent([
+      Content.text(prompt),
+    ]);
+
+    final text = response.text;
+    if (text == null || text.isEmpty) {
+      throw Exception('AI memberikan respons kosong.');
+    }
+
+    try {
+      final dynamic decoded = jsonDecode(_stripMarkdownFence(text));
+      if (decoded is! List) {
+        throw Exception('Respons AI bukan array JSON yang valid.');
+      }
+
+      return List<Map<String, dynamic>>.from(decoded);
+    } catch (_) {
+      throw Exception('Gagal membaca respons AI: $text');
+    }
+  }
+
+  static String _stripMarkdownFence(String text) {
+    var cleanedText = text.trim();
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.substring(7);
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.substring(3);
+    }
+
+    if (cleanedText.endsWith('```')) {
+      cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+    }
+
+    return cleanedText.trim();
+  }
+
   /// Membagi tugas grup secara otomatis berdasarkan kemampuan (ability) masing-masing anggota.
   /// [members] — list anggota grup, tiap item memiliki key 'profiles' dan 'abilities' (List<String>).
   static Future<List<Map<String, dynamic>>> divideTask({
@@ -12,38 +62,30 @@ class AutomaticTaskDivision {
     List<String>? links,
     List<String>? files,
   }) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not defined in .env');
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-    );
-
     // Bangun daftar anggota beserta kemampuannya
-    final membersList = members.map((m) {
-      final profile = m['profiles'] ?? {};
-      final name = profile['name'] ?? profile['full_name'] ?? 'Unknown Member';
-      final userId = profile['id'] ?? '';
-      final abilities = (m['abilities'] as List<dynamic>?)
-              ?.map((a) => a.toString())
-              .toList() ??
-          [];
-      return {
-        'id': userId,
-        'name': name,
-        'abilities': abilities,
-      };
-    }).where((m) => (m['id'] as String).isNotEmpty).toList();
+    final membersList = members
+        .map((m) {
+          final profile = m['profiles'] ?? {};
+          final name =
+              profile['name'] ?? profile['full_name'] ?? 'Unknown Member';
+          final userId = profile['id'] ?? '';
+          final abilities =
+              (m['abilities'] as List<dynamic>?)
+                  ?.map((a) => a.toString())
+                  .toList() ??
+              [];
+          return {'id': userId, 'name': name, 'abilities': abilities};
+        })
+        .where((m) => (m['id'] as String).isNotEmpty)
+        .toList();
 
     if (membersList.isEmpty) {
       throw Exception('Tidak ada anggota untuk ditetapkan tugas.');
     }
 
     // Prompt dalam Bahasa Indonesia yang mewajibkan output Bahasa Indonesia
-    final prompt = """
+    final prompt =
+        """
 Kamu adalah asisten pembagi tugas yang cerdas. Semua respons WAJIB menggunakan Bahasa Indonesia.
 
 Tugas utama: "$taskTitle"
@@ -76,34 +118,7 @@ Contoh output:
 ]
 """;
 
-    final content = [Content.text(prompt)];
-    final response = await model.generateContent(content);
-
-    if (response.text == null || response.text!.isEmpty) {
-      throw Exception('AI memberikan respons kosong.');
-    }
-
-    try {
-      // Bersihkan markdown block jika ada
-      String cleanedText = response.text!.trim();
-      if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.substring(7);
-      } else if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.substring(3);
-      }
-      if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-      }
-
-      final dynamic decoded = jsonDecode(cleanedText.trim());
-      if (decoded is List) {
-        return List<Map<String, dynamic>>.from(decoded);
-      } else {
-        throw Exception('Respons AI bukan array JSON yang valid.');
-      }
-    } catch (e) {
-      throw Exception('Gagal membaca respons AI: ${response.text}');
-    }
+    return _generateTasks(prompt);
   }
 
   /// Menyusun urutan pengerjaan tugas mandiri secara otomatis.
@@ -116,21 +131,12 @@ Contoh output:
     List<String>? files,
     List<String>? abilities,
   }) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not defined in .env');
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-    );
-
     final abilitiesText = (abilities != null && abilities.isNotEmpty)
         ? 'Kemampuan pengguna: ${abilities.join(', ')}'
         : 'Kemampuan pengguna: tidak terdaftar';
 
-    final prompt = """
+    final prompt =
+        """
 Kamu adalah asisten penyusun tugas yang cerdas. Semua respons WAJIB menggunakan Bahasa Indonesia.
 
 Tugas: "$taskTitle"
@@ -161,32 +167,6 @@ Contoh output:
 ]
 """;
 
-    final content = [Content.text(prompt)];
-    final response = await model.generateContent(content);
-
-    if (response.text == null || response.text!.isEmpty) {
-      throw Exception('AI memberikan respons kosong.');
-    }
-
-    try {
-      String cleanedText = response.text!.trim();
-      if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.substring(7);
-      } else if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.substring(3);
-      }
-      if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
-      }
-
-      final dynamic decoded = jsonDecode(cleanedText.trim());
-      if (decoded is List) {
-        return List<Map<String, dynamic>>.from(decoded);
-      } else {
-        throw Exception('Respons AI bukan array JSON yang valid.');
-      }
-    } catch (e) {
-      throw Exception('Gagal membaca respons AI: ${response.text}');
-    }
+    return _generateTasks(prompt);
   }
 }

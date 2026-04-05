@@ -182,13 +182,25 @@ class _GroupScreenState extends State<GroupScreen> {
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          await supabase
+                          final deletedGroups = await supabase
                               .from('groups')
                               .delete()
-                              .eq('id', team['id']);
+                              .eq('id', team['id'])
+                              .select('id');
+
+                          if (deletedGroups.isEmpty) {
+                            throw Exception(
+                              'Group could not be deleted. Please make sure the DELETE policy for groups has been applied in Supabase.',
+                            );
+                          }
+
+                          _allTeams.removeWhere((g) => g['id'] == team['id']);
+                          teams.removeWhere((g) => g['id'] == team['id']);
+
                           if (context.mounted) {
                             Navigator.pop(ctx); // close dialog
                             Navigator.pop(context); // close modal
+                            setState(() {});
                             _fetch();
                             SuccessDialog.show(
                               context,
@@ -197,6 +209,17 @@ class _GroupScreenState extends State<GroupScreen> {
                           }
                         } catch (e) {
                           debugPrint('Delete group err: $e');
+                          if (!context.mounted) return;
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              SnackBar(
+                                duration: const Duration(milliseconds: 2200),
+                                content: Text('Failed to delete group: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
                         }
                       },
                       style: ElevatedButton.styleFrom(
