@@ -651,18 +651,7 @@ class _GroupScreenState extends State<GroupScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () => Navigator.pop(ctx),
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 20,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
+
               Expanded(
                 child: ListView(
                   controller: sc,
@@ -830,14 +819,99 @@ class _GroupScreenState extends State<GroupScreen> {
                                   color: AppColors.primaryTeal,
                                   size: 26,
                                 ),
-                                onPressed: () async {
-                                  await supabase
-                                      .from('group_members')
-                                      .delete()
-                                      .eq('id', m['id']);
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  _fetch();
+                                onPressed: () {
+                                  showDialog(
+                                    context: ctx,
+                                    builder: (dialogCtx) => Dialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(30),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.person_remove_rounded,
+                                              color: AppColors.primaryTeal,
+                                              size: 50,
+                                            ),
+                                            const SizedBox(height: 20),
+                                            RichText(
+                                              textAlign: TextAlign.center,
+                                              text: TextSpan(
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 18,
+                                                  color: Colors.black,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                children: [
+                                                  const TextSpan(text: 'Are you sure you want to '),
+                                                  const TextSpan(
+                                                    text: 'kick',
+                                                    style: TextStyle(color: AppColors.primaryTeal),
+                                                  ),
+                                                  const TextSpan(text: ' this member?'),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 30),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: ElevatedButton(
+                                                    onPressed: () => Navigator.pop(dialogCtx),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.grey[200],
+                                                      elevation: 0,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(15),
+                                                      ),
+                                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                                    ),
+                                                    child: Text(
+                                                      'Cancel',
+                                                      style: GoogleFonts.outfit(
+                                                        color: Colors.grey[700],
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 15),
+                                                Expanded(
+                                                  child: ElevatedButton(
+                                                    onPressed: () async {
+                                                      Navigator.pop(dialogCtx);
+                                                      await supabase
+                                                          .from('group_members')
+                                                          .delete()
+                                                          .eq('id', m['id']);
+                                                      if (!ctx.mounted) return;
+                                                      Navigator.pop(ctx);
+                                                      _fetch();
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: AppColors.primaryTeal,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(15),
+                                                      ),
+                                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                                    ),
+                                                    child: Text(
+                                                      'Accept',
+                                                      style: GoogleFonts.outfit(
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
                                 },
                               ),
                           ],

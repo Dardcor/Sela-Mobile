@@ -65,21 +65,26 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
       // Fetch group members separately to get member list for dropdown
       final groupId = data['group_id'];
-      final membersData = await supabase
-          .from('group_members')
-          .select('*, profiles(*)')
-          .eq('group_id', groupId);
+      List membersData = [];
+      bool isLeaderFromDb = false;
 
-      // Cek secara langsung dari DB apakah user ini adalah leader di grup ini
-      final leaderCheck = await supabase
-          .from('group_members')
-          .select('role')
-          .eq('group_id', groupId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+      if (groupId != null) {
+        membersData = await supabase
+            .from('group_members')
+            .select('*, profiles(*)')
+            .eq('group_id', groupId);
 
-      final isLeaderFromDb =
-          leaderCheck != null && leaderCheck['role'] == 'leader';
+        // Cek secara langsung dari DB apakah user ini adalah leader di grup ini
+        final leaderCheck = await supabase
+            .from('group_members')
+            .select('role')
+            .eq('group_id', groupId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        isLeaderFromDb =
+            leaderCheck != null && leaderCheck['role'] == 'leader';
+      }
 
       if (mounted) {
         setState(() {
@@ -93,6 +98,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         });
       }
     } catch (e) {
+      debugPrint('Err GroupDetail fetch: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -194,7 +200,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   Future<void> _handleCreateAutomatic() async {
-    final members = _taskData['group_members'] as List;
+    final members = (_taskData['group_members'] as List?) ?? [];
     if (members.isEmpty) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
@@ -432,10 +438,34 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_taskData == null && _isLoading) {
-      return const Scaffold(
+    if (_taskData == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgLight,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+          child: _isLoading
+              ? const CircularProgressIndicator(color: AppColors.primaryTeal)
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.grey[400], size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load task data',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
         ),
       );
     }

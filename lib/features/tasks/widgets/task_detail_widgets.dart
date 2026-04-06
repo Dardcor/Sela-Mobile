@@ -1555,7 +1555,11 @@ class AddTaskTopBar extends StatelessWidget {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back, size: 24),
+            child: const Icon(
+              Icons.arrow_back,
+              color: AppColors.primaryTeal,
+              size: 24,
+            ),
           ),
         ),
         Container(

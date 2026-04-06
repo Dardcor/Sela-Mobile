@@ -104,6 +104,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           .update({'is_read': true})
           .eq('user_id', user.id)
           .eq('is_read', false);
+
+      await NotificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('Err Mark All As Read: $e');
     }
@@ -115,6 +117,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           .from('notifications')
           .update({'is_read': true})
           .eq('id', notificationId);
+
+      await NotificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('Err Mark Single As Read: $e');
     }

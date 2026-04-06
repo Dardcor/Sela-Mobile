@@ -35,8 +35,19 @@ class NotificationService {
     // 3. Initialize Plugin
     await _notificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse details) {
+      onDidReceiveNotificationResponse: (NotificationResponse details) async {
         debugPrint('Notification Clicked! Payload: ${details.payload}');
+        if (details.payload != null) {
+          try {
+            final supabase = Supabase.instance.client;
+            await supabase
+                .from('notifications')
+                .update({'is_read': true})
+                .eq('id', details.payload!);
+          } catch (e) {
+            debugPrint('Error marking as read: $e');
+          }
+        }
       },
     );
 
@@ -184,6 +195,15 @@ class NotificationService {
       debugPrint('System Notification SHOWN successfully.');
     } catch (e) {
       debugPrint('Error displaying notification: $e');
+    }
+  }
+
+  static Future<void> cancelAllNotifications() async {
+    try {
+      await _notificationsPlugin.cancelAll();
+      debugPrint('All native notifications cancelled.');
+    } catch (e) {
+      debugPrint('Error cancelling notifications: $e');
     }
   }
 }
