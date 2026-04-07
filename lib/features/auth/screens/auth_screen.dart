@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -53,9 +53,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) {
         setState(() {
           _classes = data.map((e) => e.toString()).toList();
-          if (_classes.isNotEmpty && _selectedClass == null) {
-            _selectedClass = _classes[0];
-          }
+          // _selectedClass tetap null agar dropdown menampilkan "Select Class" di awal
         });
       }
     } catch (e) {
@@ -98,7 +96,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _usernameRegisterController.clear();
     _emailRegisterController.clear();
     _passwordRegisterController.clear();
-    setState(() => _selectedClass = _classes.isNotEmpty ? _classes[0] : null);
+    setState(() => _selectedClass = null);
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -175,6 +173,13 @@ class _AuthScreenState extends State<AuthScreen> {
       _showError('Username maksimal 20 karakter');
       return;
     }
+    // Hanya huruf (a-z, A-Z), angka (0-9), dan spasi di tengah yang diperbolehkan
+    // Tidak boleh diawali spasi
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9 ]*$');
+    if (!usernameRegex.hasMatch(username)) {
+      _showError('Username hanya boleh mengandung huruf, angka, dan spasi di tengah (tidak boleh diawali spasi atau menggunakan simbol)');
+      return;
+    }
     if (email.isEmpty) {
       _showError('Email tidak boleh kosong');
       return;
@@ -200,7 +205,7 @@ class _AuthScreenState extends State<AuthScreen> {
         data: {
           'full_name': username,
           'username': username,
-          'class_name': _selectedClass,
+          'class_name': _selectedClass ?? '',
         },
       );
 
@@ -573,6 +578,10 @@ class _RegisterForm extends StatelessWidget {
         hint: 'Masukkan username Anda',
         icon: Icons.person_outline,
         maxLength: 20,
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+          NoLeadingSpaceFormatter(),
+        ],
       ),
       const SizedBox(height: 20),
       AuthTextField(

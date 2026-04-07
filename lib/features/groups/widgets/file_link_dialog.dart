@@ -200,6 +200,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                       hint: 'Enter a task title',
                       controller: _titleCtrl,
                       bgColor: Colors.white,
+                      inputFormatters: [NoLeadingSpaceFormatter()],
                     ),
                     const SizedBox(height: 10),
                     LabeledInputField(
@@ -208,6 +209,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                       controller: _descCtrl,
                       lines: 4,
                       bgColor: Colors.white,
+                      inputFormatters: [NoLeadingSpaceFormatter()],
                     ),
                     const SizedBox(height: 15),
                     Row(

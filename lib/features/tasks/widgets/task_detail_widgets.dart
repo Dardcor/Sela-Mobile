@@ -2,8 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
+
+class NoLeadingSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.startsWith(' ')) {
+      return oldValue;
+    }
+    return newValue;
+  }
+}
 
 /// Kartu detail tugas mandiri — bagian atas (info task + progress besar).
 /// Diekstrak agar jika progress berubah, hanya kartu ini yang di-rebuild.
@@ -743,6 +757,7 @@ class _IndependentCreateSubtaskSectionState
                           label: 'Subtask title',
                           hint: 'subtask title',
                           controller: _titleCtrl,
+                          inputFormatters: [NoLeadingSpaceFormatter()],
                         ),
                         const SizedBox(height: 20),
                         _CreateSubtaskField(
@@ -750,6 +765,7 @@ class _IndependentCreateSubtaskSectionState
                           hint: 'description',
                           controller: _descCtrl,
                           lines: 3,
+                          inputFormatters: [NoLeadingSpaceFormatter()],
                         ),
                         const SizedBox(height: 20),
                         GestureDetector(
@@ -851,12 +867,14 @@ class _CreateSubtaskField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final int lines;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _CreateSubtaskField({
     required this.label,
     required this.hint,
     required this.controller,
     this.lines = 1,
+    this.inputFormatters,
   });
 
   @override
@@ -873,6 +891,7 @@ class _CreateSubtaskField extends StatelessWidget {
           child: TextField(
             controller: controller,
             maxLines: lines,
+            inputFormatters: inputFormatters,
             decoration: InputDecoration(
               hintText: hint,
               border: InputBorder.none,
@@ -1061,6 +1080,7 @@ class LabeledInputField extends StatelessWidget {
   final Color bgColor;
   final String? errorText;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
 
   const LabeledInputField({
     super.key,
@@ -1073,6 +1093,7 @@ class LabeledInputField extends StatelessWidget {
     this.bgColor = AppColors.bgLight,
     this.errorText,
     this.onChanged,
+    this.inputFormatters,
   });
 
   @override
@@ -1101,6 +1122,7 @@ class LabeledInputField extends StatelessWidget {
                 readOnly: onTap != null,
                 onTap: onTap,
                 onChanged: onChanged,
+                inputFormatters: inputFormatters,
                 decoration: InputDecoration(
                   hintText: hint,
                   border: InputBorder.none,

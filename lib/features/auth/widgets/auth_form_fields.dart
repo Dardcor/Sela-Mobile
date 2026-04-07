@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Input field standar untuk layar auth (email, username).
@@ -10,6 +11,7 @@ class AuthTextField extends StatelessWidget {
   final IconData icon;
   final TextInputType keyboardType;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AuthTextField({
     super.key,
@@ -19,6 +21,7 @@ class AuthTextField extends StatelessWidget {
     required this.icon,
     this.keyboardType = TextInputType.text,
     this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -27,6 +30,7 @@ class AuthTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       maxLength: maxLength,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
       decoration: InputDecoration(
         counterText: '',
@@ -198,5 +202,20 @@ class AuthDropdownField extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// Custom formatter: mencegah spasi di awal, tapi mengizinkan spasi di tengah.
+class NoLeadingSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Jika teks baru dimulai dengan spasi, kembalikan nilai lama (tolak input)
+    if (newValue.text.startsWith(' ')) {
+      return oldValue;
+    }
+    return newValue;
   }
 }

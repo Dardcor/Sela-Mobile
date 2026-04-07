@@ -123,6 +123,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9 ]*$');
+    if (!usernameRegex.hasMatch(name)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500), 
+            content: Text('Username hanya boleh mengandung huruf, angka, dan spasi di tengah'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;

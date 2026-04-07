@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/task_progress_indicator.dart';
+import '../../tasks/widgets/task_detail_widgets.dart';
 
 /// Kartu grup di GroupScreen yang menampilkan avatar anggota,
 /// nama grup, dan tombol detail.
@@ -299,6 +300,7 @@ class GroupInputField extends StatelessWidget {
   final bool enabled;
   final String? errorText;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
 
   const GroupInputField({
     super.key,
@@ -310,6 +312,7 @@ class GroupInputField extends StatelessWidget {
     this.enabled = true,
     this.errorText,
     this.onChanged,
+    this.inputFormatters,
   });
 
   @override
@@ -345,9 +348,9 @@ class GroupInputField extends StatelessWidget {
                   keyboardType: isNum
                       ? TextInputType.number
                       : TextInputType.text,
-                  inputFormatters: isNum
+                  inputFormatters: inputFormatters ?? (isNum
                       ? [FilteringTextInputFormatter.digitsOnly]
-                      : null,
+                      : null),
                   style: GoogleFonts.outfit(
                     color: enabled ? Colors.black : Colors.grey,
                   ),
@@ -398,7 +401,8 @@ class GroupInputField extends StatelessWidget {
 }
 
 /// Dropdown field dengan floating label untuk modal di GroupScreen.
-class GroupDropdownField extends StatelessWidget {
+/// Kini mendukung pencarian/search.
+class GroupDropdownField extends StatefulWidget {
   final String label;
   final String hint;
   final String? value;
@@ -419,8 +423,31 @@ class GroupDropdownField extends StatelessWidget {
   });
 
   @override
+  State<GroupDropdownField> createState() => _GroupDropdownFieldState();
+}
+
+class _GroupDropdownFieldState extends State<GroupDropdownField> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.value != null) {
+      _searchController.text = widget.value!;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GroupDropdownField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && widget.value != null) {
+      _searchController.text = widget.value!;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasError = errorText != null && errorText!.isNotEmpty;
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -430,79 +457,99 @@ class GroupDropdownField extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: hasError ? Colors.red : AppColors.primaryTeal,
-                    width: 1.2,
-                  ),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return DropdownMenu<String>(
-                      width: constraints.maxWidth,
-                      initialSelection: value,
-                      onSelected: onChanged,
-                      hintText: hint,
-                      trailingIcon: Transform.translate(
-                        offset: const Offset(4, 0),
-                        child: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
+              Autocomplete<String>(
+                initialValue: TextEditingValue(text: widget.value ?? ''),
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  final keyword = textEditingValue.text.toLowerCase();
+                  if (keyword.isEmpty) {
+                    return widget.items.take(5);
+                  }
+                  return widget.items.where((String option) {
+                    return option.toLowerCase().contains(keyword);
+                  }).take(15);
+                },
+                onSelected: widget.onChanged,
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  // Sinkronisasi controller jika value dari luar berubah
+                  if (widget.value != null && controller.text != widget.value) {
+                    // Hanya update jika fokus tidak ada untuk mencegah cursor jump
+                    if (!focusNode.hasFocus) {
+                      controller.text = widget.value!;
+                    }
+                  }
+                  
+                  return Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: hasError ? Colors.red : AppColors.primaryTeal,
+                        width: 1.2,
                       ),
-                      selectedTrailingIcon: Transform.translate(
-                        offset: const Offset(4, 0),
-                        child: Icon(Icons.expand_less_rounded, color: Colors.grey[400]),
-                      ),
-                      textStyle: GoogleFonts.outfit(
-                        fontSize: 15,
-                        color: Colors.black,
-                      ),
-                      menuStyle: MenuStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
-                        shape: WidgetStateProperty.all(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                      ),
-                      inputDecorationTheme: InputDecorationTheme(
+                    ),
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textAlignVertical: TextAlignVertical.center,
+                      style: GoogleFonts.outfit(fontSize: 15, color: Colors.black),
+                      decoration: InputDecoration(
+                        hintText: widget.hint,
                         border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.only(left: 18, right: 18, bottom: 6),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
                         hintStyle: GoogleFonts.outfit(
                           color: Colors.grey[300],
                           fontSize: 15,
                         ),
+                        suffixIcon: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
                       ),
-                      dropdownMenuEntries: items
-                          .map(
-                            (e) => DropdownMenuEntry<String>(
-                              value: e,
-                              label: e,
-                              style: MenuItemButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 18),
-                                textStyle: GoogleFonts.outfit(
+                      onChanged: (v) {
+                        // Jika user mengetik sembarang yang tidak ada di list, tetap trigger onChanged jika perlu
+                        // Namun biasanya user hanya ingin memilih dari list
+                      },
+                    ),
+                  );
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 8,
+                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.white,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width - 50, // Match field width approximately
+                        constraints: const BoxConstraints(maxHeight: 250),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final String option = options.elementAt(index);
+                            return ListTile(
+                              title: Text(
+                                option,
+                                style: GoogleFonts.outfit(
                                   fontSize: 15,
-                                  color: Colors.black,
+                                  color: Colors.grey[700],
                                 ),
                               ),
-                            ),
-                          )
-                          .toList(),
-                    );
-                  },
-                ),
+                              onTap: () => onSelected(option),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               Positioned(
                 left: 14,
                 top: -10,
                 child: Container(
-                  color: bgColor,
+                  color: widget.bgColor,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Text(
-                    label,
+                    widget.label,
                     style: GoogleFonts.outfit(
                       color: hasError ? Colors.red : AppColors.primaryTeal,
                       fontWeight: FontWeight.bold,
@@ -517,7 +564,7 @@ class GroupDropdownField extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8, left: 16),
               child: Text(
-                errorText!,
+                widget.errorText!,
                 style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
               ),
             ),
@@ -526,6 +573,13 @@ class GroupDropdownField extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // YourProgressSection — Daftar subtask milik user yang login.
@@ -1362,6 +1416,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     hint: 'subtask title',
                     controller: _titleCtrl,
                     enabled: widget.isLeader,
+                    inputFormatters: [NoLeadingSpaceFormatter()],
                   ),
                 ),
               ),
@@ -1398,6 +1453,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               hint: 'description',
               controller: _descCtrl,
               enabled: widget.isLeader,
+              inputFormatters: [NoLeadingSpaceFormatter()],
             ),
           ),
           const SizedBox(height: 20),

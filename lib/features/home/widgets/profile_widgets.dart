@@ -1,9 +1,12 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../auth/widgets/auth_form_fields.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileHeader — Header layar Profil (Back + Judul Profile).
@@ -208,8 +211,10 @@ class UserInfoCard extends StatelessWidget {
           const SizedBox(height: 15),
           Builder(
             builder: (_) {
-              final displayName =
-                  profile?['full_name'] ?? profile?['username'] ?? 'User Name';
+              String displayName = profile?['full_name'] ?? '';
+              if (displayName.trim().isEmpty) {
+                displayName = profile?['username'] ?? 'User Name';
+              }
               final truncated = displayName.length > 15
                   ? '${displayName.substring(0, 15)}...'
                   : displayName;
@@ -450,18 +455,41 @@ class EditProfileModal extends StatefulWidget {
 class _EditProfileModalState extends State<EditProfileModal> {
   late TextEditingController _nameCtrl;
   String? _selectedClass;
-  final List<String> _classes = [
-    '2 - D3 IT B',
-    '2 - D3 IT A',
-    '1 - D3 IT B',
-    '1 - D3 IT A',
-  ];
+  List<String> _classes = [];
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.profile?['full_name'] ?? '');
-    _selectedClass = widget.profile?['class_name'] ?? _classes[0];
+    // Gunakan full_name, jika kosong gunakan username
+    String? name = widget.profile?['full_name'];
+    if (name == null || name.toString().trim().isEmpty) {
+      name = widget.profile?['username'];
+    }
+    _nameCtrl = TextEditingController(text: name?.toString() ?? '');
+    
+    // Inisialisasi class dari database
+    _selectedClass = widget.profile?['class_name'];
+    _loadClasses();
+  }
+
+  Future<void> _loadClasses() async {
+    try {
+      final String response = await rootBundle.loadString('lib/data/class.json');
+      final data = json.decode(response) as List<dynamic>;
+      if (mounted) {
+        setState(() {
+          _classes = data.map((e) => e.toString()).toList();
+          // Jika kelas dari DB tidak ada di JSON, tambahkan sementara agar tidak kosong di dropdown
+          if (_selectedClass != null && 
+              _selectedClass!.isNotEmpty && 
+              !_classes.contains(_selectedClass)) {
+            _classes.insert(0, _selectedClass!);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading class.json: $e');
+    }
   }
 
   @override
@@ -590,6 +618,12 @@ class _EditProfileModalState extends State<EditProfileModal> {
           child: TextField(
             controller: ctrl,
             maxLength: label == 'Username' ? 20 : null,
+            inputFormatters: label == 'Username'
+                ? [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+                    NoLeadingSpaceFormatter(),
+                  ]
+                : null,
             style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]),
             decoration: const InputDecoration(
               counterText: '',
@@ -636,6 +670,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return DropdownMenu<String>(
+                key: ValueKey(items.length),
                 width: constraints.maxWidth,
                 initialSelection: value,
                 onSelected: onChanged,

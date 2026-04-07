@@ -258,6 +258,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               hint: 'Enter a task title',
               controller: titleCtrl,
               errorText: titleError,
+              inputFormatters: [NoLeadingSpaceFormatter()],
               onChanged: (val) {
                 if (titleError != null) setState(() => titleError = null);
               },
@@ -301,6 +302,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               controller: descCtrl,
               lines: 4,
               errorText: descError,
+              inputFormatters: [NoLeadingSpaceFormatter()],
               onChanged: (val) {
                 if (descError != null) setState(() => descError = null);
               },

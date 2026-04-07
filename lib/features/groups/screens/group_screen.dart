@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
@@ -19,21 +21,30 @@ class _GroupScreenState extends State<GroupScreen> {
   bool isLoading = true;
   final _searchCtrl = TextEditingController();
 
-  final List<String> _courses = [
-    'Workshop Aplikasi Bergerak',
-    'Praktek Kecerdasan Buatan',
-    'Administrasi Jaringan',
-    'Konsep Jaringan',
-    'Pemrograman Web',
-  ];
+  List<String> _courses = [];
 
   RealtimeChannel? _realtimeChannel;
 
   @override
   void initState() {
     super.initState();
+    _loadCourses();
     _fetch();
     _setupRealtimeListener();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final String response = await rootBundle.loadString('lib/data/course.json');
+      final data = await json.decode(response);
+      if (mounted) {
+        setState(() {
+          _courses = List<String>.from(data);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading courses: $e');
+    }
   }
 
   void _setupRealtimeListener() {
@@ -491,6 +502,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                         limitText,
                                       );
 
+                                      bool hasErr = false;
                                       setS(() {
                                         courseError = null;
                                         limitError = null;
@@ -498,37 +510,31 @@ class _GroupScreenState extends State<GroupScreen> {
                                       });
 
                                       if (curCourse == null) {
-                                        setS(
-                                          () => courseError =
-                                              'Please select a course',
-                                        );
-                                        return;
+                                        setS(() => courseError = 'Please select a course');
+                                        hasErr = true;
                                       }
 
-                                      if (noCtrl.text.trim().isEmpty) {
-                                        setS(
-                                          () => groupNumberError =
-                                              'Please input a group number',
-                                        );
-                                        return;
+                                      final noText = noCtrl.text.trim();
+                                      final noVal = int.tryParse(noText);
+
+                                      if (noText.isEmpty) {
+                                        setS(() => groupNumberError = 'Please input a group number');
+                                        hasErr = true;
+                                      } else if (noVal == null || noVal <= 0) {
+                                        setS(() => groupNumberError = 'Must be greater than 0');
+                                        hasErr = true;
                                       }
 
                                       if (limitText.isEmpty) {
-                                        setS(
-                                          () => limitError =
-                                              'Please fill in the member limit',
-                                        );
-                                        return;
+                                        setS(() => limitError = 'Please fill limit');
+                                        hasErr = true;
+                                      } else if (parsedLimit == null || parsedLimit <= 0) {
+                                        setS(() => limitError = 'Must be > 0');
+                                        hasErr = true;
                                       }
 
-                                      if (parsedLimit == null ||
-                                          parsedLimit <= 0) {
-                                        setS(
-                                          () => limitError =
-                                              'Member limit must be greater than 0',
-                                        );
-                                        return;
-                                      }
+                                      if (hasErr) return;
+
                                       setS(() => inProc = true);
                                       final inv = List.generate(
                                         6,
