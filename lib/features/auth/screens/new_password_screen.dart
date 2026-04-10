@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../utils/auth_error_utils.dart';
 import 'success_screen.dart';
 
 class NewPasswordScreen extends StatefulWidget {
@@ -43,12 +45,15 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       return;
     }
 
+    if (!await ConnectivityService.isConnected()) {
+      _showError(noInternetMessage);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      await supabase.auth.updateUser(
-        UserAttributes(password: password),
-      );
+      await supabase.auth.updateUser(UserAttributes(password: password));
 
       if (mounted) {
         Navigator.push(
@@ -57,9 +62,11 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         );
       }
     } on AuthException catch (e) {
-      _showError(e.message);
+      _showError(
+        isNetworkErrorMessage(e.message) ? noInternetMessage : e.message,
+      );
     } catch (e) {
-      _showError('An error occurred: $e');
+      _showError(mapAuthErrorMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -67,72 +74,110 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-      SnackBar(duration: const Duration(milliseconds: 1500), content: Text(message), backgroundColor: Colors.red),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 1500),
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Image.asset('assets/images/new_pass.png', height: 250),
-              const SizedBox(height: 40),
-              Text('Set new password', textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
-              const SizedBox(height: 10),
-              Text("New password must be unique from your old ones.", textAlign: TextAlign.center, style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 50),
-              _buildPasswordField(
-                controller: _passwordController,
-                label: 'Password',
-                hint: '',
-                obscure: _obscurePass,
-                onToggle: () => setState(() => _obscurePass = !_obscurePass),
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 40),
+            Image.asset('assets/images/new_pass.png', height: 250),
+            const SizedBox(height: 40),
+            Text(
+              'Set new password',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
-              const SizedBox(height: 20),
-              _buildPasswordField(
-                controller: _confirmPasswordController,
-                label: 'Confirm password',
-                hint: '',
-                obscure: _obscureConfirm,
-                onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity, height: 60,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleUpdatePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryTeal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    elevation: 0,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "New password must be unique from your old ones.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 50),
+            _buildPasswordField(
+              controller: _passwordController,
+              label: 'Password',
+              hint: '',
+              obscure: _obscurePass,
+              onToggle: () => setState(() => _obscurePass = !_obscurePass),
+            ),
+            const SizedBox(height: 20),
+            _buildPasswordField(
+              controller: _confirmPasswordController,
+              label: 'Confirm password',
+              hint: '',
+              obscure: _obscureConfirm,
+              onToggle: () =>
+                  setState(() => _obscureConfirm = !_obscureConfirm),
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleUpdatePassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryTeal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('Reset Password', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  elevation: 0,
                 ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'Reset Password',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
-              const SizedBox(height: 30),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            ),
+            const SizedBox(height: 30),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   const Icon(Icons.arrow_back, size: 20),
                   const SizedBox(width: 10),
-                  Text('Back to Login', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w500)),
-                ]),
+                  Text(
+                    'Back to Login',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
-    );
+    ),
+  );
 
   Widget _buildPasswordField({
     required TextEditingController controller,
@@ -149,11 +194,29 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         labelStyle: GoogleFonts.outfit(color: Colors.grey),
         hintText: hint,
         hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        suffixIcon: IconButton(icon: Icon(obscure ? Icons.remove_red_eye_outlined : Icons.visibility, color: Colors.grey), onPressed: onToggle),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.grey)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.primaryTeal)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 15,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscure ? Icons.remove_red_eye_outlined : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: onToggle,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.grey),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: AppColors.primaryTeal),
+        ),
       ),
     );
   }

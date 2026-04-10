@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.pdbl.sela
 
 import io.flutter.embedding.android.FlutterActivity
 

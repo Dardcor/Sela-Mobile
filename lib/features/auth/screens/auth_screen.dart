@@ -8,7 +8,9 @@ import '../../../core/constants/colors.dart';
 import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
+import '../utils/auth_error_utils.dart';
 import 'forgot_password_screen.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/notification_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -48,7 +50,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _loadClasses() async {
     try {
-      final String response = await rootBundle.loadString('lib/data/class.json');
+      final String response = await rootBundle.loadString(
+        'lib/data/class.json',
+      );
       final data = json.decode(response) as List<dynamic>;
       if (mounted) {
         setState(() {
@@ -109,6 +113,11 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (!await ConnectivityService.isConnected()) {
+      _showError(noInternetMessage);
+      return;
+    }
+
     setState(() => isLoading = true);
     try {
       final res = await supabase.auth.signInWithPassword(
@@ -146,7 +155,9 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on AuthException catch (e) {
       String msg = e.message;
-      if (msg.contains('invalid_credentials') ||
+      if (isNetworkErrorMessage(msg)) {
+        msg = noInternetMessage;
+      } else if (msg.contains('invalid_credentials') ||
           msg.contains('Invalid login credentials')) {
         msg = 'Email atau Password salah. Silakan coba lagi.';
       } else if (msg.contains('Email not confirmed')) {
@@ -154,7 +165,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       _showError(msg);
     } catch (e) {
-      _showError('Terjadi kesalahan: ${e.toString()}');
+      _showError(mapAuthErrorMessage(e));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -177,7 +188,9 @@ class _AuthScreenState extends State<AuthScreen> {
     // Tidak boleh diawali spasi
     final usernameRegex = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9 ]*$');
     if (!usernameRegex.hasMatch(username)) {
-      _showError('Username hanya boleh mengandung huruf, angka, dan spasi di tengah (tidak boleh diawali spasi atau menggunakan simbol)');
+      _showError(
+        'Username hanya boleh mengandung huruf, angka, dan spasi di tengah (tidak boleh diawali spasi atau menggunakan simbol)',
+      );
       return;
     }
     if (email.isEmpty) {
@@ -194,6 +207,11 @@ class _AuthScreenState extends State<AuthScreen> {
     }
     if (_selectedClass == null || _selectedClass!.isEmpty) {
       _showError('Kelas tidak boleh kosong');
+      return;
+    }
+
+    if (!await ConnectivityService.isConnected()) {
+      _showError(noInternetMessage);
       return;
     }
 
@@ -234,7 +252,9 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on AuthException catch (e) {
       String msg = e.message;
-      if (msg.contains('User already registered')) {
+      if (isNetworkErrorMessage(msg)) {
+        msg = noInternetMessage;
+      } else if (msg.contains('User already registered')) {
         msg = 'Email ini sudah terdaftar. Silakan login.';
       } else if (msg.contains('Database error saving new user')) {
         msg =
@@ -242,7 +262,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       _showError(msg);
     } catch (e) {
-      _showError('Terjadi kesalahan: ${e.toString()}');
+      _showError(mapAuthErrorMessage(e));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -373,73 +393,73 @@ class _AuthScreenState extends State<AuthScreen> {
                             height: 540,
                             child: PageView(
                               controller: _pageController,
-                                physics: const BouncingScrollPhysics(),
-                                onPageChanged: (index) {
-                                  if (mounted)
-                                    setState(() => isLogin = index == 0);
-                                },
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 15,
-                                      left: 30,
-                                      right: 30,
+                              physics: const BouncingScrollPhysics(),
+                              onPageChanged: (index) {
+                                if (mounted)
+                                  setState(() => isLogin = index == 0);
+                              },
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 15,
+                                    left: 30,
+                                    right: 30,
+                                  ),
+                                  child: _LoginForm(
+                                    emailController: _emailLoginController,
+                                    passwordController:
+                                        _passwordLoginController,
+                                    obscurePassword: _obscureLoginPassword,
+                                    isLoading: isLoading,
+                                    rememberMe: _rememberMe,
+                                    onToggleObscure: () => setState(
+                                      () => _obscureLoginPassword =
+                                          !_obscureLoginPassword,
                                     ),
-                                    child: _LoginForm(
-                                      emailController: _emailLoginController,
-                                      passwordController:
-                                          _passwordLoginController,
-                                      obscurePassword: _obscureLoginPassword,
-                                      isLoading: isLoading,
-                                      rememberMe: _rememberMe,
-                                      onToggleObscure: () => setState(
-                                        () => _obscureLoginPassword =
-                                            !_obscureLoginPassword,
-                                      ),
-                                      onRememberMeChanged: (val) => setState(
-                                        () => _rememberMe = val ?? false,
-                                      ),
-                                      onLogin: _handleLogin,
-                                      onForgotPassword: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
+                                    onRememberMeChanged: (val) => setState(
+                                      () => _rememberMe = val ?? false,
+                                    ),
+                                    onLogin: _handleLogin,
+                                    onForgotPassword: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordScreen(),
                                       ),
                                     ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 15,
-                                      left: 30,
-                                      right: 30,
-                                    ),
-                                    child: _RegisterForm(
-                                      usernameController:
-                                          _usernameRegisterController,
-                                      emailController: _emailRegisterController,
-                                      passwordController:
-                                          _passwordRegisterController,
-                                      obscurePassword: _obscureRegisterPassword,
-                                      isLoading: isLoading,
-                                      selectedClass: _selectedClass,
-                                      classes: _classes,
-                                      onClassChanged: (val) {
-                                        if (val != null) {
-                                          setState(() => _selectedClass = val);
-                                        }
-                                      },
-                                      onToggleObscure: () => setState(
-                                        () => _obscureRegisterPassword =
-                                            !_obscureRegisterPassword,
-                                      ),
-                                      onRegister: _handleRegister,
-                                    ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 15,
+                                    left: 30,
+                                    right: 30,
                                   ),
-                                ],
-                              ),
+                                  child: _RegisterForm(
+                                    usernameController:
+                                        _usernameRegisterController,
+                                    emailController: _emailRegisterController,
+                                    passwordController:
+                                        _passwordRegisterController,
+                                    obscurePassword: _obscureRegisterPassword,
+                                    isLoading: isLoading,
+                                    selectedClass: _selectedClass,
+                                    classes: _classes,
+                                    onClassChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _selectedClass = val);
+                                      }
+                                    },
+                                    onToggleObscure: () => setState(
+                                      () => _obscureRegisterPassword =
+                                          !_obscureRegisterPassword,
+                                    ),
+                                    onRegister: _handleRegister,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
                           const SizedBox(height: 50),
                         ],
                       ),
@@ -487,56 +507,56 @@ class _LoginForm extends StatelessWidget {
     child: Column(
       children: [
         AuthTextField(
-        controller: emailController,
-        label: 'Email Address',
-        hint: 'contoh@email.com',
-        icon: Icons.email_outlined,
-        keyboardType: TextInputType.emailAddress,
-      ),
-      const SizedBox(height: 20),
-      AuthPasswordField(
-        controller: passwordController,
-        label: 'Password',
-        hint: 'Masukkan password',
-        obscure: obscurePassword,
-        onToggle: onToggleObscure,
-      ),
-      const SizedBox(height: 10),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Checkbox(
-                value: rememberMe,
-                onChanged: onRememberMeChanged,
-                activeColor: AppColors.primaryTeal,
-              ),
-              Text('Remember me', style: GoogleFonts.outfit(fontSize: 14)),
-            ],
-          ),
-          TextButton(
-            onPressed: onForgotPassword,
-            child: Text(
-              'Forgot Password?',
-              style: GoogleFonts.outfit(
-                color: AppColors.lightTeal,
-                fontSize: 14,
+          controller: emailController,
+          label: 'Email Address',
+          hint: 'contoh@email.com',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 20),
+        AuthPasswordField(
+          controller: passwordController,
+          label: 'Password',
+          hint: 'Masukkan password',
+          obscure: obscurePassword,
+          onToggle: onToggleObscure,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: rememberMe,
+                  onChanged: onRememberMeChanged,
+                  activeColor: AppColors.primaryTeal,
+                ),
+                Text('Remember me', style: GoogleFonts.outfit(fontSize: 14)),
+              ],
+            ),
+            TextButton(
+              onPressed: onForgotPassword,
+              child: Text(
+                'Forgot Password?',
+                style: GoogleFonts.outfit(
+                  color: AppColors.lightTeal,
+                  fontSize: 14,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 20),
-      AuthSubmitButton(
-        label: 'Login',
-        isLoading: isLoading,
-        onPressed: onLogin,
-      ),
-      const SizedBox(height: 20),
-    ],
-  ),
-);
+          ],
+        ),
+        const SizedBox(height: 20),
+        AuthSubmitButton(
+          label: 'Login',
+          isLoading: isLoading,
+          onPressed: onLogin,
+        ),
+        const SizedBox(height: 20),
+      ],
+    ),
+  );
 }
 
 // ────────────────────────────────────────────
@@ -573,50 +593,50 @@ class _RegisterForm extends StatelessWidget {
     child: Column(
       children: [
         AuthTextField(
-        controller: usernameController,
-        label: 'Username',
-        hint: 'Masukkan username Anda',
-        icon: Icons.person_outline,
-        maxLength: 20,
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
-          NoLeadingSpaceFormatter(),
-        ],
-      ),
-      const SizedBox(height: 20),
-      AuthTextField(
-        controller: emailController,
-        label: 'Email Address',
-        hint: 'contoh@email.com',
-        icon: Icons.email_outlined,
-        keyboardType: TextInputType.emailAddress,
-      ),
-      const SizedBox(height: 20),
-      AuthPasswordField(
-        controller: passwordController,
-        label: 'Password',
-        hint: 'Minimal 6 karakter',
-        obscure: obscurePassword,
-        onToggle: onToggleObscure,
-      ),
-      const SizedBox(height: 20),
-      AuthDropdownField(
-        key: ValueKey(classes.length),
-        label: 'Class',
-        hint: 'Pilih Kelas',
-        value: selectedClass,
-        items: classes,
-        onChanged: onClassChanged,
-        icon: Icons.school_outlined,
-      ),
-      const SizedBox(height: 40),
-      AuthSubmitButton(
-        label: 'Register',
-        isLoading: isLoading,
-        onPressed: onRegister,
-      ),
-      const SizedBox(height: 20),
-    ],
-  ),
-);
+          controller: usernameController,
+          label: 'Username',
+          hint: 'Masukkan username Anda',
+          icon: Icons.person_outline,
+          maxLength: 20,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+            NoLeadingSpaceFormatter(),
+          ],
+        ),
+        const SizedBox(height: 20),
+        AuthTextField(
+          controller: emailController,
+          label: 'Email Address',
+          hint: 'contoh@email.com',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 20),
+        AuthPasswordField(
+          controller: passwordController,
+          label: 'Password',
+          hint: 'Minimal 6 karakter',
+          obscure: obscurePassword,
+          onToggle: onToggleObscure,
+        ),
+        const SizedBox(height: 20),
+        AuthDropdownField(
+          key: ValueKey(classes.length),
+          label: 'Class',
+          hint: 'Pilih Kelas',
+          value: selectedClass,
+          items: classes,
+          onChanged: onClassChanged,
+          icon: Icons.school_outlined,
+        ),
+        const SizedBox(height: 40),
+        AuthSubmitButton(
+          label: 'Register',
+          isLoading: isLoading,
+          onPressed: onRegister,
+        ),
+        const SizedBox(height: 20),
+      ],
+    ),
+  );
 }

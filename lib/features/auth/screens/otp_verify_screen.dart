@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../utils/auth_error_utils.dart';
 import 'new_password_screen.dart';
 
 class OTPVerifyScreen extends StatefulWidget {
@@ -20,9 +22,29 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
 
   Future<void> _handleVerifyOTP() async {
     if (_otpCode == null || _otpCode!.length < 6) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Please enter the 6-digit code')),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Please enter the 6-digit code'),
+          ),
+        );
+      return;
+    }
+
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text(noInternetMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+      }
       return;
     }
 
@@ -42,16 +64,32 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
         );
       }
     } on AuthException catch (e) {
+      final message = isNetworkErrorMessage(e.message)
+          ? noInternetMessage
+          : e.message;
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(milliseconds: 1500), content: Text(e.message), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } catch (e) {
+      final message = mapAuthErrorMessage(e);
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Verification failed: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -59,18 +97,60 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
   }
 
   Future<void> _handleResendOTP() async {
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text(noInternetMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+      }
+      return;
+    }
+
     try {
       await supabase.auth.resetPasswordForEmail(widget.email);
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('New code sent to your email')),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              duration: Duration(milliseconds: 1500),
+              content: Text('New code sent to your email'),
+            ),
+          );
+      }
+    } on AuthException catch (e) {
+      final message = isNetworkErrorMessage(e.message)
+          ? noInternetMessage
+          : e.message;
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     } catch (e) {
+      final message = mapAuthErrorMessage(e);
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to resend: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1500),
+              content: Text(message),
+              backgroundColor: Colors.red,
+            ),
+          );
       }
     }
   }
@@ -78,9 +158,18 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
   @override
   Widget build(BuildContext context) {
     final defaultPinTheme = PinTheme(
-      width: 55, height: 60,
-      textStyle: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade400, width: 2)),
+      width: 55,
+      height: 60,
+      textStyle: GoogleFonts.outfit(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade400, width: 2),
+      ),
     );
 
     return Scaffold(
@@ -94,54 +183,107 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
               const SizedBox(height: 40),
               Image.asset('assets/images/otp.png', height: 250),
               const SizedBox(height: 40),
-              Text('Check your email', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
+              Text(
+                'Check your email',
+                style: GoogleFonts.outfit(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
               const SizedBox(height: 10),
-              Column(children: [
-                Text('We send a password reset code to', style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey)),
-                const SizedBox(height: 5),
-                Text(widget.email, style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
-              ]),
+              Column(
+                children: [
+                  Text(
+                    'We send a password reset code to',
+                    style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.email,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 50),
               Pinput(
                 length: 6,
                 defaultPinTheme: defaultPinTheme,
                 focusedPinTheme: defaultPinTheme.copyWith(
-                  decoration: defaultPinTheme.decoration!.copyWith(border: Border.all(color: AppColors.primaryTeal, width: 2)),
+                  decoration: defaultPinTheme.decoration!.copyWith(
+                    border: Border.all(color: AppColors.primaryTeal, width: 2),
+                  ),
                 ),
                 onChanged: (val) => _otpCode = val,
                 separatorBuilder: (index) => const SizedBox(width: 8),
               ),
               const SizedBox(height: 40),
               SizedBox(
-                width: double.infinity, height: 60,
+                width: double.infinity,
+                height: 60,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleVerifyOTP,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryTeal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     elevation: 0,
                   ),
                   child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('Verify email', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Verify email',
+                          style: GoogleFonts.outfit(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 30),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text("Didn't receive the code? ", style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey)),
-                GestureDetector(
-                  onTap: _handleResendOTP,
-                  child: Text('Resend again', style: GoogleFonts.outfit(fontSize: 14, color: AppColors.lightTeal, fontWeight: FontWeight.bold)),
-                ),
-              ]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Didn't receive the code? ",
+                    style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
+                  ),
+                  GestureDetector(
+                    onTap: _handleResendOTP,
+                    child: Text(
+                      'Resend again',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: AppColors.lightTeal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 50),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.arrow_back, size: 20),
-                  const SizedBox(width: 10),
-                  Text('Back to Login', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w500)),
-                ]),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.arrow_back, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Back to Login',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 40),
             ],
