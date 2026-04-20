@@ -67,9 +67,17 @@ class AppBottomNavBar extends StatelessWidget {
               onTabTap: onTabTap,
             ),
             GestureDetector(
-              onTap:
-                  onAddTap ??
-                  () => Navigator.pushNamed(context, '/add_project'),
+              onTap: currentIndex == 2 
+                ? null 
+                : () {
+                    if (ModalRoute.of(context)?.isCurrent == true) {
+                      if (onAddTap != null) {
+                        onAddTap!();
+                      } else {
+                        Navigator.pushNamed(context, '/add_project');
+                      }
+                    }
+                  },
               child: Container(
                 height: fabSize,
                 width: fabSize,
@@ -131,11 +139,13 @@ class _NavIcon extends StatelessWidget {
                 onTabTap!(index);
               } else {
                 // Mode standalone: navigasi via route
-                final navigator = Navigator.of(context);
-                if (route == '/dashboard') {
-                  navigator.pushNamedAndRemoveUntil(route, (r) => false);
-                } else {
-                  navigator.pushNamed(route);
+                if (ModalRoute.of(context)?.isCurrent == true) {
+                  final navigator = Navigator.of(context);
+                  if (route == '/dashboard') {
+                    navigator.pushNamedAndRemoveUntil(route, (r) => false);
+                  } else {
+                    navigator.pushNamed(route);
+                  }
                 }
               }
             },

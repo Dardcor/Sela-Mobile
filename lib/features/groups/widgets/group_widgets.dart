@@ -348,9 +348,9 @@ class GroupInputField extends StatelessWidget {
                   keyboardType: isNum
                       ? TextInputType.number
                       : TextInputType.text,
-                  inputFormatters: inputFormatters ?? (isNum
-                      ? [FilteringTextInputFormatter.digitsOnly]
-                      : null),
+                  inputFormatters:
+                      inputFormatters ??
+                      (isNum ? [FilteringTextInputFormatter.digitsOnly] : null),
                   style: GoogleFonts.outfit(
                     color: enabled ? Colors.black : Colors.grey,
                   ),
@@ -464,9 +464,11 @@ class _GroupDropdownFieldState extends State<GroupDropdownField> {
                   if (keyword.isEmpty) {
                     return widget.items.take(5);
                   }
-                  return widget.items.where((String option) {
-                    return option.toLowerCase().contains(keyword);
-                  }).take(15);
+                  return widget.items
+                      .where((String option) {
+                        return option.toLowerCase().contains(keyword);
+                      })
+                      .take(15);
                 },
                 onSelected: widget.onChanged,
                 fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
@@ -477,7 +479,7 @@ class _GroupDropdownFieldState extends State<GroupDropdownField> {
                       controller.text = widget.value!;
                     }
                   }
-                  
+
                   return Container(
                     height: 52,
                     decoration: BoxDecoration(
@@ -491,16 +493,24 @@ class _GroupDropdownFieldState extends State<GroupDropdownField> {
                       controller: controller,
                       focusNode: focusNode,
                       textAlignVertical: TextAlignVertical.center,
-                      style: GoogleFonts.outfit(fontSize: 15, color: Colors.black),
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        color: Colors.black,
+                      ),
                       decoration: InputDecoration(
                         hintText: widget.hint,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                        ),
                         hintStyle: GoogleFonts.outfit(
                           color: Colors.grey[300],
                           fontSize: 15,
                         ),
-                        suffixIcon: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
+                        suffixIcon: Icon(
+                          Icons.expand_more_rounded,
+                          color: Colors.grey[400],
+                        ),
                       ),
                       onChanged: (v) {
                         // Jika user mengetik sembarang yang tidak ada di list, tetap trigger onChanged jika perlu
@@ -517,7 +527,9 @@ class _GroupDropdownFieldState extends State<GroupDropdownField> {
                       borderRadius: BorderRadius.circular(15),
                       color: Colors.white,
                       child: Container(
-                        width: MediaQuery.of(context).size.width - 50, // Match field width approximately
+                        width:
+                            MediaQuery.of(context).size.width -
+                            50, // Match field width approximately
                         constraints: const BoxConstraints(maxHeight: 250),
                         child: ListView.builder(
                           padding: EdgeInsets.zero,
@@ -573,13 +585,6 @@ class _GroupDropdownFieldState extends State<GroupDropdownField> {
     );
   }
 }
-
-
-
-
-
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // YourProgressSection — Daftar subtask milik user yang login.
@@ -1118,7 +1123,9 @@ class _GroupMainCardState extends State<GroupMainCard> {
               final fileName = file['name'] as String? ?? 'file';
               final ext = _resolveFileExt(file, fileName);
               return InkWell(
-                onTap: widget.onFileTap == null ? null : () => widget.onFileTap!(file),
+                onTap: widget.onFileTap == null
+                    ? null
+                    : () => widget.onFileTap!(file),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -1157,29 +1164,41 @@ class _GroupMainCardState extends State<GroupMainCard> {
               );
             }),
           ],
-          // Tombol Edit Task (hanya tampil jika onEditTap tersedia)
-          if (widget.onEditTap != null) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: widget.onEditTap,
-              child: Text(
-                'Edit Task',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTeal,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primaryTeal,
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
+                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Text(
-            '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
-            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+              if (widget.onEditTap != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: widget.onEditTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Edit Task',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -1430,7 +1449,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     child: AbsorbPointer(
                       absorbing: !widget.isLeader,
                       child: _DropdownPerson(
-                        label: 'Subject',
+                        label: 'Assign to',
                         hint: 'pick the person',
                         value: _selectedMemberId,
                         members: widget.members,
@@ -1643,12 +1662,16 @@ class GroupMemberSection extends StatelessWidget {
   final List members;
   final List subtasks;
   final String createdBy;
+  final bool isLeader;
+  final Function(String subtaskId)? onDeleteSubtask;
 
   const GroupMemberSection({
     super.key,
     required this.members,
     required this.subtasks,
     required this.createdBy,
+    this.isLeader = false,
+    this.onDeleteSubtask,
   });
 
   @override
@@ -1673,7 +1696,12 @@ class GroupMemberSection extends StatelessWidget {
           ),
           const SizedBox(height: 15),
           ...members.map(
-            (m) => GroupMemberProgressTile(member: m, allSubtasks: subtasks),
+            (m) => GroupMemberProgressTile(
+              member: m,
+              allSubtasks: subtasks,
+              isLeader: isLeader,
+              onDeleteSubtask: onDeleteSubtask,
+            ),
           ),
         ],
       ),
@@ -1688,11 +1716,15 @@ class GroupMemberSection extends StatelessWidget {
 class GroupMemberProgressTile extends StatefulWidget {
   final dynamic member;
   final List allSubtasks;
+  final bool isLeader;
+  final Function(String subtaskId)? onDeleteSubtask;
 
   const GroupMemberProgressTile({
     super.key,
     required this.member,
     required this.allSubtasks,
+    this.isLeader = false,
+    this.onDeleteSubtask,
   });
 
   @override
@@ -1703,6 +1735,69 @@ class GroupMemberProgressTile extends StatefulWidget {
 class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
   bool _isExpanded = false;
 
+  /// Hitung status aggregat member berdasarkan subtask-nya.
+  ({String text, Color color}) _computeMemberStatus(List userSubtasks, String userId) {
+    if (userSubtasks.isEmpty) {
+      return (text: 'No Task', color: Colors.grey);
+    }
+
+    int doneCount = 0;
+    int inProgressCount = 0;
+    for (var st in userSubtasks) {
+      final progressData = (st['subtask_progress'] as List?)
+          ?.firstWhere((p) => p['user_id'] == userId, orElse: () => null);
+      final progress = (progressData?['progress'] as num?)?.toInt() ?? 0;
+      if (progress >= 100) {
+        doneCount++;
+      } else if (progress > 0) {
+        inProgressCount++;
+      }
+    }
+
+    if (doneCount == userSubtasks.length) {
+      return (text: 'Done', color: AppColors.primaryTeal);
+    } else if (inProgressCount > 0 || doneCount > 0) {
+      return (text: 'In Progress', color: AppColors.accentTeal);
+    }
+    return (text: 'Pending', color: AppColors.lightTeal);
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String subtaskId, String subtaskTitle) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Hapus Subtask',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: Text(
+          'Apakah kamu yakin ingin menghapus "$subtaskTitle"?',
+          style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onDeleteSubtask?.call(subtaskId);
+            },
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.member['profiles'];
@@ -1712,6 +1807,8 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
       final progress = (st['subtask_progress'] as List?);
       return progress?.any((p) => p['user_id'] == userId) ?? false;
     }).toList();
+
+    final memberStatus = _computeMemberStatus(userSubtasks, userId);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1746,13 +1843,39 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                   : const AssetImage('assets/images/default_profile.png'),
             ),
           ),
-          title: Text(
-            profile?['full_name'] ?? 'Member',
-            style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: _isExpanded ? Colors.white : AppColors.primaryTeal,
-            ),
+          title: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  profile?['full_name'] ?? 'Member',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: _isExpanded ? Colors.white : AppColors.primaryTeal,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _isExpanded
+                      ? Colors.white.withOpacity(0.2)
+                      : memberStatus.color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  memberStatus.text,
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: _isExpanded ? Colors.white : memberStatus.color,
+                  ),
+                ),
+              ),
+            ],
           ),
           subtitle: Text(
             '${userSubtasks.length} SubTask',
@@ -1767,31 +1890,13 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
           ),
           children: [
             Container(
-              color: Colors.white, // Isi selalu putih
+              color: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 children: userSubtasks.map((st) {
-                  final progressData = (st['subtask_progress'] as List?)
-                      ?.firstWhere(
-                        (p) => p['user_id'] == userId,
-                        orElse: () => null,
-                      );
-                  final progress =
-                      (progressData?['progress'] as num?)?.toInt() ?? 0;
-                  String statusText = 'Pending';
-                  Color statusColor = AppColors.lightTeal; // Light blue
-                  if (progress >= 100) {
-                    statusText = 'Done';
-                    statusColor = AppColors.primaryTeal; // Teal
-                  } else if (progress > 0) {
-                    statusText = 'In progress';
-                    statusColor = AppColors.accentTeal; // Blue
-                  }
-
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                    padding: const EdgeInsets.fromLTRB(20, 6, 12, 10),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
@@ -1805,15 +1910,26 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          statusText,
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
+                        if (widget.isLeader && widget.onDeleteSubtask != null)
+                          GestureDetector(
+                            onTap: () => _showDeleteConfirmation(
+                              context,
+                              st['id'],
+                              st['title'] ?? '',
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   );

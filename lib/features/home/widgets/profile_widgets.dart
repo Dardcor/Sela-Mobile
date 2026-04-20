@@ -161,6 +161,157 @@ class ProfileHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ChangePasswordModal — Modal untuk mengganti password
+// ─────────────────────────────────────────────────────────────────────────────
+class ChangePasswordModal extends StatefulWidget {
+  final Future<void> Function(String oldPass, String newPass) onSave;
+
+  const ChangePasswordModal({super.key, required this.onSave});
+
+  @override
+  State<ChangePasswordModal> createState() => _ChangePasswordModalState();
+}
+
+class _ChangePasswordModalState extends State<ChangePasswordModal> {
+  final _oldPassCtrl = TextEditingController();
+  final _newPassCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _oldPassCtrl.dispose();
+    _newPassCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
+  }
+
+  Widget _buildPassField(String label, TextEditingController ctrl) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 55,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+          ),
+          child: TextField(
+            controller: ctrl,
+            obscureText: true,
+            style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 18),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 15,
+          top: -11,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: AppColors.primaryTeal,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _submit() async {
+    if (_oldPassCtrl.text.isEmpty || _newPassCtrl.text.isEmpty || _confirmPassCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(content: Text('All fields are required'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    if (_newPassCtrl.text != _confirmPassCtrl.text) {
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(content: Text('New passwords do not match'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    await widget.onSave(_oldPassCtrl.text, _newPassCtrl.text);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Change Password',
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryTeal,
+                ),
+              ),
+              const SizedBox(height: 5),
+              const Divider(color: AppColors.primaryTeal, thickness: 1.2),
+              const SizedBox(height: 20),
+              _buildPassField('Old Password', _oldPassCtrl),
+              const SizedBox(height: 25),
+              _buildPassField('New Password', _newPassCtrl),
+              const SizedBox(height: 25),
+              _buildPassField('Confirm Password', _confirmPassCtrl),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: _isLoading ? null : _submit,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: _isLoading ? Colors.grey : AppColors.primaryTeal,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Center(
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            'Update Password',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // UserInfoCard — Kartu putih berisi Avatar, Nama, Mahasiswa, dan Kelas.
 // ─────────────────────────────────────────────────────────────────────────────
 class UserInfoCard extends StatelessWidget {
@@ -801,13 +952,16 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  entry.value,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Text(
+                                    entry.value,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
+                                const SizedBox(width: 10),
                                 GestureDetector(
                                   onTap: () => setState(
                                     () => _currentAbilities.removeAt(entry.key),
@@ -830,6 +984,7 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                           Expanded(
                             child: TextField(
                               controller: _newAbilityCtrl,
+                              maxLength: 50,
                               decoration: InputDecoration(
                                 hintText: 'Type new ability',
                                 hintStyle: GoogleFonts.outfit(
@@ -837,6 +992,7 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                                   fontSize: 16,
                                 ),
                                 border: InputBorder.none,
+                                counterText: '',
                               ),
                               onSubmitted: (_) => _addAbility(),
                             ),
@@ -859,6 +1015,7 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
               const SizedBox(height: 40),
               GestureDetector(
                 onTap: () {
+                  _addAbility(); // Auto-add if text is left in the input
                   widget.onSave(_currentAbilities);
                   Navigator.pop(context);
                 },

@@ -325,6 +325,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               unreadCount: _unreadNotificationsCount,
               onNotificationTap: () =>
                   Navigator.pushNamed(context, '/notifications'),
+              onProfileTap: () => Navigator.pushNamed(context, '/profile'),
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),

@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/shared_widgets/success_dialog.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../auth/utils/auth_error_utils.dart';
 import '../widgets/task_detail_widgets.dart';
 
 /// AddProjectScreen — Kerangka layar tambah tugas (grup/individual).
@@ -69,6 +71,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 
   Future<void> _save() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       titleError = null;
       dateError = null;
@@ -97,6 +100,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
     if (hasError) {
       setState(() {});
+      return;
+    }
+
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
       return;
     }
 
@@ -176,14 +186,23 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => isLoading = false);
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            duration: const Duration(milliseconds: 1500),
-            content: Text('Error: $e'),
-          ),
-        );
+      if (isNetworkErrorMessage(e.toString())) {
+        if (mounted) {
+          showNoInternetSnackBar(context);
+        }
+      } else {
+        String errorMessage = 'Error: $e';
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(errorMessage),
+              ),
+            );
+        }
+      }
     }
   }
 
@@ -275,7 +294,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 final d = await showDatePicker(
                   context: context,
                   initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
+                  firstDate: DateTime.now(),
                   lastDate: DateTime(2100),
                 );
                 if (d != null) {
@@ -345,6 +364,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 onPressed: isLoading ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryTeal,
+                  disabledBackgroundColor: AppColors.primaryTeal,
+                  disabledForegroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

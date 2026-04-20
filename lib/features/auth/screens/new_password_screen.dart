@@ -46,7 +46,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     }
 
     if (!await ConnectivityService.isConnected()) {
-      _showError(noInternetMessage);
+      showNoInternetSnackBar(context);
       return;
     }
 
@@ -62,11 +62,18 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         );
       }
     } on AuthException catch (e) {
-      _showError(
-        isNetworkErrorMessage(e.message) ? noInternetMessage : e.message,
-      );
+      if (isNetworkErrorMessage(e.message)) {
+        showNoInternetSnackBar(context);
+      } else {
+        _showError(e.message);
+      }
     } catch (e) {
-      _showError(mapAuthErrorMessage(e));
+      final msg = mapAuthErrorMessage(e);
+      if (msg == noInternetMessage) {
+        showNoInternetSnackBar(context);
+      } else {
+        _showError(msg);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -39,17 +39,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     if (!await ConnectivityService.isConnected()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(
-              duration: Duration(milliseconds: 1500),
-              content: Text(noInternetMessage),
-              backgroundColor: Colors.red,
-            ),
-          );
-      }
+      if (mounted) showNoInternetSnackBar(context);
       return;
     }
 
@@ -78,32 +68,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
       }
     } on AuthException catch (e) {
-      final message = isNetworkErrorMessage(e.message)
-          ? noInternetMessage
-          : e.message;
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text(message),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (isNetworkErrorMessage(e.message)) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(e.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
       }
     } catch (e) {
-      final message = mapAuthErrorMessage(e);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text(message),
-              backgroundColor: Colors.red,
-            ),
-          );
+        final message = mapAuthErrorMessage(e);
+        if (message == noInternetMessage) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(message),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

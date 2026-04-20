@@ -114,7 +114,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     if (!await ConnectivityService.isConnected()) {
-      _showError(noInternetMessage);
+      showNoInternetSnackBar(context);
       return;
     }
 
@@ -154,18 +154,25 @@ class _AuthScreenState extends State<AuthScreen> {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
     } on AuthException catch (e) {
-      String msg = e.message;
-      if (isNetworkErrorMessage(msg)) {
-        msg = noInternetMessage;
-      } else if (msg.contains('invalid_credentials') ||
-          msg.contains('Invalid login credentials')) {
-        msg = 'Email atau Password salah. Silakan coba lagi.';
-      } else if (msg.contains('Email not confirmed')) {
-        msg = 'Email belum dikonfirmasi. Silakan hubungi admin.';
+      if (isNetworkErrorMessage(e.message)) {
+        showNoInternetSnackBar(context);
+      } else {
+        String msg = e.message;
+        if (msg.contains('invalid_credentials') ||
+            msg.contains('Invalid login credentials')) {
+          msg = 'Email atau Password salah. Silakan coba lagi.';
+        } else if (msg.contains('Email not confirmed')) {
+          msg = 'Email belum dikonfirmasi. Silakan hubungi admin.';
+        }
+        _showError(msg);
       }
-      _showError(msg);
     } catch (e) {
-      _showError(mapAuthErrorMessage(e));
+      final msg = mapAuthErrorMessage(e);
+      if (msg == noInternetMessage) {
+        showNoInternetSnackBar(context);
+      } else {
+        _showError(msg);
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -211,7 +218,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     if (!await ConnectivityService.isConnected()) {
-      _showError(noInternetMessage);
+      showNoInternetSnackBar(context);
       return;
     }
 
@@ -251,18 +258,25 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } on AuthException catch (e) {
-      String msg = e.message;
-      if (isNetworkErrorMessage(msg)) {
-        msg = noInternetMessage;
-      } else if (msg.contains('User already registered')) {
-        msg = 'Email ini sudah terdaftar. Silakan login.';
-      } else if (msg.contains('Database error saving new user')) {
-        msg =
-            'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
+      if (isNetworkErrorMessage(e.message)) {
+        showNoInternetSnackBar(context);
+      } else {
+        String msg = e.message;
+        if (msg.contains('User already registered')) {
+          msg = 'Email ini sudah terdaftar. Silakan login.';
+        } else if (msg.contains('Database error saving new user')) {
+          msg =
+              'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
+        }
+        _showError(msg);
       }
-      _showError(msg);
     } catch (e) {
-      _showError(mapAuthErrorMessage(e));
+      final msg = mapAuthErrorMessage(e);
+      if (msg == noInternetMessage) {
+        showNoInternetSnackBar(context);
+      } else {
+        _showError(msg);
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -306,10 +320,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        resizeToAvoidBottomInset: false,
+        resizeToAvoidBottomInset: true,
         body: RefreshIndicator(
           onRefresh: _handleRefresh,
           color: AppColors.primaryTeal,
@@ -360,109 +376,136 @@ class _AuthScreenState extends State<AuthScreen> {
                         topRight: Radius.circular(40),
                       ),
                     ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(30, 30, 30, 0),
-                            child: AuthToggleTab(
-                              isLogin: isLogin,
-                              onLoginTap: () {
-                                if (mounted && !isLogin) {
-                                  _pageController.animateToPage(
-                                    0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                              },
-                              onRegisterTap: () {
-                                if (mounted && isLogin) {
-                                  _pageController.animateToPage(
-                                    1,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                              },
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: bottomInset),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        30, 30, 30, 0),
+                                    child: AuthToggleTab(
+                                      isLogin: isLogin,
+                                      onLoginTap: () {
+                                        if (mounted && !isLogin) {
+                                          _pageController.animateToPage(
+                                            0,
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        }
+                                      },
+                                      onRegisterTap: () {
+                                        if (mounted && isLogin) {
+                                          _pageController.animateToPage(
+                                            1,
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 30),
+                                  SizedBox(
+                                    height: 540,
+                                    child: PageView(
+                                      controller: _pageController,
+                                      physics: const BouncingScrollPhysics(),
+                                      onPageChanged: (index) {
+                                        if (mounted) {
+                                          setState(
+                                              () => isLogin = index == 0);
+                                        }
+                                      },
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 15,
+                                            left: 30,
+                                            right: 30,
+                                          ),
+                                          child: _LoginForm(
+                                            emailController:
+                                                _emailLoginController,
+                                            passwordController:
+                                                _passwordLoginController,
+                                            obscurePassword:
+                                                _obscureLoginPassword,
+                                            isLoading: isLoading,
+                                            rememberMe: _rememberMe,
+                                            onToggleObscure: () => setState(
+                                              () => _obscureLoginPassword =
+                                                  !_obscureLoginPassword,
+                                            ),
+                                            onRememberMeChanged: (val) =>
+                                                setState(
+                                              () =>
+                                                  _rememberMe = val ?? false,
+                                            ),
+                                            onLogin: _handleLogin,
+                                            onForgotPassword: () =>
+                                                Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const ForgotPasswordScreen(),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 15,
+                                            left: 30,
+                                            right: 30,
+                                          ),
+                                          child: _RegisterForm(
+                                            usernameController:
+                                                _usernameRegisterController,
+                                            emailController:
+                                                _emailRegisterController,
+                                            passwordController:
+                                                _passwordRegisterController,
+                                            obscurePassword:
+                                                _obscureRegisterPassword,
+                                            isLoading: isLoading,
+                                            selectedClass: _selectedClass,
+                                            classes: _classes,
+                                            onClassChanged: (val) {
+                                              if (val != null) {
+                                                setState(() =>
+                                                    _selectedClass = val);
+                                              }
+                                            },
+                                            onToggleObscure: () => setState(
+                                              () => _obscureRegisterPassword =
+                                                  !_obscureRegisterPassword,
+                                            ),
+                                            onRegister: _handleRegister,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 50),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 30),
-                          SizedBox(
-                            height: 540,
-                            child: PageView(
-                              controller: _pageController,
-                              physics: const BouncingScrollPhysics(),
-                              onPageChanged: (index) {
-                                if (mounted)
-                                  setState(() => isLogin = index == 0);
-                              },
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 15,
-                                    left: 30,
-                                    right: 30,
-                                  ),
-                                  child: _LoginForm(
-                                    emailController: _emailLoginController,
-                                    passwordController:
-                                        _passwordLoginController,
-                                    obscurePassword: _obscureLoginPassword,
-                                    isLoading: isLoading,
-                                    rememberMe: _rememberMe,
-                                    onToggleObscure: () => setState(
-                                      () => _obscureLoginPassword =
-                                          !_obscureLoginPassword,
-                                    ),
-                                    onRememberMeChanged: (val) => setState(
-                                      () => _rememberMe = val ?? false,
-                                    ),
-                                    onLogin: _handleLogin,
-                                    onForgotPassword: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ForgotPasswordScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 15,
-                                    left: 30,
-                                    right: 30,
-                                  ),
-                                  child: _RegisterForm(
-                                    usernameController:
-                                        _usernameRegisterController,
-                                    emailController: _emailRegisterController,
-                                    passwordController:
-                                        _passwordRegisterController,
-                                    obscurePassword: _obscureRegisterPassword,
-                                    isLoading: isLoading,
-                                    selectedClass: _selectedClass,
-                                    classes: _classes,
-                                    onClassChanged: (val) {
-                                      if (val != null) {
-                                        setState(() => _selectedClass = val);
-                                      }
-                                    },
-                                    onToggleObscure: () => setState(
-                                      () => _obscureRegisterPassword =
-                                          !_obscureRegisterPassword,
-                                    ),
-                                    onRegister: _handleRegister,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 50),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ),

@@ -258,6 +258,194 @@ class _GroupScreenState extends State<GroupScreen> {
     );
   }
 
+  Future<void> _kickMember({
+    required BuildContext bottomSheetContext,
+    required dynamic team,
+    required dynamic member,
+  }) async {
+    final membershipId = member['id'];
+    final memberUserId = member['user_id'];
+    if (memberUserId == null) return;
+
+    final groupLabel = team['course_name'] ?? team['name'] ?? 'grup';
+
+    try {
+      List deletedMembers = [];
+
+      if (membershipId != null) {
+        deletedMembers = await supabase
+            .from('group_members')
+            .delete()
+            .eq('id', membershipId)
+            .select('id');
+      }
+
+      if (deletedMembers.isEmpty) {
+        deletedMembers = await supabase
+            .from('group_members')
+            .delete()
+            .eq('group_id', team['id'])
+            .eq('user_id', memberUserId)
+            .select('id');
+      }
+
+      if (deletedMembers.isEmpty) {
+        throw Exception(
+          'Anggota tidak ditemukan atau policy leader kick di database belum diterapkan',
+        );
+      }
+
+      await supabase.from('notifications').insert({
+        'user_id': memberUserId,
+        'title': 'Dikeluarkan dari grup',
+        'message': 'Kamu telah dikeluarkan dari grup $groupLabel',
+        'type': 'system',
+      });
+
+      if (!bottomSheetContext.mounted) return;
+      Navigator.pop(bottomSheetContext);
+      await _fetch();
+      if (!mounted) return;
+      SuccessDialog.show(
+        context,
+        message: 'Anggota berhasil dikeluarkan dari grup',
+      );
+    } catch (e) {
+      if (!bottomSheetContext.mounted) return;
+      ScaffoldMessenger.of(bottomSheetContext)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            duration: const Duration(milliseconds: 2200),
+            content: Text('Gagal mengeluarkan anggota: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+    }
+  }
+
+  void _showLeaveGroupDialog(BuildContext context, dynamic team) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.exit_to_app_rounded,
+                color: Colors.red,
+                size: 50,
+              ),
+              const SizedBox(height: 20),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  children: const [
+                    TextSpan(text: 'Are you sure you want to '),
+                    TextSpan(
+                      text: 'leave',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    TextSpan(text: ' this group?'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '${team['course_name']} - kelompok ${team['group_number']} - ${team['class_name']}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[200],
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.outfit(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          await supabase
+                              .from('group_members')
+                              .delete()
+                              .eq('group_id', team['id'])
+                              .eq('user_id', supabase.auth.currentUser!.id);
+
+                          if (!context.mounted) return;
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                          await _fetch();
+                          if (!mounted) return;
+                          SuccessDialog.show(
+                            this.context,
+                            message: 'Kamu berhasil keluar dari grup',
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              SnackBar(
+                                duration: const Duration(milliseconds: 2200),
+                                content: Text('Gagal keluar dari grup: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: Text(
+                        'Leave',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showJoinCreateModal() {
     String? curCourse;
     final noCtrl = TextEditingController();
@@ -887,13 +1075,11 @@ class _GroupScreenState extends State<GroupScreen> {
                                                   child: ElevatedButton(
                                                     onPressed: () async {
                                                       Navigator.pop(dialogCtx);
-                                                      await supabase
-                                                          .from('group_members')
-                                                          .delete()
-                                                          .eq('id', m['id']);
-                                                      if (!ctx.mounted) return;
-                                                      Navigator.pop(ctx);
-                                                      _fetch();
+                                                      await _kickMember(
+                                                        bottomSheetContext: ctx,
+                                                        team: team,
+                                                        member: m,
+                                                      );
                                                     },
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor: AppColors.primaryTeal,
@@ -951,6 +1137,40 @@ class _GroupScreenState extends State<GroupScreen> {
                                 'Delete group',
                                 style: GoogleFonts.outfit(
                                   color: AppColors.primaryTeal,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      GestureDetector(
+                        onTap: () => _showLeaveGroupDialog(ctx, team),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.red,
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.exit_to_app_rounded,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Keluar Grup',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.red,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),

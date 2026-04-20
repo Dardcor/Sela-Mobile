@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../auth/utils/auth_error_utils.dart';
 import '../widgets/task_detail_widgets.dart';
 import '../../groups/widgets/file_link_dialog.dart';
 import '../../../model/automatic.dart';
@@ -113,6 +115,13 @@ class _IndependentTaskDetailScreenState
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
+      return;
+    }
+
     setState(() => _isCreating = true);
     try {
       final st = await supabase
@@ -145,15 +154,20 @@ class _IndependentTaskDetailScreenState
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Failed: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        String errorMessage = 'Failed: ${e.toString()}';
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
         setState(() => _isCreating = false);
       }
     }
@@ -162,6 +176,13 @@ class _IndependentTaskDetailScreenState
   Future<void> _handleCreateAutomatic() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
+
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
+      return;
+    }
 
     setState(() => _isCreating = true);
     try {
@@ -235,15 +256,20 @@ class _IndependentTaskDetailScreenState
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(
-              duration: Duration(milliseconds: 3000),
-              content: Text('Server is busy try again later'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        String errorMessage = 'Server is busy try again later';
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 3000),
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
         setState(() => _isCreating = false);
       }
     }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/utils/snackbar_utils.dart';
 import '../widgets/calendar_widgets.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -15,6 +16,18 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   final _supabase = Supabase.instance.client;
   bool _isLoading = true;
+
+  final Set<Completer<bool>> _pendingDeletes = {};
+
+  Future<void> _forceExecutePendingDeletes() async {
+    if (_pendingDeletes.isEmpty) return;
+    for (var completer in _pendingDeletes) {
+      if (!completer.isCompleted) completer.complete(false);
+    }
+    _pendingDeletes.clear();
+    ScaffoldMessenger.of(context).clearSnackBars();
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
   List<Map<String, dynamic>> _upcomingTasks = [];
   List<Map<String, dynamic>> _allTasks = [];
   DateTime _selectedDate = DateTime.now();
@@ -210,10 +223,41 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   /// Menghapus task — hanya boleh dipanggil setelah konfirmasi.
   Future<void> _deleteTask(String taskId) async {
-    // Optimistic update: hapus dari list lokal
+    final taskIndex = _upcomingTasks.indexWhere((t) => t['id'] == taskId);
+    if (taskIndex == -1) return;
+    final taskData = _upcomingTasks[taskIndex];
+
     setState(() {
-      _upcomingTasks.removeWhere((t) => t['id'] == taskId);
+      _upcomingTasks.removeAt(taskIndex);
     });
+
+    bool isUndone = false;
+    final completer = Completer<bool>();
+    _pendingDeletes.add(completer);
+
+    if (mounted) {
+      showUndoSnackBar(context, 'Task berhasil dihapus', () {
+        isUndone = true;
+        if (!completer.isCompleted) completer.complete(true);
+        if (mounted) {
+          setState(() {
+            _upcomingTasks.insert(taskIndex, taskData);
+          });
+        }
+      });
+    }
+
+    final earlyResult = await Future.any([
+      Future.delayed(const Duration(seconds: 10), () => false),
+      completer.future,
+    ]);
+    
+    _pendingDeletes.remove(completer);
+    if (isUndone || earlyResult) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
 
     try {
       await _supabase.from('tasks').delete().eq('id', taskId);

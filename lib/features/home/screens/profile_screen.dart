@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../auth/utils/auth_error_utils.dart';
 import '../widgets/profile_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -137,6 +140,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) showNoInternetSnackBar(context);
+      return;
+    }
+
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
@@ -149,13 +157,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _fetchProfile();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context,
-        )..clearSnackBars()..showSnackBar(SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to update profile: $e')));
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to update profile: $e')),
+          );
+        }
       }
     }
   }
 
   Future<void> _updateProfilePhoto(String imagePath) async {
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) showNoInternetSnackBar(context);
+      return;
+    }
+
     try {
       setState(() => isUploadingPhoto = true);
 
@@ -183,9 +201,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => isUploadingPhoto = false);
@@ -213,6 +235,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateAbilities(List<String> newAbilities) async {
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) showNoInternetSnackBar(context);
+      return;
+    }
+
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
@@ -233,7 +260,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _fetchProfile();
     } catch (e) {
-      // error handling
+      if (mounted) {
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
@@ -256,6 +291,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _changePassword(String oldPassword, String newPassword) async {
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) showNoInternetSnackBar(context);
+      return;
+    }
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user?.email == null) throw Exception('Email not found');
+
+      // 1. Verify old password by attempting to sign in
+      await supabase.auth.signInWithPassword(
+        email: user!.email!,
+        password: oldPassword,
+      );
+
+      // 2. Update to new password
+      await supabase.auth.updateUser(UserAttributes(password: newPassword));
+
+      if (mounted) {
+        Navigator.pop(context); // close modal
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(
+            content: Text('Password changed successfully!'),
+            backgroundColor: AppColors.primaryTeal,
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        if (isNetworkErrorMessage(e.message)) {
+          showNoInternetSnackBar(context);
+        } else {
+          String msg = e.message;
+          if (msg.contains('invalid_credentials') || msg.contains('Invalid login credentials')) {
+            msg = 'Email atau Password lama salah.';
+          }
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(content: Text('Failed to change password: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
+  void _showChangePassword() {
+    showDialog(
+      context: context,
+      builder: (context) => ChangePasswordModal(onSave: _changePassword),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: _fetchProfile,
@@ -273,6 +370,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 35),
               // Abilities Card
               AbilitiesCard(abilities: abilities, onEditTap: _showEditAbility),
+              const SizedBox(height: 35),
+              // Change Password Button
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 25),
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _showChangePassword,
+                  icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
+                  label: Text(
+                    'Change Password',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    elevation: 5,
+                    shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
               const SizedBox(height: 140),
             ],
           ),

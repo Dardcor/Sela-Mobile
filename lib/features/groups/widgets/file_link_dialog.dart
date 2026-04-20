@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../auth/utils/auth_error_utils.dart';
 import '../../tasks/widgets/task_detail_widgets.dart';
 
 class FileLinkDialog extends StatefulWidget {
@@ -31,6 +34,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
   
   late TextEditingController _titleCtrl;
   late TextEditingController _descCtrl;
+  late TextEditingController _dateCtrl;
   
   List<String> _links = [];
   List<PlatformFile> _files = [];
@@ -42,6 +46,16 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
     super.initState();
     _titleCtrl = TextEditingController(text: widget.currentTask['title'] ?? '');
     _descCtrl = TextEditingController(text: widget.currentTask['description'] ?? '');
+    
+    // Convert existing due_date
+    String dateText = '';
+    if (widget.currentTask['due_date'] != null) {
+      try {
+        final d = DateTime.parse(widget.currentTask['due_date']);
+        dateText = DateFormat('MM/dd/yyyy').format(d);
+      } catch (_) {}
+    }
+    _dateCtrl = TextEditingController(text: dateText);
     
     // Convert existing links
     _links = widget.currentLinks.map((l) => l['url'] as String).toList();
@@ -60,19 +74,35 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _dateCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _updateTask() async {
     if (_titleCtrl.text.isEmpty) return;
 
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      // 1. Update Title and Description in tasks table
-      await _supabase.from('tasks').update({
+      // 1. Update Title, Description, and Due Date in tasks table
+      final updateData = {
         'title': _titleCtrl.text,
         'description': _descCtrl.text,
-      }).eq('id', widget.taskId);
+      };
+      
+      if (_dateCtrl.text.isNotEmpty) {
+        try {
+          updateData['due_date'] = DateFormat('MM/dd/yyyy').parse(_dateCtrl.text).toIso8601String();
+        } catch (_) {}
+      }
+
+      await _supabase.from('tasks').update(updateData).eq('id', widget.taskId);
 
       // 2. Sync Links
       // Delete old links
@@ -139,12 +169,17 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating task: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          String errorMessage = 'Error updating task: $e';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -201,6 +236,25 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                       controller: _titleCtrl,
                       bgColor: Colors.white,
                       inputFormatters: [NoLeadingSpaceFormatter()],
+                    ),
+                    const SizedBox(height: 10),
+                    LabeledInputField(
+                      label: 'Due Date',
+                      hint: 'mm/dd/yyyy',
+                      controller: _dateCtrl,
+                      icon: Icons.calendar_month_rounded,
+                      bgColor: Colors.white,
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+                        if (d != null) {
+                          _dateCtrl.text = DateFormat('MM/dd/yyyy').format(d);
+                        }
+                      },
                     ),
                     const SizedBox(height: 10),
                     LabeledInputField(

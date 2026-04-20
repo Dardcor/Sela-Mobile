@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../model/automatic.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../auth/utils/auth_error_utils.dart';
+import '../../../core/utils/snackbar_utils.dart';
 import '../widgets/group_widgets.dart';
 import '../widgets/file_link_dialog.dart';
 
@@ -23,6 +27,18 @@ class GroupDetailScreen extends StatefulWidget {
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
   final supabase = Supabase.instance.client;
+
+  final Set<Completer<bool>> _pendingDeletes = {};
+
+  Future<void> _forceExecutePendingDeletes() async {
+    if (_pendingDeletes.isEmpty) return;
+    for (var completer in _pendingDeletes) {
+      if (!completer.isCompleted) completer.complete(false);
+    }
+    _pendingDeletes.clear();
+    ScaffoldMessenger.of(context).clearSnackBars();
+    await Future.delayed(const Duration(milliseconds: 300));
+  }
   dynamic _taskData;
   List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
@@ -37,6 +53,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   Future<void> _fetchFullTaskData(String taskId) async {
+    await _forceExecutePendingDeletes();
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
@@ -153,6 +170,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       return;
     }
 
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final st = await supabase
@@ -185,15 +209,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Failed to create subtask: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          String errorMessage = 'Failed to create subtask: ${e.toString()}';
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
         setState(() => _isLoading = false);
       }
     }
@@ -211,6 +240,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      return;
+    }
+
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
       return;
     }
 
@@ -295,16 +331,100 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(
-              duration: Duration(milliseconds: 3000),
-              content: Text('Server is busy try again later'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          String errorMessage = 'Server is busy try again later';
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 3000),
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleDeleteSubtask(String subtaskId) async {
+    if (!await ConnectivityService.isConnected()) {
+      if (mounted) {
+        showNoInternetSnackBar(context);
+      }
+      return;
+    }
+
+    final subtasksList = _taskData['subtasks'] as List?;
+    if (subtasksList == null) return;
+    
+    final subtaskIndex = subtasksList.indexWhere((st) => st['id'] == subtaskId);
+    if (subtaskIndex == -1) return;
+    
+    final subtaskData = subtasksList[subtaskIndex];
+    
+    // Optimistic update
+    setState(() {
+      subtasksList.removeAt(subtaskIndex);
+    });
+
+    bool isUndone = false;
+    final completer = Completer<bool>();
+    _pendingDeletes.add(completer);
+
+    if (mounted) {
+      showUndoSnackBar(context, 'Subtask berhasil dihapus', () {
+        isUndone = true;
+        if (!completer.isCompleted) completer.complete(true);
+        if (mounted) {
+          setState(() {
+            subtasksList.insert(subtaskIndex, subtaskData);
+          });
+        }
+      });
+    }
+
+    final earlyResult = await Future.any([
+      Future.delayed(const Duration(seconds: 10), () => false),
+      completer.future,
+    ]);
+    
+    _pendingDeletes.remove(completer);
+    if (isUndone || earlyResult) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
+
+    try {
+      // Hapus subtask_progress dulu (foreign key constraint)
+      await supabase
+          .from('subtask_progress')
+          .delete()
+          .eq('subtask_id', subtaskId);
+
+      // Hapus subtask
+      await supabase.from('subtasks').delete().eq('id', subtaskId);
+      await _fetchFullTaskData(_taskData['id']);
+    } catch (e) {
+      if (mounted) {
+        if (isNetworkErrorMessage(e.toString())) {
+          showNoInternetSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text('Gagal menghapus subtask: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
+        await _fetchFullTaskData(_taskData['id']);
       }
     }
   }
@@ -519,6 +639,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 members: members,
                 subtasks: subtasks,
                 createdBy: task['created_by'] ?? '',
+                isLeader: isLeader,
+                onDeleteSubtask: isLeader ? _handleDeleteSubtask : null,
               ),
               const SizedBox(height: 100),
             ],

@@ -345,27 +345,41 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
               );
             }),
           ],
-          // Tombol Edit Task (hanya tampil jika onEditTap tersedia)
-          if (widget.onEditTap != null) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: widget.onEditTap,
-              child: Text(
-                'Edit Task',
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTeal,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primaryTeal,
+          const SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
+                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 15),
-          Text(
-            '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
-            style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+              if (widget.onEditTap != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: widget.onEditTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Edit Task',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -1570,7 +1584,12 @@ class AddTaskTopBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (context.mounted) Navigator.pop(context);
+            });
+          },
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: const BoxDecoration(

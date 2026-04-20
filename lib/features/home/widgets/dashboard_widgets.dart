@@ -20,6 +20,7 @@ class DashboardHeader extends StatelessWidget {
   final int upcomingCount;
   final int unreadCount;
   final VoidCallback onNotificationTap;
+  final VoidCallback? onProfileTap;
 
   const DashboardHeader({
     super.key,
@@ -30,6 +31,7 @@ class DashboardHeader extends StatelessWidget {
     required this.upcomingCount,
     this.unreadCount = 0,
     required this.onNotificationTap,
+    this.onProfileTap,
   });
 
   @override
@@ -69,24 +71,27 @@ class DashboardHeader extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: CircleAvatar(
-                            radius: avatarRadius,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.2,
+                        GestureDetector(
+                          onTap: onProfileTap,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
-                            backgroundImage:
-                                profile?['avatar_url'] != null &&
-                                    profile!['avatar_url'].toString().isNotEmpty
-                                ? NetworkImage(profile!['avatar_url'])
-                                      as ImageProvider
-                                : const AssetImage(
-                                    'assets/images/default_profile.png',
-                                  ),
+                            child: CircleAvatar(
+                              radius: avatarRadius,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.2,
+                              ),
+                              backgroundImage:
+                                  profile?['avatar_url'] != null &&
+                                      profile!['avatar_url'].toString().isNotEmpty
+                                  ? NetworkImage(profile!['avatar_url'])
+                                        as ImageProvider
+                                  : const AssetImage(
+                                      'assets/images/default_profile.png',
+                                    ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 15),
