@@ -1,11 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/services/api_client.dart';
 import '../../auth/utils/auth_error_utils.dart';
 import '../widgets/profile_widgets.dart';
 
@@ -17,88 +18,31 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final supabase = Supabase.instance.client;
   Map<String, dynamic>? profile;
   List<String> abilities = [];
   bool isLoading = true;
   bool isUploadingPhoto = false;
 
-  RealtimeChannel? _realtimeChannel;
-
   @override
   void initState() {
     super.initState();
     _fetchProfile();
-    _setupRealtimeListener();
-  }
-
-  void _setupRealtimeListener() {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return;
-
-    _realtimeChannel = supabase.channel('profile-screen-changes');
-
-    // Listen for profiles changes for current user
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'profiles',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'id',
-        value: userId,
-      ),
-      callback: (payload) {
-        debugPrint('Profile Realtime: Profile updated!');
-        _fetchProfile();
-      },
-    );
-
-    // Listen for profile_abilities changes for current user
-    _realtimeChannel!
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'profile_abilities',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: userId,
-          ),
-          callback: (payload) {
-            debugPrint('Profile Realtime: Abilities updated!');
-            _fetchProfile();
-          },
-        )
-        .subscribe();
   }
 
   @override
   void dispose() {
-    if (_realtimeChannel != null) {
-      supabase.removeChannel(_realtimeChannel!);
-    }
     super.dispose();
   }
 
   Future<void> _fetchProfile() async {
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
       // Fetch profile
-      final profileData = await supabase
-          .from('profiles')
-          .select()
-          .eq('id', userId)
-          .single();
+      final response = await ApiClient().dio.get('/me');
+      final profileData = response.data['user'];
 
       // Fetch abilities
-      final abilitiesData = await supabase
-          .from('profile_abilities')
-          .select('ability')
-          .eq('user_id', userId);
-      final List<String> fetchedAbilities = (abilitiesData as List)
+      final abilitiesResponse = await ApiClient().dio.get('/profile_abilities');
+      final List<String> fetchedAbilities = (abilitiesResponse.data['abilities'] as List)
           .map((e) => e['ability'] as String)
           .toList();
 
@@ -110,6 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
+      debugPrint('Error fetching profile: $e');
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -146,14 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      await supabase
-          .from('profiles')
-          .update({'full_name': name, 'class_name': className})
-          .eq('id', userId);
-
+      await ApiClient().dio.put('/me', data: {'full_name': name, 'class_name': className});
       _fetchProfile();
     } catch (e) {
       if (mounted) {
@@ -177,20 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       setState(() => isUploadingPhoto = true);
 
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final avatarUrl = await _uploadAvatar(imagePath, userId);
+      final avatarUrl = await _uploadAvatar(imagePath);
       if (avatarUrl == null) {
-        throw Exception(
-          'Upload failed. Pastikan Storage Bucket "profiles" sudah dibuat di Supabase.',
-        );
+        throw Exception('Upload failed.');
       }
 
-      await supabase
-          .from('profiles')
-          .update({'avatar_url': avatarUrl})
-          .eq('id', userId);
+      await ApiClient().dio.put('/me', data: {'avatar_url': avatarUrl});
 
       await _fetchProfile();
 
@@ -214,22 +144,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<String?> _uploadAvatar(String path, String userId) async {
+  Future<String?> _uploadAvatar(String path) async {
     try {
       final file = File(path);
-      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storagePath = 'avatars/$fileName';
+      final fileName = file.path.split('/').last;
 
-      await supabase.storage
-          .from('profiles')
-          .upload(
-            storagePath,
-            file,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-          );
+      FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+      });
 
-      return supabase.storage.from('profiles').getPublicUrl(storagePath);
+      final response = await ApiClient().dio.post('/upload/avatar', data: formData);
+      return response.data['url'];
     } catch (e) {
+      debugPrint('Upload avatar error: $e');
       return null;
     }
   }
@@ -241,22 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      // Delete existing
-      await supabase.from('profile_abilities').delete().eq('user_id', userId);
-
-      // Insert new
-      if (newAbilities.isNotEmpty) {
-        await supabase
-            .from('profile_abilities')
-            .insert(
-              newAbilities
-                  .map((a) => {'user_id': userId, 'ability': a})
-                  .toList(),
-            );
-      }
+      await ApiClient().dio.put('/profile_abilities', data: {'abilities': newAbilities});
 
       _fetchProfile();
     } catch (e) {
@@ -298,50 +210,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final user = supabase.auth.currentUser;
-      if (user?.email == null) throw Exception('Email not found');
-
-      // 1. Verify old password by attempting to sign in
-      await supabase.auth.signInWithPassword(
-        email: user!.email!,
-        password: oldPassword,
-      );
-
-      // 2. Update to new password
-      await supabase.auth.updateUser(UserAttributes(password: newPassword));
-
-      if (mounted) {
-        Navigator.pop(context); // close modal
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(
-            content: Text('Password changed successfully!'),
-            backgroundColor: AppColors.primaryTeal,
-          ),
+      await ApiClient().dio.post('/change-password', data: {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      });
+      if (context.mounted) {
+        Navigator.pop(context); // Close modal
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully!'), backgroundColor: Colors.green),
         );
       }
-    } on AuthException catch (e) {
-      if (mounted) {
-        if (isNetworkErrorMessage(e.message)) {
-          showNoInternetSnackBar(context);
-        } else {
-          String msg = e.message;
-          if (msg.contains('invalid_credentials') || msg.contains('Invalid login credentials')) {
-            msg = 'Email atau Password lama salah.';
-          }
-          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    } catch (e) {
+      if (e is DioException && e.response?.data != null) {
+        final errMsg = e.response!.data['message'] ?? 'Failed to change password';
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
           );
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        if (isNetworkErrorMessage(e.toString())) {
-          showNoInternetSnackBar(context);
-        } else {
-          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        // Stop propagation so modal doesn't close on failure if thrown inside widgets
+        throw Exception(errMsg); 
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to change password: $e'), backgroundColor: Colors.red),
           );
         }
+        throw Exception(e);
       }
     }
   }
@@ -354,61 +249,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
-    onRefresh: _fetchProfile,
-    color: AppColors.primaryTeal,
-    child: Stack(
-      children: [
-        SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const ProfileHeader(),
-              const SizedBox(height: 20),
-              UserInfoCard(profile: profile, onEditTap: _showEditProfile),
-              const SizedBox(height: 35),
-              // Abilities Card
-              AbilitiesCard(abilities: abilities, onEditTap: _showEditAbility),
-              const SizedBox(height: 35),
-              // Change Password Button
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 25),
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _showChangePassword,
-                  icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
-                  label: Text(
-                    'Change Password',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.white,
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.bgLight,
+    body: RefreshIndicator(
+      onRefresh: _fetchProfile,
+      color: AppColors.primaryTeal,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const ProfileHeader(),
+                const SizedBox(height: 20),
+                UserInfoCard(profile: profile, onEditTap: _showEditProfile),
+                const SizedBox(height: 35),
+                // Abilities Card
+                AbilitiesCard(abilities: abilities, onEditTap: _showEditAbility),
+                const SizedBox(height: 35),
+                // Change Password Button
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 25),
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _showChangePassword,
+                    icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
+                    label: Text(
+                      'Change Password',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryTeal,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryTeal,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      elevation: 5,
+                      shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                     ),
-                    elevation: 5,
-                    shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
                   ),
                 ),
-              ),
-              const SizedBox(height: 140),
-            ],
-          ),
-        ),
-        if (isUploadingPhoto)
-          Container(
-            color: Colors.black.withOpacity(0.5),
-            child: const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 140),
+              ],
             ),
           ),
-      ],
+          if (isUploadingPhoto)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+        ],
+      ),
     ),
   );
 }

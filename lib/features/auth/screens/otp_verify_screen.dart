@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../utils/auth_error_utils.dart';
 import 'new_password_screen.dart';
@@ -18,7 +19,6 @@ class OTPVerifyScreen extends StatefulWidget {
 class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
   String? _otpCode;
   bool _isLoading = false;
-  final supabase = Supabase.instance.client;
 
   Future<void> _handleVerifyOTP() async {
     if (_otpCode == null || _otpCode!.length < 6) {
@@ -41,21 +41,17 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final res = await supabase.auth.verifyOTP(
-        email: widget.email,
-        token: _otpCode!,
-        type: OtpType.recovery,
-      );
+      final res = await ApiClient().verifyOTP(widget.email, _otpCode!);
 
-      if (res.session != null && mounted) {
+      if (res.statusCode == 200 && mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const NewPasswordScreen()),
+          MaterialPageRoute(builder: (context) => NewPasswordScreen(email: widget.email, otp: _otpCode!)),
         );
       }
-    } on AuthException catch (e) {
+    } on DioException catch (e) {
       if (mounted) {
-        if (isNetworkErrorMessage(e.message)) {
+        if (isNetworkErrorMessage(e.message ?? '')) {
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)
@@ -63,7 +59,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.message),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -98,7 +94,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
     }
 
     try {
-      await supabase.auth.resetPasswordForEmail(widget.email);
+      await ApiClient().forgotPassword(widget.email);
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
@@ -109,9 +105,9 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
             ),
           );
       }
-    } on AuthException catch (e) {
+    } on DioException catch (e) {
       if (mounted) {
-        if (isNetworkErrorMessage(e.message)) {
+        if (isNetworkErrorMessage(e.message ?? '')) {
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)
@@ -119,7 +115,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.message),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
                 backgroundColor: Colors.red,
               ),
             );

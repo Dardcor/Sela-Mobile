@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../model/automatic.dart';
@@ -26,9 +31,24 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
-  final supabase = Supabase.instance.client;
+  final apiClient = ApiClient();
 
   final Set<Completer<bool>> _pendingDeletes = {};
+
+  Future<void> _initUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        final userDataStr = prefs.getString('user_data');
+        if (userDataStr != null) {
+          final userData = jsonDecode(userDataStr);
+          _currentUserId = userData['id'] ?? '';
+        } else {
+          _currentUserId = '';
+        }
+      });
+    }
+  }
 
   Future<void> _forceExecutePendingDeletes() async {
     if (_pendingDeletes.isEmpty) return;
@@ -42,10 +62,12 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   dynamic _taskData;
   List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
+  String _currentUserId = '';
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _initUserId();
     if (_taskData == null) {
       final initialTask = ModalRoute.of(context)!.settings.arguments as dynamic;
       _fetchFullTaskData(initialTask['id']);
@@ -55,20 +77,17 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   Future<void> _fetchFullTaskData(String taskId) async {
     await _forceExecutePendingDeletes();
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'];
 
-      final data = await supabase
-          .from('tasks')
-          .select(
-            '*, groups(*), subtasks(*, subtask_progress(*, profiles(*))), task_links(*), task_files(*)',
-          )
-          .eq('id', taskId)
-          .single();
-
-      // Data task_files yang otomatis terambil dari relasi database
+      final response = await apiClient.dio.get('/tasks/$taskId/detail/$userId');
+      final data = Map<String, dynamic>.from(response.data['task'] ?? response.data);
+      final extraData = response.data;
       final files =
-          (data['task_files'] as List?)
+          (extraData['files'] as List?)
               ?.map(
                 (f) => {
                   'name': f['file_name'],
@@ -80,55 +99,44 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
               .toList() ??
           [];
 
-      // Fetch group members separately to get member list for dropdown
-      final groupId = data['group_id'];
-      List membersData = [];
-      bool isLeaderFromDb = false;
-
-      if (groupId != null) {
-        membersData = await supabase
-            .from('group_members')
-            .select('*, profiles(*)')
-            .eq('group_id', groupId);
-
-        // Cek secara langsung dari DB apakah user ini adalah leader di grup ini
-        final leaderCheck = await supabase
-            .from('group_members')
-            .select('role')
-            .eq('group_id', groupId)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        isLeaderFromDb =
-            leaderCheck != null && leaderCheck['role'] == 'leader';
-      }
+      final links = extraData['links'] ?? [];
+      
+      final subtasks = extraData['subtasks'] ?? [];
+      
+      final groupMembers = extraData['members_progress'] ?? [];
 
       if (mounted) {
         setState(() {
           _taskData = {
             ...data,
-            'group_members': membersData,
-            'current_user_is_leader': isLeaderFromDb,
+            'task_links': links,
+            'task_files': files,
+            'subtasks': subtasks,
+            'group_members': groupMembers,
+            'current_user_is_leader': groupMembers.any((m) => m['id'] == userId && m['role'] == 'leader'),
           };
           _taskFiles = files;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Err GroupDetail fetch: $e');
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint('Failed to fetch full task data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   double _calculateProgress(dynamic task) {
     if (task == null ||
         task['subtasks'] == null ||
-        (task['subtasks'] as List).isEmpty)
+        (task['subtasks'] as List).isEmpty) {
       return 0.0;
+    }
     final subtasks = task['subtasks'] as List;
     double total = 0;
     for (var st in subtasks) {
-      final pl = st['subtask_progress'] as List? ?? [];
+      final pl = st['progress_entries'] as List? ?? [];
       if (pl.isNotEmpty) {
         total +=
             pl
@@ -179,20 +187,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final st = await supabase
-          .from('subtasks')
-          .insert({
-            'task_id': _taskData['id'],
-            'title': title,
-            'description': description,
-          })
-          .select()
-          .single();
-
-      await supabase.from('subtask_progress').insert({
-        'subtask_id': st['id'],
+      final taskId = _taskData['id'];
+      await apiClient.dio.post('/tasks/$taskId/subtasks', data: {
+        'title': title,
+        'description': description,
         'user_id': assignedTo,
-        'progress': 0,
       });
 
       if (mounted) {
@@ -257,37 +256,59 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
       // Collect links
       final List<String> taskLinks = (_taskData['task_links'] as List?)
-              ?.map((l) => l['url'] as String)
+              ?.map((l) => l['url']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
               .toList() ??
           [];
 
-      // Collect files
+      // Collect files names
       final List<String> taskFiles = (_taskData['task_files'] as List?)
-              ?.map((f) => f['file_name'] as String)
+              ?.map((f) => f['file_name']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
               .toList() ??
           [];
-
-      // Fetch abilities untuk setiap anggota dari profile_abilities
+      final rawDocs = _taskData['task_files'] as List? ?? [];
+      final List<DataPart> fileParts = [];
+      
+      for (final file in rawDocs) {
+        final path = file['file_path']?.toString() ?? '';
+        final type = file['file_type']?.toString().toLowerCase() ?? '';
+        final name = file['file_name']?.toString().toLowerCase() ?? '';
+        
+        if (path.isNotEmpty && (type.contains('pdf') || name.endsWith('pdf'))) {
+          try {
+            if (path.startsWith('http')) {
+              final response = await Dio().get(
+                path,
+                options: Options(responseType: ResponseType.bytes),
+              );
+              final bytes = response.data as List<int>;
+              fileParts.add(DataPart('application/pdf', Uint8List.fromList(bytes)));
+            }
+          } catch (e) {
+            debugPrint("Failed to download or parse PDF automatically: ${e}");
+          }
+        }
+      }
       final List<dynamic> membersWithAbilities = [];
       for (final m in members) {
-        final profile = m['profiles'] ?? {};
-        final userId = profile['id'] ?? '';
+        final userMap = m as Map<String, dynamic>? ?? {};
+        final profile = userMap['profiles'] ?? userMap;
+        final userId = profile['id']?.toString() ?? '';
         List<String> abilities = [];
         if (userId.isNotEmpty) {
           try {
-            final abilitiesData = await supabase
-                .from('profile_abilities')
-                .select('ability')
-                .eq('user_id', userId);
+            final abilitiesResponse = await apiClient.dio.get('/users/$userId/abilities');
+            final abilitiesData = abilitiesResponse.data['data'] ?? abilitiesResponse.data;
             abilities = (abilitiesData as List)
-                .map((a) => a['ability'] as String)
+                .map((a) => a['ability']?.toString() ?? '')
+                .where((s) => s.isNotEmpty)
                 .toList();
           } catch (_) {
-            // Jika gagal fetch abilities, lanjut dengan list kosong
           }
         }
         membersWithAbilities.add({
-          ...Map<String, dynamic>.from(m as Map),
+          ...userMap,
           'abilities': abilities,
         });
       }
@@ -298,23 +319,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         members: membersWithAbilities,
         links: taskLinks,
         files: taskFiles,
+        fileParts: fileParts,
       );
 
       for (var sub in dividedTasks) {
-        final st = await supabase
-            .from('subtasks')
-            .insert({
-              'task_id': _taskData['id'],
-              'title': sub['title'],
-              'description': sub['description'] ?? '',
-            })
-            .select()
-            .single();
-
-        await supabase.from('subtask_progress').insert({
-          'subtask_id': st['id'],
+        await apiClient.dio.post('/tasks/${_taskData['id']}/subtasks', data: {
+          'title': sub['title'],
+          'description': sub['description'] ?? '',
           'user_id': sub['user_id'],
-          'progress': 0,
         });
       }
       if (mounted) {
@@ -334,7 +346,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
-          String errorMessage = 'Server is busy try again later';
+          String errorMessage = 'Server is busy try again later: $e';
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(
@@ -400,14 +412,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
 
     try {
-      // Hapus subtask_progress dulu (foreign key constraint)
-      await supabase
-          .from('subtask_progress')
-          .delete()
-          .eq('subtask_id', subtaskId);
-
       // Hapus subtask
-      await supabase.from('subtasks').delete().eq('id', subtaskId);
+      await apiClient.dio.delete('/subtasks/$subtaskId');
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
@@ -430,18 +436,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   }
 
   Future<void> _handleStatusChanged(String subtaskId, int progress) async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    // --- OPTIMISTIC UI UPDATE: Ubah status secara instan tanpa menunggu database ---
+    final prefs = await SharedPreferences.getInstance();
+    final userDataStr = prefs.getString('user_data');
+    if (userDataStr == null) return;
+    final userData = jsonDecode(userDataStr);
+    final userId = userData['id'];
+    if (userId == null) return;
     setState(() {
       if (_taskData != null && _taskData['subtasks'] != null) {
         for (var st in _taskData['subtasks']) {
           if (st['id'] == subtaskId) {
-            final progressList = st['subtask_progress'] as List?;
+            final progressList = st['progress_entries'] as List?;
             if (progressList != null) {
               for (var p in progressList) {
-                if (p['user_id'] == user.id) {
+                if (p['user_id'].toString().toLowerCase() == userId.toString().toLowerCase()) {
                   p['progress'] = progress;
                   break;
                 }
@@ -454,11 +462,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     });
 
     try {
-      await supabase
-          .from('subtask_progress')
-          .update({'progress': progress})
-          .eq('subtask_id', subtaskId)
-          .eq('user_id', user.id);
+      await apiClient.dio.patch('/subtasks/$subtaskId/progress', data: {
+        'progress': progress,
+        'user_id': userId,
+      });
 
       // Ambil data lagi di background tanpa menghalangi UI
       _fetchFullTaskData(_taskData['id']);
@@ -496,10 +503,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     }
 
     try {
-      final signedUrl = await supabase.storage
-          .from('task-files')
-          .createSignedUrl(path, 300);
-      final uri = Uri.tryParse(signedUrl);
+      final uri = Uri.tryParse(path);
 
       if (uri == null) {
         throw Exception('Invalid preview URL');
@@ -594,7 +598,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     final progress = _calculateProgress(task);
     final members = (task['group_members'] as List?) ?? [];
     final subtasks = (task['subtasks'] as List?) ?? [];
-    final currentUserId = supabase.auth.currentUser?.id ?? '';
+    final currentUserId = _currentUserId;
     final isLeader = _taskData['current_user_is_leader'] == true;
 
     return Scaffold(
@@ -617,7 +621,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 onEditTap: isLeader ? _showFileLinkDialog : null,
               ),
               const SizedBox(height: 25),
-              // ✅ New Create Subtask Section (Gambar 1 & 2)
               CreateSubtaskSection(
                 members: members,
                 isLeader: isLeader,
@@ -626,7 +629,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 onCreateAutomatic: _handleCreateAutomatic,
               ),
               const SizedBox(height: 25),
-              // ✅ Your Progres (Gambar 1)
               YourProgressSection(
                 taskTitle: task['title'] ?? '',
                 subtasks: subtasks,
@@ -634,7 +636,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 onStatusChanged: _handleStatusChanged,
               ),
               const SizedBox(height: 25),
-              // ✅ Member & Progres (Gambar 1)
               GroupMemberSection(
                 members: members,
                 subtasks: subtasks,

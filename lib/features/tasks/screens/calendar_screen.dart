@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
+import 'dart:convert';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/snackbar_utils.dart';
 import '../widgets/calendar_widgets.dart';
@@ -14,7 +16,6 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
-  final _supabase = Supabase.instance.client;
   bool _isLoading = true;
 
   final Set<Completer<bool>> _pendingDeletes = {};
@@ -28,36 +29,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     await Future.delayed(const Duration(milliseconds: 300));
   }
+
   List<Map<String, dynamic>> _upcomingTasks = [];
   List<Map<String, dynamic>> _allTasks = [];
   DateTime _selectedDate = DateTime.now();
 
-  RealtimeChannel? _realtimeChannel;
   Timer? _refreshDebounce;
 
-  String get _currentUserId => _supabase.auth.currentUser?.id ?? '';
+  String _currentUserId = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchTasks();
-    _setupRealtimeListener();
+    _initUserAndFetchTasks();
   }
 
-  void _setupRealtimeListener() {
-    _realtimeChannel = _supabase.channel('calendar-db-changes');
-
-    _realtimeChannel!
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'tasks',
-          callback: (payload) {
-            debugPrint('Calendar Realtime: Task changed! Refreshing...');
-            _scheduleRefresh();
-          },
-        )
-        .subscribe();
+  Future<void> _initUserAndFetchTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataStr = prefs.getString('user_data');
+    if (userDataStr != null) {
+      final userData = jsonDecode(userDataStr);
+      _currentUserId = userData['id'].toString();
+    }
+    _fetchTasks();
   }
 
   void _scheduleRefresh() {
@@ -68,9 +62,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void dispose() {
     _refreshDebounce?.cancel();
-    if (_realtimeChannel != null) {
-      _supabase.removeChannel(_realtimeChannel!);
-    }
     super.dispose();
   }
 
@@ -116,7 +107,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       for (var i = 0; i < staleOwnedTaskIds.length; i += 50) {
         final batch = staleOwnedTaskIds.skip(i).take(50).toList();
-        await _supabase.from('tasks').delete().inFilter('id', batch);
+        for (var id in batch) await ApiClient().dio.delete('/tasks/$id');
       }
     } catch (e) {
       debugPrint('Error purging expired tasks: $e');
@@ -130,8 +121,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      // Gunakan query sederhana dengan relasi default '*' untuk mencegah error missing columns
-      final data = await _supabase.from('tasks').select();
+      if (_currentUserId.isEmpty) return;
+      final res = await ApiClient().dio.get('/tasks/user/$_currentUserId');
+      final data = res.data['tasks'] as List? ?? [];
 
       final rawTasks = List<Map<String, dynamic>>.from(data);
       final List<Map<String, dynamic>> allTasks = await _purgeExpiredTasks(
@@ -140,8 +132,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
       // Sort tasks: terbaru (created_at DESC) di posisi atas
       allTasks.sort((a, b) {
-        final dateA = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(0);
-        final dateB = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(0);
+        final dateA =
+            DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(0);
+        final dateB =
+            DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(0);
         return dateB.compareTo(dateA);
       });
 
@@ -251,7 +245,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       Future.delayed(const Duration(seconds: 10), () => false),
       completer.future,
     ]);
-    
+
     _pendingDeletes.remove(completer);
     if (isUndone || earlyResult) return;
 
@@ -260,7 +254,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     try {
-      await _supabase.from('tasks').delete().eq('id', taskId);
+      await ApiClient().dio.delete('/tasks/$taskId');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

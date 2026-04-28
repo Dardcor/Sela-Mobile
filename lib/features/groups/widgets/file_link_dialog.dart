@@ -1,8 +1,11 @@
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/connectivity_service.dart';
@@ -30,7 +33,7 @@ class FileLinkDialog extends StatefulWidget {
 }
 
 class _FileLinkDialogState extends State<FileLinkDialog> {
-  final _supabase = Supabase.instance.client;
+  final apiClient = ApiClient();
   
   late TextEditingController _titleCtrl;
   late TextEditingController _descCtrl;
@@ -102,17 +105,21 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
         } catch (_) {}
       }
 
-      await _supabase.from('tasks').update(updateData).eq('id', widget.taskId);
+      await apiClient.dio.put('/tasks/${widget.taskId}', data: updateData);
 
       // 2. Sync Links
       // Delete old links
-      await _supabase.from('task_links').delete().eq('task_id', widget.taskId);
+      await apiClient.dio.delete('/tasks/${widget.taskId}/links');
       // Insert new/kept links
-      for (final link in _links) {
-        if (link.trim().isNotEmpty) {
-          await _supabase.from('task_links').insert({
+      for (final rawLink in _links) {
+        if (rawLink.trim().isNotEmpty) {
+          String finalUrl = rawLink.trim();
+          if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+            finalUrl = 'https://$finalUrl';
+          }
+          await apiClient.dio.post('/tasks/${widget.taskId}/links', data: {
             'task_id': widget.taskId,
-            'url': link.trim(),
+            'url': finalUrl,
           });
         }
       }
@@ -121,12 +128,20 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
       // Get IDs and paths of existing files to compare
       final existingFilePaths = widget.currentFiles.map((f) => f['path'] as String).toList();
       final keptFilePaths = _files.where((f) => f.path != null && f.path!.startsWith('${widget.taskId}/')).map((f) => f.path!).toList();
+
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString('user_data');
+      String uploadedById = '';
+      if (userStr != null) {
+        final userData = jsonDecode(userStr);
+        uploadedById = userData['id']?.toString() ?? '';
+      }
       
       // Determine which files to delete
       final filesToDelete = existingFilePaths.where((path) => !keptFilePaths.contains(path)).toList();
       for (final path in filesToDelete) {
-        await _supabase.storage.from('task-files').remove([path]);
-        await _supabase.from('task_files').delete().eq('file_path', path);
+        await apiClient.dio.delete('/upload/task-file', queryParameters: {'path': path});
+        // Let API handle db deletion
       }
 
       // Upload new files
@@ -137,21 +152,29 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
         bool uploadSuccess = false;
 
         if (file.bytes != null) {
-          await _supabase.storage.from('task-files').uploadBinary(path, file.bytes!);
+          final formData = FormData.fromMap({
+            'file': MultipartFile.fromBytes(file.bytes!, filename: file.name),
+            'path': path,
+          });
+          await apiClient.dio.post('/upload/task-file', data: formData);
           uploadSuccess = true;
         } else if (file.path != null) {
-          await _supabase.storage.from('task-files').upload(path, File(file.path!));
+          final formData = FormData.fromMap({
+            'file': await MultipartFile.fromFile(file.path!, filename: file.name),
+            'path': path,
+          });
+          await apiClient.dio.post('/upload/task-file', data: formData);
           uploadSuccess = true;
         }
 
         if (uploadSuccess) {
-           await _supabase.from('task_files').insert({
+           await apiClient.dio.post('/tasks/${widget.taskId}/files', data: {
             'task_id': widget.taskId,
             'file_name': file.name,
             'file_path': path,
             'file_type': file.extension,
             'file_size': file.size,
-            'uploaded_by': _supabase.auth.currentUser!.id,
+            'uploaded_by': uploadedById,
           });
         }
       }

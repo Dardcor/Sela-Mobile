@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
@@ -38,7 +39,6 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailRegisterController = TextEditingController();
   final _passwordRegisterController = TextEditingController();
 
-  final supabase = Supabase.instance.client;
   final _pageController = PageController(initialPage: 0);
 
   @override
@@ -120,13 +120,13 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
-      final res = await supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      final res = await ApiClient().login(email, password);
 
-      if (res.session != null && mounted) {
+      if (res.statusCode == 200 && mounted) {
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', res.data['token']);
+        await prefs.setString('user_data', json.encode(res.data['user']));
+        
         if (_rememberMe) {
           await prefs.setBool('remember_me', true);
           await prefs.setString('remembered_email', email);
@@ -137,41 +137,31 @@ class _AuthScreenState extends State<AuthScreen> {
           await prefs.remove('remembered_password');
         }
 
-        // Update last_login_at di database
-        try {
-          await supabase
-              .from('profiles')
-              .update({'last_login_at': DateTime.now().toIso8601String()})
-              .eq('id', res.user!.id);
-        } catch (e) {
-          // Abaikan error update last_login (mungkin kolom belum ada di Supabase)
-          debugPrint('Error updating last_login_at: $e');
-        }
-
         // Setup notifications
         NotificationService.setupGlobalListener();
 
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
-    } on AuthException catch (e) {
-      if (isNetworkErrorMessage(e.message)) {
+    } on DioException catch (e) {
+      debugPrint('🔥 LOGIN DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');
+      if (e.type == DioExceptionType.connectionTimeout || 
+          e.type == DioExceptionType.receiveTimeout || 
+          e.type == DioExceptionType.connectionError ||
+          isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        String msg = e.message;
-        if (msg.contains('invalid_credentials') ||
-            msg.contains('Invalid login credentials')) {
-          msg = 'Email atau Password salah. Silakan coba lagi.';
-        } else if (msg.contains('Email not confirmed')) {
-          msg = 'Email belum dikonfirmasi. Silakan hubungi admin.';
+        String msg = 'Email atau Password salah. Silakan coba lagi.';
+        if (e.response?.data is Map && e.response?.data['message'] != null) {
+          msg = e.response?.data['message'];
         }
         _showError(msg);
       }
     } catch (e) {
-      final msg = mapAuthErrorMessage(e);
-      if (msg == noInternetMessage) {
+      debugPrint('🔥 LOGIN EXCEPTION: $e');
+      if (e.toString().contains('SocketException')) {
         showNoInternetSnackBar(context);
       } else {
-        _showError(msg);
+        _showError('Email atau Password salah. Silakan coba lagi.');
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -224,21 +214,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
-      final res = await supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {
-          'full_name': username,
-          'username': username,
-          'class_name': _selectedClass ?? '',
-        },
-      );
+      final res = await ApiClient().register({
+        'full_name': username,
+        'username': username,
+        'email': email,
+        'password': password,
+        'class_name': _selectedClass ?? '',
+      });
 
-      // Kita tidak perlu manual upsert_profile di sini lagi karena
-      // sudah ada Trigger 'handle_new_user' di database (db.sql)
-      // yang otomatis membuat profil saat user register.
-
-      if (mounted) {
+      if (mounted && (res.statusCode == 201 || res.statusCode == 200)) {
         _showSuccess('Registrasi berhasil! Silakan login dengan akun Anda.');
         _usernameRegisterController.clear();
         _emailRegisterController.clear();
@@ -257,20 +241,26 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         }
       }
-    } on AuthException catch (e) {
-      if (isNetworkErrorMessage(e.message)) {
+    } on DioException catch (e) {
+      debugPrint('🔥 REGISTER DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');
+      if (e.type == DioExceptionType.connectionTimeout || 
+          e.type == DioExceptionType.receiveTimeout || 
+          e.type == DioExceptionType.connectionError ||
+          isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        String msg = e.message;
-        if (msg.contains('User already registered')) {
+        String msg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+        if (msg.contains('User already registered') || msg.contains('The email has already been taken')) {
           msg = 'Email ini sudah terdaftar. Silakan login.';
-        } else if (msg.contains('Database error saving new user')) {
-          msg =
-              'Username sudah digunakan oleh orang lain. Silakan pilih username lain.';
+        } else if (msg.contains('Database error saving new user') || msg.contains('username already exists') || msg.contains('The username has already been taken')) {
+          msg = 'Username atau Email sudah digunakan. Silakan pilih yang lain.';
+        } else if (e.response?.data?['errors'] != null) {
+          msg = "Form tidak valid: ${e.response?.data['errors'].toString()}";
         }
         _showError(msg);
       }
     } catch (e) {
+      debugPrint('🔥 REGISTER GENERIC ERROR: $e');
       final msg = mapAuthErrorMessage(e);
       if (msg == noInternetMessage) {
         showNoInternetSnackBar(context);

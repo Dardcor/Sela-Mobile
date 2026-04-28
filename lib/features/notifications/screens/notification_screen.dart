@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../widgets/notification_widgets.dart';
 import '../../../core/utils/snackbar_utils.dart';
+import '../../../core/services/api_client.dart';
 
 import '../../../core/services/notification_service.dart';
 
@@ -16,11 +16,8 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  final supabase = Supabase.instance.client;
   bool _isLoading = true;
   List<dynamic> _notifications = [];
-  RealtimeChannel? _realtimeChannel;
-
 
   bool _isSelectionMode = false;
   Set<String> _selectedNotificationIds = {};
@@ -36,58 +33,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
-
-
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
-    _setupRealtimeListener();
     NotificationService.setupGlobalListener(); // Extra insurance
-  }
-
-  void _setupRealtimeListener() {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    _realtimeChannel = supabase.channel('notification-screen-${user.id}');
-
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.insert,
-      schema: 'public',
-      table: 'notifications',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: user.id,
-      ),
-      callback: (payload) {
-        debugPrint('Realtime: New notification received!');
-        if (mounted) {
-          setState(() {
-            // Sisipkan notifikasi baru di paling atas
-            _notifications.insert(0, payload.newRecord);
-          });
-          // Tandai langsung sebagai dibaca karena layar sedang terbuka
-          _markSingleAsRead(payload.newRecord['id']);
-        }
-      },
-    );
-
-    _realtimeChannel!.subscribe((status, [error]) {
-      debugPrint('Notification Screen Realtime: $status');
-      if (error != null) debugPrint('Notification Screen Realtime Error: $error');
-    });
   }
 
   @override
   void dispose() {
-    if (_realtimeChannel != null) {
-      supabase.removeChannel(_realtimeChannel!);
-    }
     super.dispose();
   }
-
 
   void _enterSelectionMode() {
     setState(() {
@@ -135,6 +91,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         if (mounted) {
           setState(() {
             _notifications.insertAll(0, backup);
+            // Assuming we still have created_at from backend.
             _notifications.sort((a, b) => DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at'])));
           });
         }
@@ -154,9 +111,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-      await supabase.from('notifications').delete().inFilter('id', selectedIds);
+      await ApiClient().dio.post('/notifications/delete-multiple', data: {'ids': selectedIds});
     } catch (e) {
       debugPrint('Err Delete Selected: $e');
       if (mounted) _fetchNotifications();
@@ -176,7 +131,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
 
     try {
-      await supabase.from('notifications').update({'is_read': true}).inFilter('id', selectedIds);
+      await ApiClient().dio.put('/notifications/mark-read-multiple', data: {'ids': selectedIds});
     } catch (e) {
       debugPrint('Err Mark Read Selected: $e');
     }
@@ -221,7 +176,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     try {
-      await supabase.from('notifications').delete().eq('id', id);
+      await ApiClient().dio.delete('/notifications/$id');
     } catch (e) {
       debugPrint('Err Delete Single: $e');
       if (mounted) _fetchNotifications();
@@ -231,18 +186,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _fetchNotifications() async {
     await _forceExecutePendingDeletes();
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-
-      final data = await supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
+      final response = await ApiClient().dio.get('/notifications');
 
       if (mounted) {
         setState(() {
-          _notifications = data as List;
+          _notifications = response.data['notifications'] ?? [];
           _isLoading = false;
         });
         // Tandai semua sebagai dibaca setelah data dimuat
@@ -256,15 +204,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _markAllAsRead() async {
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-
-      await supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('user_id', user.id)
-          .eq('is_read', false);
-
+      await ApiClient().dio.put('/notifications/mark-all-read');
       await NotificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('Err Mark All As Read: $e');
@@ -273,11 +213,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _markSingleAsRead(String notificationId) async {
     try {
-      await supabase
-          .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId);
-
+      await ApiClient().dio.put('/notifications/$notificationId', data: {'is_read': true});
       await NotificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('Err Mark Single As Read: $e');

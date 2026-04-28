@@ -21,6 +21,8 @@ dependencies:
   google_generative_ai: ^0.4.6
   flutter_local_notifications: ^17.1.0
   connectivity_plus: ^7.1.0
+  dio: ^5.9.2
+  shared_preferences: ^2.5.5
 
 
 dev_dependencies:

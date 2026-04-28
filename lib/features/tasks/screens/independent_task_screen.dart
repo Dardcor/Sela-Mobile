@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
+import 'dart:convert';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/shared_widgets/search_bar_with_button.dart';
@@ -14,9 +16,16 @@ class IndependentTaskScreen extends StatefulWidget {
 }
 
 class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
-  final supabase = Supabase.instance.client;
   List<dynamic> _tasks = [];
   bool _isLoading = true;
+  List<dynamic> get _filteredTasks {
+    if (_searchQuery.isEmpty) return _tasks;
+    return _tasks.where((t) {
+      final title = (t['title'] ?? '').toString().toLowerCase();
+      return title.contains(_searchQuery);
+    }).toList();
+  }
+
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
@@ -37,31 +46,27 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-      final data = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('is_group', false)
-          .order('created_at', ascending: false);
-      setState(() {
-        _tasks = data as List;
-        _isLoading = false;
-      });
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'].toString();
+
+      final res = await ApiClient().dio.get('/tasks/user/$userId');
+      final allTasks = res.data['tasks'] as List? ?? [];
+      final independentTasks = allTasks.where((t) => t['is_group'] == false || t['is_group'] == null).toList();
+
+      if (mounted) {
+        setState(() {
+          _tasks = independentTasks;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      debugPrint('Err Independent Tasks: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-
-  List<dynamic> get _filteredTasks => _searchQuery.isEmpty
-      ? _tasks
-      : _tasks
-            .where(
-              (t) => (t['title'] ?? '').toString().toLowerCase().contains(
-                _searchQuery,
-              ),
-            )
-            .toList();
 
   @override
   Widget build(BuildContext context) => Scaffold(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
+import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
@@ -19,11 +21,30 @@ class IndependentTaskDetailScreen extends StatefulWidget {
 
 class _IndependentTaskDetailScreenState
     extends State<IndependentTaskDetailScreen> {
-  final supabase = Supabase.instance.client;
   dynamic _taskData;
   List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
   bool _isCreating = false;
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userDataStr = prefs.getString('user_data');
+    if (userDataStr != null) {
+      final userData = jsonDecode(userDataStr);
+      if (mounted) {
+        setState(() {
+          _userId = userData['id'].toString();
+        });
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -36,17 +57,17 @@ class _IndependentTaskDetailScreenState
 
   Future<void> _fetchFullTaskData(String taskId) async {
     try {
-      final data = await supabase
-          .from('tasks')
-          .select(
-            '*, subtasks(*, subtask_progress(*, profiles(*))), task_links(*), task_files(*)',
-          )
-          .eq('id', taskId)
-          .single();
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'];
 
-      // Data task_files yang otomatis terambil dari relasi database
+      final response = await ApiClient().dio.get('/tasks/$taskId/detail/$userId');
+      final data = response.data['task'] ?? response.data;
+      final extraData = response.data;
       final files =
-          (data['task_files'] as List?)
+          (extraData['files'] as List?)
               ?.map(
                 (f) => {
                   'name': f['file_name'],
@@ -58,32 +79,43 @@ class _IndependentTaskDetailScreenState
               .cast<Map<String, dynamic>>() ??
           [];
 
+      final links = extraData['links'] ?? [];
+      final subtasks = extraData['subtasks'] ?? [];
+
       if (mounted) {
         setState(() {
-          _taskData = data;
+          _taskData = {
+            ...data,
+            'task_links': links,
+            'task_files': files,
+            'subtasks': subtasks,
+          };
           _taskFiles = files;
           _isLoading = false;
           _isCreating = false;
         });
       }
     } catch (e) {
-      if (mounted)
+      debugPrint('Failed: $e');
+      if (mounted) {
         setState(() {
           _isLoading = false;
           _isCreating = false;
         });
+      }
     }
   }
 
   double _calculateProgress(dynamic task) {
     if (task == null ||
         task['subtasks'] == null ||
-        (task['subtasks'] as List).isEmpty)
+        (task['subtasks'] as List).isEmpty) {
       return 0.0;
+    }
     final subtasks = task['subtasks'] as List;
     double total = 0;
     for (var st in subtasks) {
-      final pl = st['subtask_progress'] as List? ?? [];
+      final pl = st['progress_entries'] as List? ?? [];
       if (pl.isNotEmpty) {
         total +=
             pl
@@ -112,8 +144,8 @@ class _IndependentTaskDetailScreenState
         );
       return;
     }
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (_userId == null) return;
+    final userId = _userId!;
 
     if (!await ConnectivityService.isConnected()) {
       if (mounted) {
@@ -124,20 +156,11 @@ class _IndependentTaskDetailScreenState
 
     setState(() => _isCreating = true);
     try {
-      final st = await supabase
-          .from('subtasks')
-          .insert({
-            'task_id': _taskData['id'],
-            'title': title,
-            'description': description,
-          })
-          .select()
-          .single();
-
-      await supabase.from('subtask_progress').insert({
-        'subtask_id': st['id'],
-        'user_id': user.id,
-        'progress': 0,
+      final taskId = _taskData['id'];
+      await ApiClient().dio.post('/tasks/$taskId/subtasks', data: {
+        'title': title,
+        'description': description,
+        'user_id': userId,
       });
 
       if (mounted) {
@@ -174,8 +197,8 @@ class _IndependentTaskDetailScreenState
   }
 
   Future<void> _handleCreateAutomatic() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (_userId == null) return;
+    final userId = _userId!;
 
     if (!await ConnectivityService.isConnected()) {
       if (mounted) {
@@ -190,55 +213,48 @@ class _IndependentTaskDetailScreenState
       final taskDescription = _taskData['description'] ?? '';
 
       // Collect links
-      final List<String> taskLinks = (_taskData['task_links'] as List?)
-              ?.map((l) => l['url'] as String)
+      final List<String> taskLinks =
+          (_taskData['task_links'] as List?)
+              ?.map((l) => l['url']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
               .toList() ??
           [];
 
       // Collect files
-      final List<String> taskFiles = (_taskData['task_files'] as List?)
-              ?.map((f) => f['file_name'] as String)
+      final List<String> taskFiles =
+          (_taskData['task_files'] as List?)
+              ?.map((f) => f['file_name']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
               .toList() ??
           [];
-
-      // Fetch abilities pengguna dari profile_abilities
       List<String> userAbilities = [];
       try {
-        final abilitiesData = await supabase
-            .from('profile_abilities')
-            .select('ability')
-            .eq('user_id', user.id);
+        final abilitiesResponse = await ApiClient().dio.get(
+          '/profile_abilities',
+          queryParameters: {'user_id': userId},
+        );
+        final abilitiesData = abilitiesResponse.data;
         userAbilities = (abilitiesData as List)
-            .map((a) => a['ability'] as String)
+            .map((a) => a['ability']?.toString() ?? '')
+            .where((s) => s.isNotEmpty)
             .toList();
       } catch (_) {
-        // Jika gagal fetch abilities, lanjut dengan list kosong
       }
 
       final arrangedTasks = await AutomaticTaskDivision.arrangeIndependentTask(
         taskTitle: taskTitle,
         taskDescription: taskDescription,
-        userId: user.id,
+        userId: userId,
         links: taskLinks,
         files: taskFiles,
         abilities: userAbilities,
       );
 
       for (var sub in arrangedTasks) {
-        final st = await supabase
-            .from('subtasks')
-            .insert({
-              'task_id': _taskData['id'],
-              'title': sub['title'],
-              'description': sub['description'] ?? '',
-            })
-            .select()
-            .single();
-
-        await supabase.from('subtask_progress').insert({
-          'subtask_id': st['id'],
-          'user_id': sub['user_id'],
-          'progress': 0,
+        await ApiClient().dio.post('/tasks/${_taskData['id']}/subtasks', data: {
+          'title': sub['title'],
+          'description': sub['description'] ?? '',
+          'user_id': userId,
         });
       }
 
@@ -276,18 +292,16 @@ class _IndependentTaskDetailScreenState
   }
 
   Future<void> _handleStatusChanged(String subtaskId, int progress) async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    // --- OPTIMISTIC UI UPDATE: Ubah status secara instan tanpa menunggu database ---
+    if (_userId == null) return;
+    final userId = _userId!;
     setState(() {
       if (_taskData != null && _taskData['subtasks'] != null) {
         for (var st in _taskData['subtasks']) {
           if (st['id'] == subtaskId) {
-            final progressList = st['subtask_progress'] as List?;
+            final progressList = st['progress_entries'] as List?;
             if (progressList != null) {
               for (var p in progressList) {
-                if (p['user_id'] == user.id) {
+                if (p['user_id'].toString().toLowerCase() == userId.toString().toLowerCase()) {
                   p['progress'] = progress;
                   break;
                 }
@@ -300,13 +314,11 @@ class _IndependentTaskDetailScreenState
     });
 
     try {
-      await supabase
-          .from('subtask_progress')
-          .update({'progress': progress})
-          .eq('subtask_id', subtaskId)
-          .eq('user_id', user.id);
+      await ApiClient().dio.patch('/subtasks/$subtaskId/progress', data: {
+        'progress': progress,
+        'user_id': userId,
+      });
 
-      // Ambil data lagi di background tanpa menghalangi UI
       _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       // Jika gagal, revert ke data aslinya
@@ -342,13 +354,10 @@ class _IndependentTaskDetailScreenState
     }
 
     try {
-      final signedUrl = await supabase.storage
-          .from('task-files')
-          .createSignedUrl(path, 300);
-      final uri = Uri.tryParse(signedUrl);
+      final uri = Uri.tryParse(path);
 
       if (uri == null) {
-        throw Exception('Invalid preview URL');
+        throw Exception('Invalid URL');
       }
 
       var opened = false;
@@ -416,7 +425,7 @@ class _IndependentTaskDetailScreenState
     final task = _taskData;
     final progress = _calculateProgress(task);
     final subtasks = (task['subtasks'] as List?) ?? [];
-    final currentUserId = supabase.auth.currentUser?.id ?? '';
+    final currentUserId = _userId ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,

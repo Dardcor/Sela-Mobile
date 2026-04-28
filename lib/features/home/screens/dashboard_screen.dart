@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
+import 'dart:convert';
 import '../../../core/constants/colors.dart';
 import '../widgets/dashboard_widgets.dart';
 
@@ -10,20 +12,19 @@ import '../widgets/dashboard_widgets.dart';
 /// - [GroupTaskCard]          → kartu tugas grup (rebuild terisolasi per item)
 /// - [IndependentTaskItem]    → item tugas mandiri (rebuild terisolasi per item)
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final void Function(int)? onNavigateTab;
+  const DashboardScreen({super.key, this.onNavigateTab});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final supabase = Supabase.instance.client;
   Map<String, dynamic>? _cachedProfile;
   List<dynamic>? _cachedGroups;
   List<dynamic>? _cachedIndependent;
 
   // Realtime channel
-  RealtimeChannel? _realtimeChannel;
 
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
@@ -33,7 +34,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchData();
-    _setupRealtimeListener();
     _searchCtrl.addListener(_onSearchChanged);
   }
 
@@ -41,83 +41,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {}); // Rebuild with filtered lists
   }
 
-  void _setupRealtimeListener() {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    // ✅ Single Channel untuk semua perubahan database
-    _realtimeChannel = supabase.channel('dashboard-db-changes-${user.id}');
-
-    // 1. Listen Profile changes
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'profiles',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'id',
-        value: user.id,
-      ),
-      callback: (payload) {
-        debugPrint('Realtime: Profile updated!');
-        if (mounted) {
-          setState(() => _cachedProfile = payload.newRecord);
-        }
-      },
-    );
-
-    // 2. Listen Tasks changes (INSERT/UPDATE/DELETE)
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'tasks',
-      callback: (payload) {
-        debugPrint(
-          'Realtime: Task changed (${payload.eventType})! Refreshing...',
-        );
-        _fetchData();
-      },
-    );
-
-    // 3. Listen Subtasks changes
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'subtasks',
-      callback: (payload) {
-        debugPrint('Realtime: Subtask changed! Refreshing...');
-        _fetchData();
-      },
-    );
-
-    // 4. Listen Notifications changes
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'notifications',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'user_id',
-        value: user.id,
-      ),
-      callback: (payload) {
-        debugPrint('Realtime: Notifications updated!');
-        _fetchNotificationsCount();
-      },
-    );
-
-    _realtimeChannel!.subscribe((status, [error]) {
-      debugPrint('Realtime Status: $status');
-      if (error != null) debugPrint('Realtime Error: $error');
-    });
-  }
-
   @override
   void dispose() {
     _searchCtrl.dispose();
-    if (_realtimeChannel != null) {
-      supabase.removeChannel(_realtimeChannel!);
-    }
     super.dispose();
   }
 
@@ -127,19 +53,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchNotificationsCount() async {
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'];
 
-      final res = await supabase
-          .from('notifications')
-          .select()
-          .eq('user_id', user.id)
-          .eq('is_read', false)
-          .count(CountOption.exact);
+      final res = await ApiClient().dio.get(
+        '/notifications',
+        queryParameters: {'user_id': userId, 'is_read': false},
+      );
 
       if (mounted) {
         setState(() {
-          _unreadNotificationsCount = res.count;
+          _unreadNotificationsCount = (res.data['notifications'] as List).length;
         });
       }
     } catch (e) {
@@ -149,70 +76,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchContent() async {
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'];
 
-      final profileData = await supabase
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-      debugPrint('Dashboard: Profile fetch done for ${user.id}');
+      final resProfile = await ApiClient().dio.get('/me');
+      final profileData = resProfile.data['user'];
+      debugPrint('Dashboard: Profile fetch done for $userId');
 
       List groupTasksList = [];
+      List independentTasksList = [];
       try {
-        final gData = await supabase
-            .from('tasks')
-            .select(
-              '*, groups(id, name, course_name, class_name, group_number), subtasks(*, subtask_progress(*))',
-            )
-            .eq('is_group', true)
-            .order('created_at', ascending: false);
-        groupTasksList = gData as List;
-
-        final groupIds = groupTasksList
-            .map((t) => t['group_id'])
-            .where((id) => id != null)
-            .toSet()
-            .toList();
-
-        if (groupIds.isNotEmpty) {
-          final membersData = await supabase
-              .from('group_members')
-              .select('group_id, profiles(*)')
-              .inFilter('group_id', groupIds);
-
-          final membersByGroup = <String, List>{};
-          for (final m in membersData as List) {
-            final gid = m['group_id'] as String;
-            membersByGroup.putIfAbsent(gid, () => []).add(m);
-          }
-
-          groupTasksList = groupTasksList.map((task) {
-            final gid = task['group_id'] as String?;
-            return {
-              ...Map<String, dynamic>.from(task),
-              '_members': gid != null ? (membersByGroup[gid] ?? []) : [],
-            };
-          }).toList();
-        }
+        final resTasks = await ApiClient().dio.get('/tasks/user/$userId');
+        final allTasks = resTasks.data['tasks'] as List? ?? [];
+        
+        groupTasksList = allTasks.where((t) => t['is_group'] == true).toList();
+        independentTasksList = allTasks.where((t) => t['is_group'] == false || t['is_group'] == null).toList();
+        
       } catch (e, stack) {
-        debugPrint('Group tasks fetch err: $e');
+        debugPrint('Dashboard tasks fetch err: $e');
         debugPrint(stack.toString());
       }
-
-      final independentData = await supabase
-          .from('tasks')
-          .select('*, subtasks(*, subtask_progress(*))')
-          .eq('is_group', false)
-          .eq('created_by', user.id)
-          .order('created_at', ascending: false);
 
       if (mounted) {
         setState(() {
           _cachedProfile = profileData;
           _cachedGroups = groupTasksList;
-          _cachedIndependent = independentData as List;
+          _cachedIndependent = independentTasksList;
           _isLoading = false;
         });
         debugPrint(
@@ -226,6 +118,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   double _calculateProgress(dynamic task) {
+    if (task['progress'] != null) {
+      // Backend (Laravel) already calculates this for us via TaskService -> getTasksByUser!
+      return ((task['progress'] as num).toDouble() / 100).clamp(0.0, 1.0);
+    }
+    
     if (task['subtasks'] == null || (task['subtasks'] as List).isEmpty) {
       return 0.0;
     }
@@ -234,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     double totalProgress = 0;
 
     for (var st in subtasks) {
-      final progressList = st['subtask_progress'] as List? ?? [];
+      final progressList = st['progress_entries'] as List? ?? [];
       if (progressList.isNotEmpty) {
         double stAvg =
             progressList
@@ -280,25 +177,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int upcomingCount = 0;
 
     void countTask(dynamic t) {
-      final subtasks = t['subtasks'] as List? ?? [];
-      if (subtasks.isNotEmpty) {
-        final progress = _calculateProgress(t);
-        if (progress >= 1.0) {
-          doneTasksCount++;
-        } else if (progress > 0.0) {
-          inProgressCount++;
-        } else {
-          upcomingCount++;
-        }
+      final progress = _calculateProgress(t);
+      if (progress >= 1.0) {
+        doneTasksCount++;
+      } else if (progress > 0.0) {
+        inProgressCount++;
       } else {
-        final status = t['status'] ?? 'Pending';
-        if (status == 'Done') {
-          doneTasksCount++;
-        } else if (status == 'In Progress' || status == 'In progress') {
-          inProgressCount++;
-        } else {
-          upcomingCount++;
-        }
+        upcomingCount++;
       }
     }
 
@@ -325,7 +210,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               unreadCount: _unreadNotificationsCount,
               onNotificationTap: () =>
                   Navigator.pushNamed(context, '/notifications'),
-              onProfileTap: () => Navigator.pushNamed(context, '/profile'),
+              onProfileTap: () {
+                if (widget.onNavigateTab != null) {
+                  widget.onNavigateTab!(4); // Navigasi via navbar ke tab profil
+                } else {
+                  Navigator.pushReplacementNamed(context, '/profile');
+                }
+              },
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -345,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-          SliverToBoxAdapter(child: _buildWorkInGroupList(groups)),
+          SliverToBoxAdapter(child: _buildWorkInGroupList(groups.take(5).toList())),
           const SliverToBoxAdapter(child: SizedBox(height: 25)),
           SliverToBoxAdapter(
             child: DashboardSectionHeader(
@@ -357,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-          _buildIndependentTaskListSliver(independent),
+          _buildIndependentTaskListSliver(independent.take(5).toList()),
           SliverToBoxAdapter(child: SizedBox(height: bottomSpacing)),
         ],
       ),
@@ -404,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context,
             '/work_in_group_detail',
             arguments: groups[index],
-          ),
+          ).then((_) => _fetchData()),
         ),
       ),
     );
@@ -441,7 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               context,
               '/independent_task_detail',
               arguments: independent[index],
-            ),
+            ).then((_) => _fetchData()),
           ),
           childCount: independent.length,
         ),

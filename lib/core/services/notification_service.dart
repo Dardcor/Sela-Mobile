@@ -1,15 +1,12 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'api_client.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
-
-  static bool _isListenerActive = false;
-  static RealtimeChannel? _systemChannel;
 
   static Future<void> init() async {
     debugPrint('NotificationService: Initializing...');
@@ -39,11 +36,7 @@ class NotificationService {
         debugPrint('Notification Clicked! Payload: ${details.payload}');
         if (details.payload != null) {
           try {
-            final supabase = Supabase.instance.client;
-            await supabase
-                .from('notifications')
-                .update({'is_read': true})
-                .eq('id', details.payload!);
+            await ApiClient().dio.put('/notifications/${details.payload}', data: {'is_read': true});
           } catch (e) {
             debugPrint('Error marking as read: $e');
           }
@@ -85,64 +78,7 @@ class NotificationService {
   }
 
   static void setupGlobalListener() {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-
-    if (user == null) {
-      debugPrint('Realtime Notifications: No authenticated user.');
-      return;
-    }
-
-    if (_isListenerActive) {
-      debugPrint(
-        'Realtime Notifications: Listener already running for ${user.id}',
-      );
-      return;
-    }
-
-    _isListenerActive = true;
-    debugPrint('Realtime Notifications: Subscribing for user ${user.id}...');
-
-    // Close previous channel if exists
-    if (_systemChannel != null) {
-      supabase.removeChannel(_systemChannel!);
-    }
-
-    _systemChannel = supabase.channel('system-realtime-notifications');
-
-    _systemChannel!
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'notifications',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'user_id',
-            value: user.id,
-          ),
-          callback: (payload) {
-            debugPrint('REALTIME DATA RECEIVED: ${payload.newRecord}');
-
-            final record = payload.newRecord;
-            final String title = record['title'] ?? 'SELA Update';
-            final String message =
-                record['message'] ?? 'Ada aktivitas baru di akunmu.';
-
-            showNotification(
-              id: Random().nextInt(100000),
-              title: title,
-              body: message,
-              payload: record['id']?.toString(),
-            );
-          },
-        )
-        .subscribe((status, [error]) {
-          debugPrint('Realtime Subscription Status: $status');
-          if (error != null) {
-            debugPrint('Realtime Subscription ERROR: $error');
-            _isListenerActive = false; // Allow retry on error
-          }
-        });
+    // Removed Supabase realtime listener
   }
 
   static Future<void> showNotification({

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../utils/auth_error_utils.dart';
 import 'otp_verify_screen.dart';
@@ -16,7 +17,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
-  final supabase = Supabase.instance.client;
 
   @override
   void dispose() {
@@ -46,10 +46,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Supabase: Send recovery email
-      // Note: In Supabase dashboard, you can configure if this sends a link or a token.
-      // If it sends a token, the user can enter it in OTPVerifyScreen.
-      await supabase.auth.resetPasswordForEmail(email);
+      // Use ApiClient to send forgot password request
+      await ApiClient().forgotPassword(email);
 
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -67,9 +65,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         );
       }
-    } on AuthException catch (e) {
+    } on DioException catch (e) {
       if (mounted) {
-        if (isNetworkErrorMessage(e.message)) {
+        if (isNetworkErrorMessage(e.message ?? '')) {
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)
@@ -77,7 +75,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.message),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
                 backgroundColor: Colors.red,
               ),
             );

@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
+
+import '../../../core/services/api_client.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/widgets/auth_form_fields.dart';
 
@@ -19,8 +21,7 @@ class ProfileHeader extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Background teal — Positioned agar tidak memengaruhi tinggi Stack
-        // Background tetap visually meluas ke top+230px
+        // Background teal
         Positioned(
           top: 0,
           left: 0,
@@ -36,7 +37,7 @@ class ProfileHeader extends StatelessWidget {
             ),
           ),
         ),
-        // Konten asli — menentukan tinggi Stack yang dilaporkan ke Column
+        // Konten asli
         Padding(
           padding: EdgeInsets.fromLTRB(
             25,
@@ -46,7 +47,6 @@ class ProfileHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Tombol back — kiri
               GestureDetector(
                 onTap: () {
                   if (Navigator.canPop(context)) {
@@ -73,7 +73,6 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Judul — pill putih tengah
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 35,
@@ -94,7 +93,6 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Tombol logout — kanan
               GestureDetector(
                 onTap: () => _handleLogout(context),
                 child: Container(
@@ -152,7 +150,7 @@ class ProfileHeader extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await Supabase.instance.client.auth.signOut();
+      await ApiClient().logout();
       if (context.mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }
@@ -177,6 +175,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
   bool _isLoading = false;
+  int _step = 1; // Step 1: Input old password, Step 2: Input new password
 
   @override
   void dispose() {
@@ -184,6 +183,85 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _verifyOldPassword() async {
+    final oldPass = _oldPassCtrl.text.trim();
+    if (oldPass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your old password')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final apiClient = ApiClient();
+      await apiClient.dio.post('/verify-password', data: {
+        'password': oldPass,
+      });
+
+      // If successful, proceed to step 2
+      setState(() {
+        _step = 2;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      String errMsg = 'Password salah';
+      if (e is DioException && e.response?.data != null) {
+        errMsg = e.response!.data['message'] ?? errMsg;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitNewPassword() async {
+    final newPass = _newPassCtrl.text.trim();
+    final confirmPass = _confirmPassCtrl.text.trim();
+
+    if (newPass.isEmpty || confirmPass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    if (newPass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New password must be at least 6 characters')),
+      );
+      return;
+    }
+
+    if (newPass != confirmPass) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    
+    try {
+      await widget.onSave(_oldPassCtrl.text.trim(), newPass);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      String errMsg = 'Failed to change password';
+      if (e.toString().contains('Password harus berbeda')) {
+        errMsg = 'Password harus berbeda dari password lama';
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildPassField(String label, TextEditingController ctrl) {
@@ -226,26 +304,6 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     );
   }
 
-  void _submit() async {
-    if (_oldPassCtrl.text.isEmpty || _newPassCtrl.text.isEmpty || _confirmPassCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(content: Text('All fields are required'), backgroundColor: Colors.redAccent),
-      );
-      return;
-    }
-
-    if (_newPassCtrl.text != _confirmPassCtrl.text) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(content: Text('New passwords do not match'), backgroundColor: Colors.redAccent),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await widget.onSave(_oldPassCtrl.text, _newPassCtrl.text);
-    if (mounted) setState(() => _isLoading = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
@@ -254,56 +312,105 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
         backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.symmetric(horizontal: 25),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Change Password',
-                style: GoogleFonts.outfit(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryTeal,
-                ),
-              ),
-              const SizedBox(height: 5),
-              const Divider(color: AppColors.primaryTeal, thickness: 1.2),
-              const SizedBox(height: 20),
-              _buildPassField('Old Password', _oldPassCtrl),
-              const SizedBox(height: 25),
-              _buildPassField('New Password', _newPassCtrl),
-              const SizedBox(height: 25),
-              _buildPassField('Confirm Password', _confirmPassCtrl),
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTap: _isLoading ? null : _submit,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: _isLoading ? Colors.grey : AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Center(
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Text(
-                            'Update Password',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Change Password',
+                  style: GoogleFonts.outfit(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryTeal,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 5),
+                const Divider(color: AppColors.primaryTeal, thickness: 1.2),
+                const SizedBox(height: 20),
+                
+                if (_step == 1) ...[
+                  _buildPassField('Old Password', _oldPassCtrl),
+                  const SizedBox(height: 40),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _verifyOldPassword,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: _isLoading ? Colors.grey : AppColors.primaryTeal,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text(
+                                'Next',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  _buildPassField('New Password', _newPassCtrl),
+                  const SizedBox(height: 25),
+                  _buildPassField('Confirm Password', _confirmPassCtrl),
+                  const SizedBox(height: 40),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _submitNewPassword,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: _isLoading ? Colors.grey : AppColors.primaryTeal,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text(
+                                'Update Password',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  GestureDetector(
+                    onTap: _isLoading
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                          },
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.outfit(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ]
+              ],
+            ),
           ),
         ),
       ),
@@ -455,7 +562,7 @@ class AbilitiesCard extends StatelessWidget {
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                color: AppColors.bgLight, // Match screen background
+                color: AppColors.bgLight,
                 child: Text(
                   'Your ability',
                   style: GoogleFonts.outfit(

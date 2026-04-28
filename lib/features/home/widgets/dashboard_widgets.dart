@@ -284,7 +284,7 @@ class GroupTaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final members = (task['_members'] as List? ?? []);
+    final members = (task['members'] as List? ?? []);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = (screenWidth * (screenWidth >= 600 ? 0.38 : 0.62))
         .clamp(190.0, 320.0)

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -52,9 +52,10 @@ class _SplashScreenState extends State<SplashScreen>
     
     if (!mounted) return;
 
-    final session = Supabase.instance.client.auth.currentSession;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
     
-    if (session != null) {
+    if (token != null) {
       // Jika ada sesi aktif, langsung ke Dashboard
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {

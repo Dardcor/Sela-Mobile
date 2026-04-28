@@ -15,10 +15,16 @@ class AutomaticTaskDivision {
   }
 
   static Future<List<Map<String, dynamic>>> _generateTasks(
-    String prompt,
-  ) async {
+    String prompt, {
+    List<DataPart>? fileParts,
+  }) async {
+    final parts = <Part>[TextPart(prompt)];
+    if (fileParts != null && fileParts.isNotEmpty) {
+      parts.addAll(fileParts);
+    }
+
     final response = await _createModel().generateContent([
-      Content.text(prompt),
+      Content.multi(parts),
     ]);
 
     final text = response.text;
@@ -61,22 +67,24 @@ class AutomaticTaskDivision {
     required List<dynamic> members,
     List<String>? links,
     List<String>? files,
+    List<DataPart>? fileParts,
   }) async {
     // Bangun daftar anggota beserta kemampuannya
     final membersList = members
         .map((m) {
-          final profile = m['profiles'] ?? {};
+          final userMap = m as Map<String, dynamic>? ?? {};
+          final profile = userMap['profiles'] ?? userMap;
           final name =
-              profile['name'] ?? profile['full_name'] ?? 'Unknown Member';
-          final userId = profile['id'] ?? '';
+              profile['full_name'] ?? profile['username'] ?? userMap['full_name'] ?? userMap['username'] ?? 'Unknown Member';
+          final userId = profile['id']?.toString() ?? userMap['id']?.toString() ?? '';
           final abilities =
-              (m['abilities'] as List<dynamic>?)
+              (userMap['abilities'] as List<dynamic>?)
                   ?.map((a) => a.toString())
                   .toList() ??
               [];
           return {'id': userId, 'name': name, 'abilities': abilities};
         })
-        .where((m) => (m['id'] as String).isNotEmpty)
+        .where((m) => (m['id']?.toString() ?? '').isNotEmpty)
         .toList();
 
     if (membersList.isEmpty) {
@@ -118,7 +126,7 @@ Contoh output:
 ]
 """;
 
-    return _generateTasks(prompt);
+    return _generateTasks(prompt, fileParts: fileParts);
   }
 
   /// Menyusun urutan pengerjaan tugas mandiri secara otomatis.

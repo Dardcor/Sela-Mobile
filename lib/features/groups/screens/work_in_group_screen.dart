@@ -1,5 +1,7 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/shared_widgets/search_bar_with_button.dart';
@@ -22,9 +24,10 @@ class WorkInGroupScreen extends StatefulWidget {
 }
 
 class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
-  final supabase = Supabase.instance.client;
+  final apiClient = ApiClient();
   List<dynamic> _tasks = [];
   bool _isLoading = true;
+  String _currentUserId = '';
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
@@ -46,64 +49,25 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
   Future<void> _fetchTasks() async {
     if (mounted) setState(() => _isLoading = true);
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        return;
-      }
-
-      final memberData = await supabase
-          .from('group_members')
-          .select('group_id')
-          .eq('user_id', user.id);
-      final groupIds = (memberData as List)
-          .map((m) => m['group_id'] as String)
-          .toList();
-
-      if (groupIds.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _tasks = [];
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final data = await supabase
-          .from('tasks')
-          .select(
-            '*, groups(id, name, course_name, class_name, group_number), subtasks(*, subtask_progress(*))',
-          )
-          .eq('is_group', true)
-          .inFilter('group_id', groupIds)
-          .order('created_at', ascending: false);
-
-      final membersData = await supabase
-          .from('group_members')
-          .select('group_id, profiles(*)')
-          .inFilter('group_id', groupIds);
-
-      final membersByGroup = <String, List>{};
-      for (final m in membersData as List) {
-        final gid = m['group_id'] as String;
-        membersByGroup.putIfAbsent(gid, () => []).add(m);
-      }
-
-      final enrichedTasks = (data as List).map((task) {
-        final gid = task['group_id'] as String?;
-        return {
-          ...Map<String, dynamic>.from(task),
-          '_members': gid != null ? (membersByGroup[gid] ?? []) : [],
-        };
-      }).toList();
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr == null) return;
+      final userData = jsonDecode(userDataStr);
+      final userId = userData['id'];
+      
+      final resTasks = await apiClient.dio.get('/tasks/user/$userId');
+      final allTasks = resTasks.data['tasks'] as List? ?? [];
+      
+      final groupTasksList = allTasks.where((t) => t['is_group'] == true).toList();
 
       if (mounted) {
         setState(() {
-          _tasks = enrichedTasks;
+          _tasks = groupTasksList;
           _isLoading = false;
         });
       }
     } catch (e) {
+      debugPrint('Err fetching tasks: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -235,8 +199,7 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
         delegate: SliverChildBuilderDelegate((context, index) {
           final t = _filteredTasks[index];
           final progress = _calculateProgress(t);
-          final members = (t['_members'] as List? ?? []);
-          final group = t['groups'] as Map<String, dynamic>?;
+          final members = (t['members'] as List? ?? []); // The backend already attaches 'members' array
 
           String detailInfo = '';
           if (t['start_date'] != null && t['due_date'] != null) {
@@ -244,18 +207,16 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
             final due = DateTime.parse(t['due_date']);
             detailInfo = '${_fmtDate(start)} – ${_fmtDate(due)}';
           }
-          if (group != null) {
-            final parts = [
-              group['class_name'],
-              group['course_name'],
-            ].where((x) => x != null && (x as String).isNotEmpty).toList();
-            if (parts.isNotEmpty) {
-              detailInfo +=
-                  '${detailInfo.isNotEmpty ? ' | ' : ''}${parts.join(' | ')}';
-            }
+          final parts = [
+            t['class_name'],
+            t['course_name'],
+          ].where((x) => x != null && (x?.toString() ?? '').isNotEmpty).toList();
+          
+          if (parts.isNotEmpty) {
+            detailInfo += '${detailInfo.isNotEmpty ? ' | ' : ''}${parts.join(' | ')}';
           }
 
-          // âœ… WorkGroupTaskCard dari local widgets â€” rebuild terisolasi per item
+          // ✅ WorkGroupTaskCard dari local widgets — rebuild terisolasi per item
           return WorkGroupTaskCard(
             task: t,
             progress: progress,
@@ -265,7 +226,7 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
               context,
               '/work_in_group_detail',
               arguments: t,
-            ),
+            ).then((_) => _fetchTasks()),
           );
         }, childCount: _filteredTasks.length),
       ),

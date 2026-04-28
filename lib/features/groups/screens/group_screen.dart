@@ -1,8 +1,9 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/success_dialog.dart';
 import '../widgets/group_widgets.dart';
@@ -15,22 +16,43 @@ class GroupScreen extends StatefulWidget {
 }
 
 class _GroupScreenState extends State<GroupScreen> {
-  final supabase = Supabase.instance.client;
+  final apiClient = ApiClient();
   List<dynamic> _allTeams = [];
   List<dynamic> teams = [];
   bool isLoading = true;
+  String _currentUserId = '';
+  String _currentUserClass = '';
+  
+  List<String> _courses = [];
   final _searchCtrl = TextEditingController();
 
-  List<String> _courses = [];
-
-  RealtimeChannel? _realtimeChannel;
+  Future<void> _initUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        final userDataStr = prefs.getString('user_data');
+        if (userDataStr != null) {
+          final userData = json.decode(userDataStr);
+          _currentUserId = userData['id'] ?? '';
+          
+          // Check if class_name is flat or nested in profile
+          _currentUserClass = userData['class_name'] ?? 
+                             (userData['profile'] != null ? userData['profile']['class_name'] : '') ?? 
+                             '';
+        } else {
+          _currentUserId = '';
+          _currentUserClass = '';
+        }
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _initUserId();
     _loadCourses();
     _fetch();
-    _setupRealtimeListener();
   }
 
   Future<void> _loadCourses() async {
@@ -47,51 +69,24 @@ class _GroupScreenState extends State<GroupScreen> {
     }
   }
 
-  void _setupRealtimeListener() {
-    _realtimeChannel = supabase.channel('group-screen-changes');
-
-    // Listen for groups changes
-    _realtimeChannel!.onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'groups',
-      callback: (payload) {
-        debugPrint('Groups Realtime: Data changed! Refreshing...');
-        _fetch();
-      },
-    );
-
-    // Listen for group_members changes
-    _realtimeChannel!
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'group_members',
-          callback: (payload) {
-            debugPrint('Group Members Realtime: Data changed! Refreshing...');
-            _fetch();
-          },
-        )
-        .subscribe();
-  }
-
   @override
   void dispose() {
     _searchCtrl.dispose();
-    if (_realtimeChannel != null) {
-      supabase.removeChannel(_realtimeChannel!);
-    }
+    
     super.dispose();
   }
 
   Future<void> _fetch() async {
     if (mounted) setState(() => isLoading = true);
     try {
-      final res = await supabase
-          .from('groups')
-          .select('*, group_members(*, profiles(*))')
-          .order('created_at', ascending: false);
-      _allTeams = res;
+      final prefs = await SharedPreferences.getInstance();
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr != null) {
+        final userData = json.decode(userDataStr);
+        final userId = userData['id'];
+        final res = await apiClient.dio.get('/groups/user/$userId');
+        _allTeams = res.data['groups'] ?? res.data['data'] ?? [];
+      }
       _applySearch();
     } catch (e) {
       debugPrint('fetch teams info: $e');
@@ -108,13 +103,7 @@ class _GroupScreenState extends State<GroupScreen> {
             final courseName = (team['course_name'] ?? '')
                 .toString()
                 .toLowerCase();
-            final className = (team['class_name'] ?? '')
-                .toString()
-                .toLowerCase();
-
-            return name.contains(keyword) ||
-                courseName.contains(keyword) ||
-                className.contains(keyword);
+            return name.contains(keyword) || courseName.contains(keyword);
           }).toList();
 
     if (mounted) {
@@ -149,13 +138,13 @@ class _GroupScreenState extends State<GroupScreen> {
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
-                  children: [
-                    const TextSpan(text: 'Are you sure you want to '),
+                  children: const [
+                    TextSpan(text: 'Are you sure you want to '),
                     TextSpan(
                       text: 'delete',
-                      style: const TextStyle(color: AppColors.primaryTeal),
+                      style: TextStyle(color: AppColors.primaryTeal),
                     ),
-                    const TextSpan(text: ' this group?'),
+                    TextSpan(text: ' this group?'),
                   ],
                 ),
               ),
@@ -193,17 +182,7 @@ class _GroupScreenState extends State<GroupScreen> {
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          final deletedGroups = await supabase
-                              .from('groups')
-                              .delete()
-                              .eq('id', team['id'])
-                              .select('id');
-
-                          if (deletedGroups.isEmpty) {
-                            throw Exception(
-                              'Group could not be deleted. Please make sure the DELETE policy for groups has been applied in Supabase.',
-                            );
-                          }
+                          await apiClient.dio.delete('/groups/${team['id']}');
 
                           _allTeams.removeWhere((g) => g['id'] == team['id']);
                           teams.removeWhere((g) => g['id'] == team['id']);
@@ -272,22 +251,8 @@ class _GroupScreenState extends State<GroupScreen> {
     try {
       List deletedMembers = [];
 
-      if (membershipId != null) {
-        deletedMembers = await supabase
-            .from('group_members')
-            .delete()
-            .eq('id', membershipId)
-            .select('id');
-      }
-
-      if (deletedMembers.isEmpty) {
-        deletedMembers = await supabase
-            .from('group_members')
-            .delete()
-            .eq('group_id', team['id'])
-            .eq('user_id', memberUserId)
-            .select('id');
-      }
+      await apiClient.dio.delete('/groups/${team['id']}/members', queryParameters: {'user_id': memberUserId});
+      deletedMembers = [1];
 
       if (deletedMembers.isEmpty) {
         throw Exception(
@@ -295,7 +260,7 @@ class _GroupScreenState extends State<GroupScreen> {
         );
       }
 
-      await supabase.from('notifications').insert({
+      await apiClient.dio.post('/notifications', data: {
         'user_id': memberUserId,
         'title': 'Dikeluarkan dari grup',
         'message': 'Kamu telah dikeluarkan dari grup $groupLabel',
@@ -392,11 +357,13 @@ class _GroupScreenState extends State<GroupScreen> {
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          await supabase
-                              .from('group_members')
-                              .delete()
-                              .eq('group_id', team['id'])
-                              .eq('user_id', supabase.auth.currentUser!.id);
+                          final prefs = await SharedPreferences.getInstance();
+                          final userDataStr = prefs.getString('user_data');
+                          if (userDataStr != null) {
+                            final userData = json.decode(userDataStr);
+                            final userId = userData['id'];
+                            await apiClient.dio.delete('/groups/${team['id']}/members/$userId');
+                          }
 
                           if (!context.mounted) return;
                           Navigator.pop(ctx);
@@ -578,37 +545,24 @@ class _GroupScreenState extends State<GroupScreen> {
                                   );
                                   return;
                                 }
-                                try {
-                                  final results = await supabase.rpc(
-                                    'find_group_by_invite_code',
-                                    params: {'p_code': c},
-                                  );
-                                  if (results == null ||
-                                      (results as List).isEmpty) {
-                                    setS(
-                                      () => joinCodeError =
-                                          'Invalid or expired group code',
+                                  try {
+                                    final res = await apiClient.dio.post(
+                                      '/groups/join',
+                                      data: {'code': c},
                                     );
-                                    return;
+                                    
+                                    if (!ctx.mounted) return;
+                                    Navigator.pop(ctx);
+                                    _fetch();
+                                    showAlert(
+                                      'Successfully joined group! ✅',
+                                      isSuccess: true,
+                                    );
+                                  } catch (e) {
+                                    showAlert(
+                                      'Failed to join. Invalid code or already a member.',
+                                    );
                                   }
-                                  final g = results[0];
-                                  await supabase.from('group_members').insert({
-                                    'group_id': g['id'],
-                                    'user_id': supabase.auth.currentUser!.id,
-                                    'role': 'member',
-                                  });
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  _fetch();
-                                  showAlert(
-                                    'Successfully joined group! ✅',
-                                    isSuccess: true,
-                                  );
-                                } catch (e) {
-                                  showAlert(
-                                    'Failed to join. You may already be a member.',
-                                  );
-                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryTeal,
@@ -734,37 +688,25 @@ class _GroupScreenState extends State<GroupScreen> {
                                       ).join();
 
                                       try {
-                                        final g = await supabase
-                                            .from('groups')
-                                            .insert({
+                                        final res = await apiClient.dio.post('/groups', data: {
                                               'name':
-                                                  'D3 IT B - $curCourse - Kelompok ${noCtrl.text.trim()}',
+                                                  '${_currentUserClass.isNotEmpty ? _currentUserClass : 'Kelas Baru'} - $curCourse - Kelompok ${noCtrl.text.trim()}',
                                               'course_name': curCourse,
-                                              'class_name': 'D3 IT B',
+                                              // Jika dari frontend kosong, jangan kirim class_name agar backend mengambil langsung dari DB profile
+                                              if (_currentUserClass.isNotEmpty) 'class_name': _currentUserClass,
                                               'group_number': int.parse(
                                                 noCtrl.text.trim(),
                                               ),
                                               'member_limit': parsedLimit,
                                               'invitation_code': inv,
                                               'lecture_code': inv,
-                                              'created_by':
-                                                  supabase.auth.currentUser!.id,
-                                            })
-                                            .select()
-                                            .single();
-                                        await supabase
-                                            .from('group_members')
-                                            .insert({
-                                              'group_id': g['id'],
-                                              'user_id':
-                                                  supabase.auth.currentUser!.id,
-                                              'role': 'leader',
                                             });
-                                        if (!ctx.mounted) return;
+                                        
+                                        if (!context.mounted) return;
                                         Navigator.pop(ctx);
                                         _fetch();
                                         SuccessDialog.show(
-                                          ctx,
+                                          context,
                                           message: 'Group successfully created',
                                         );
                                       } catch (e) {
@@ -813,11 +755,42 @@ class _GroupScreenState extends State<GroupScreen> {
     );
   }
 
-  void _showGroupDetail(dynamic team) {
-    final members = (team['group_members'] as List?) ?? [];
-    final currentUserId = supabase.auth.currentUser?.id;
+  void _showGroupDetail(dynamic team) async {
+    // Show a loading dialog first
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryTeal),
+      ),
+    );
+
+    dynamic groupDetail;
+    List<dynamic> members = [];
+
+    try {
+      final res = await apiClient.dio.get('/groups/${team['id']}');
+      groupDetail = res.data['group'];
+      members = res.data['members'] ?? [];
+    } catch (e) {
+      debugPrint('Failed to load group detail: $e');
+      if (!mounted) return;
+      Navigator.pop(context); // close loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load group details: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // close loading
+
+    final currentUserId = _currentUserId;
     final isMeLeader = members.any(
-      (m) => m['user_id'] == currentUserId && m['role'] == 'leader',
+      (m) => m['id'] == currentUserId && m['role'] == 'leader',
     );
 
     showModalBottomSheet(
@@ -931,7 +904,6 @@ class _GroupScreenState extends State<GroupScreen> {
                     ),
                     const SizedBox(height: 20),
                     ...members.map((m) {
-                      final prof = m['profiles'];
                       final isLeader = m['role'] == 'leader';
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 20),
@@ -940,9 +912,9 @@ class _GroupScreenState extends State<GroupScreen> {
                             CircleAvatar(
                               radius: 28,
                               backgroundImage:
-                                  prof?['avatar_url'] != null &&
-                                      prof!['avatar_url'].toString().isNotEmpty
-                                  ? NetworkImage(prof['avatar_url'])
+                                  m['avatar_url'] != null &&
+                                      m['avatar_url'].toString().isNotEmpty
+                                  ? NetworkImage(m['avatar_url'])
                                         as ImageProvider
                                   : const AssetImage(
                                       'assets/images/default_profile.png',
@@ -957,8 +929,8 @@ class _GroupScreenState extends State<GroupScreen> {
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          prof?['full_name'] ??
-                                              prof?['username'] ??
+                                          m['full_name'] ??
+                                              m['username'] ??
                                               'User',
                                           style: GoogleFonts.outfit(
                                             fontWeight: FontWeight.bold,
@@ -995,8 +967,8 @@ class _GroupScreenState extends State<GroupScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    prof?['class_name'] ??
-                                        team['class_name'] ??
+                                    m['class_name'] ??
+                                        groupDetail['class_name'] ??
                                         '',
                                     style: GoogleFonts.outfit(
                                       color: Colors.grey[400],
@@ -1284,19 +1256,53 @@ class _GroupScreenState extends State<GroupScreen> {
                     ),
                   ),
                 )
-              : SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      // ✅ GroupCard dari local widgets — rebuild terisolasi
-                      (context, index) => GroupCard(
-                        team: teams[index],
-                        onDetailTap: () => _showGroupDetail(teams[index]),
+              : teams.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 80),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.group_off_rounded,
+                                color: Colors.grey[300],
+                                size: 80,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'No groups found',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Join or create a group to get started',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      childCount: teams.length,
+                    )
+                  : SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          // ✅ GroupCard dari local widgets — rebuild terisolasi
+                          (context, index) => GroupCard(
+                            team: teams[index],
+                            onDetailTap: () => _showGroupDetail(teams[index]),
+                          ),
+                          childCount: teams.length,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),

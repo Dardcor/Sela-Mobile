@@ -18,11 +18,12 @@ import 'features/groups/screens/group_detail_screen.dart';
 import 'features/tasks/screens/independent_task_detail_screen.dart';
 import 'features/notifications/screens/notification_screen.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/constants/colors.dart';
 
 import 'core/services/notification_service.dart';
+
+import 'core/services/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,20 +33,7 @@ void main() async {
 
   try {
     await dotenv.load(fileName: ".env");
-
-    final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-    final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-
-    if (supabaseUrl.isEmpty || supabaseKey.isEmpty) {
-      throw Exception(
-        'SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di .env',
-      );
-    }
-
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => throw Exception('Supabase initialize timeout'),
-    );
+    await ApiClient().init();
   } catch (e) {
     debugPrint('Initialization error: $e');
   }
@@ -82,7 +70,13 @@ class MyApp extends StatelessWidget {
       '/auth': (context) => const AuthScreen(),
       '/dashboard': (context) => const Navbar(initialIndex: 0),
       '/forgot_password': (context) => const ForgotPasswordScreen(),
-      '/new_password': (context) => const NewPasswordScreen(),
+      '/new_password': (context) {
+        final args = ModalRoute.of(context)?.settings.arguments as Map?;
+        return NewPasswordScreen(
+          email: args?['email'] ?? '',
+          otp: args?['otp'] ?? '',
+        );
+      },
       '/otp_verify': (context) {
         final args =
             ModalRoute.of(context)?.settings.arguments as String? ?? '';

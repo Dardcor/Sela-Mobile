@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,7 +19,8 @@ class GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final members = (team['group_members'] as List?) ?? [];
+    final members = (team['members'] as List?) ?? [];
+    final totalMember = team['total_member'] ?? members.length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 25),
@@ -53,13 +56,9 @@ class GroupCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 16,
                         backgroundImage:
-                            members[idx]['profiles']?['avatar_url'] != null &&
-                                members[idx]['profiles']['avatar_url']
-                                    .toString()
-                                    .isNotEmpty
-                            ? NetworkImage(
-                                    members[idx]['profiles']['avatar_url'],
-                                  )
+                            members[idx]['avatar_url'] != null &&
+                                members[idx]['avatar_url'].toString().isNotEmpty
+                            ? NetworkImage(members[idx]['avatar_url'])
                                   as ImageProvider
                             : const AssetImage(
                                 'assets/images/default_profile.png',
@@ -607,8 +606,13 @@ class YourProgressSection extends StatelessWidget {
   Widget build(BuildContext context) {
     // Filter subtask yang progresnya milik user ini
     final userSubtasks = subtasks.where((st) {
-      final progressList = (st['subtask_progress'] as List?);
-      return progressList?.any((p) => p['user_id'] == userId) ?? false;
+      final progressList = (st['progress_entries'] as List?);
+      return progressList?.any(
+            (p) =>
+                p['user_id'].toString().toLowerCase() ==
+                userId.toString().toLowerCase(),
+          ) ??
+          false;
     }).toList();
 
     return Container(
@@ -654,9 +658,11 @@ class YourProgressSection extends StatelessWidget {
             )
           else
             ...userSubtasks.map((st) {
-              final progressData = (st['subtask_progress'] as List?)
+              final progressData = (st['progress_entries'] as List?)
                   ?.firstWhere(
-                    (p) => p['user_id'] == userId,
+                    (p) =>
+                        p['user_id'].toString().toLowerCase() ==
+                        userId.toString().toLowerCase(),
                     orElse: () => null,
                   );
               final currentProgress =
@@ -1044,6 +1050,7 @@ class _GroupMainCardState extends State<GroupMainCard> {
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 8),
           // Description dengan see more / see less
           if (description.isNotEmpty) ...[
@@ -1171,8 +1178,11 @@ class _GroupMainCardState extends State<GroupMainCard> {
             children: [
               Expanded(
                 child: Text(
-                  '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['subject'] ?? ''} | ${task['groups']?['course_name'] ?? ''}',
-                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                  '${_formatDate(task['start_date'])} - ${_formatDate(task['due_date'])} | ${task['class_name'] ?? ''} | ${task['course_name'] ?? ''}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: Colors.grey[400],
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1182,7 +1192,10 @@ class _GroupMainCardState extends State<GroupMainCard> {
                 GestureDetector(
                   onTap: widget.onEditTap,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryTeal,
                       borderRadius: BorderRadius.circular(12),
@@ -1617,11 +1630,10 @@ class _DropdownPerson extends StatelessWidget {
                 color: enabled ? Colors.grey[300] : Colors.grey[200],
               ),
               items: members.map((m) {
-                final p = m['profiles'];
                 return DropdownMenuItem<String>(
-                  value: p['id'],
+                  value: m['id'] ?? m['user_id'],
                   child: Text(
-                    p['full_name'] ?? 'Member',
+                    m['full_name'] ?? m['username'] ?? 'Member',
                     style: GoogleFonts.outfit(
                       fontSize: 13,
                       color: enabled ? Colors.black : Colors.grey,
@@ -1687,7 +1699,7 @@ class GroupMemberSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Member & Progres',
+            'Member & Progress',
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -1736,7 +1748,10 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
   bool _isExpanded = false;
 
   /// Hitung status aggregat member berdasarkan subtask-nya.
-  ({String text, Color color}) _computeMemberStatus(List userSubtasks, String userId) {
+  ({String text, Color color}) _computeMemberStatus(
+    List userSubtasks,
+    String userId,
+  ) {
     if (userSubtasks.isEmpty) {
       return (text: 'No Task', color: Colors.grey);
     }
@@ -1744,8 +1759,12 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     int doneCount = 0;
     int inProgressCount = 0;
     for (var st in userSubtasks) {
-      final progressData = (st['subtask_progress'] as List?)
-          ?.firstWhere((p) => p['user_id'] == userId, orElse: () => null);
+      final progressData = (st['progress_entries'] as List?)?.firstWhere(
+        (p) =>
+            p['user_id'].toString().toLowerCase() ==
+            userId.toString().toLowerCase(),
+        orElse: () => null,
+      );
       final progress = (progressData?['progress'] as num?)?.toInt() ?? 0;
       if (progress >= 100) {
         doneCount++;
@@ -1762,7 +1781,11 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     return (text: 'Pending', color: AppColors.lightTeal);
   }
 
-  void _showDeleteConfirmation(BuildContext context, String subtaskId, String subtaskTitle) {
+  void _showDeleteConfirmation(
+    BuildContext context,
+    String subtaskId,
+    String subtaskTitle,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1780,7 +1803,10 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Batal',
-              style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600),
+              style: GoogleFonts.outfit(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           TextButton(
@@ -1790,7 +1816,10 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             },
             child: Text(
               'Hapus',
-              style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -1800,11 +1829,10 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = widget.member['profiles'];
-    final userId = profile['id'];
+    final userId = widget.member['id'];
 
     final userSubtasks = widget.allSubtasks.where((st) {
-      final progress = (st['subtask_progress'] as List?);
+      final progress = (st['progress_entries'] as List?);
       return progress?.any((p) => p['user_id'] == userId) ?? false;
     }).toList();
 
@@ -1837,9 +1865,9 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             child: CircleAvatar(
               radius: 18,
               backgroundImage:
-                  profile?['avatar_url'] != null &&
-                      profile!['avatar_url'].toString().isNotEmpty
-                  ? NetworkImage(profile!['avatar_url']) as ImageProvider
+                  widget.member['avatar_url'] != null &&
+                      widget.member['avatar_url'].toString().isNotEmpty
+                  ? NetworkImage(widget.member['avatar_url']) as ImageProvider
                   : const AssetImage('assets/images/default_profile.png'),
             ),
           ),
@@ -1847,7 +1875,9 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             children: [
               Flexible(
                 child: Text(
-                  profile?['full_name'] ?? 'Member',
+                  widget.member['full_name'] ??
+                      widget.member['username'] ??
+                      'Member',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(

@@ -239,13 +239,13 @@ class CalendarCard extends StatelessWidget {
 
         calendarBuilders: CalendarBuilders(
           defaultBuilder: (context, day, focusedDay) =>
-              _customDayBuilder(day, upcomingTasks),
+              _customDayBuilder(day, upcomingTasks, focusedDay: focusedDay),
           todayBuilder: (context, day, focusedDay) =>
-              _customDayBuilder(day, upcomingTasks),
+              _customDayBuilder(day, upcomingTasks, focusedDay: focusedDay),
           selectedBuilder: (context, day, focusedDay) =>
-              _customDayBuilder(day, upcomingTasks),
+              _customDayBuilder(day, upcomingTasks, focusedDay: focusedDay),
           outsideBuilder: (context, day, focusedDay) =>
-              _customDayBuilder(day, upcomingTasks, isOutside: true),
+              _customDayBuilder(day, upcomingTasks, focusedDay: focusedDay),
         ),
       ),
     );
@@ -254,8 +254,23 @@ class CalendarCard extends StatelessWidget {
   Widget? _customDayBuilder(
     DateTime day,
     List<Map<String, dynamic>> tasks, {
-    bool isOutside = false,
+    required DateTime focusedDay,
   }) {
+    bool isOutside = day.month != focusedDay.month;
+
+    // Tuntutan: Jika bukan bulan yang sedang difokuskan, MURNI tampilkan greyed out polos (TIDAK ADA TRACK SAMA SEKALI)
+    if (isOutside) {
+      return Center(
+        child: Text(
+          '${day.day}',
+          style: GoogleFonts.outfit(
+            color: Colors.grey[300],
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
+
     final normalizedDay = DateTime(day.year, day.month, day.day);
 
     // 1. Circle highlight (due date)
@@ -332,7 +347,19 @@ class CalendarCard extends StatelessWidget {
         isFaded: isFaded,
       );
     }
-    return null;
+    
+    // Tuntutan: "jangan ada penanda tanggal hari ini, hapus saja. penanda kotak abu - abu dan font hitam"
+    // Dengan mereturn Widget Text secara eksplisit untuk HARI INI yang kosong task, 
+    // Calendar table TIDAK AKAN menggunakan default style hari ininya (bulat/kotak abu-abu).
+    return Center(
+      child: Text(
+        '${day.day}',
+        style: GoogleFonts.outfit(
+          color: Colors.black,
+          fontSize: 16,
+        ),
+      ),
+    );
   }
 
   Widget _buildDayCell(
@@ -344,8 +371,9 @@ class CalendarCard extends StatelessWidget {
     bool isOutside = false,
     bool isFaded = false,
   }) {
-    final rangeColor = isFaded ? Colors.grey[200]! : AppColors.lightTealBg;
-    final circleColor = isFaded ? Colors.grey[400]! : AppColors.primaryTeal;
+    final effectivelyFaded = isFaded || isOutside;
+    final rangeColor = effectivelyFaded ? Colors.grey[200]! : AppColors.lightTealBg;
+    final circleColor = effectivelyFaded ? Colors.grey[400]! : AppColors.primaryTeal;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2.5),
@@ -548,7 +576,9 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isOwner = (task['created_by'] ?? '') == currentUserId;
+    // Both created_by and currentUserId are UUIDs format, compare normally (handling nulls)
+    final String createdBy = (task['created_by'] ?? '').toString();
+    final bool isOwner = createdBy.isNotEmpty && createdBy == currentUserId;
 
     return Dismissible(
       key: Key(task['id'].toString()),

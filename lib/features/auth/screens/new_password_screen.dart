@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../utils/auth_error_utils.dart';
 import 'success_screen.dart';
 
 class NewPasswordScreen extends StatefulWidget {
-  const NewPasswordScreen({super.key});
+  final String email;
+  final String otp;
+  const NewPasswordScreen({super.key, required this.email, required this.otp});
 
   @override
   State<NewPasswordScreen> createState() => _NewPasswordScreenState();
@@ -19,7 +22,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
-  final supabase = Supabase.instance.client;
 
   @override
   void dispose() {
@@ -53,7 +55,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await supabase.auth.updateUser(UserAttributes(password: password));
+      await ApiClient().resetPassword(widget.email, widget.otp, password);
 
       if (mounted) {
         Navigator.push(
@@ -61,11 +63,11 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
           MaterialPageRoute(builder: (context) => const SuccessScreen()),
         );
       }
-    } on AuthException catch (e) {
-      if (isNetworkErrorMessage(e.message)) {
+    } on DioException catch (e) {
+      if (isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        _showError(e.message);
+        _showError(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
       }
     } catch (e) {
       final msg = mapAuthErrorMessage(e);

@@ -58,15 +58,31 @@ class WorkGroupTaskCard extends StatelessWidget {
               ),
               const SizedBox(width: 15),
               Expanded(
-                child: Text(
-                  task['title'] ?? '',
-                  style: GoogleFonts.outfit(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task['title'] ?? '',
+                      style: GoogleFonts.outfit(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      task['description'] ?? '',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 10),
@@ -78,18 +94,6 @@ class WorkGroupTaskCard extends StatelessWidget {
                 fontSize: 11,
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          // Deskripsi tugas (Gambar 2 menggunakan teks placeholder yang panjang)
-          Text(
-            task['description'] ?? '',
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
           if (detailInfo.isNotEmpty) ...[
             const SizedBox(height: 12),

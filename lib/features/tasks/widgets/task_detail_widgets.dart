@@ -202,6 +202,22 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
               color: Colors.black,
             ),
           ),
+          
+          if (task['category'] != null || task['subject'] != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              [
+                task['category'],
+                task['subject'],
+              ].where((x) => x != null && (x?.toString() ?? '').isNotEmpty).join(' | '),
+              style: GoogleFonts.outfit(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          
           const SizedBox(height: 10),
           // Description dengan see more / see less
           if (description.isNotEmpty) ...[
@@ -352,7 +368,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
             children: [
               Expanded(
                 child: Text(
-                  '$dateRange | ${task['class_name'] ?? 'D3 IT B'} | ${task['subject'] ?? 'Praktek Komputasi Awan'}',
+                  dateRange,
                   style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -524,9 +540,9 @@ class TaskProgressCard extends StatelessWidget {
             )
           else
             ...subtasks.map((st) {
-              final progressList = st['subtask_progress'] as List?;
+              final progressList = st['progress_entries'] as List?;
               final progressData = progressList?.firstWhere(
-                (p) => p['user_id'] == userId,
+                (p) => p['user_id'].toString().toLowerCase() == userId.toString().toLowerCase(),
                 orElse: () => null,
               );
               final prog = (progressData?['progress'] as num?)?.toInt() ?? 0;

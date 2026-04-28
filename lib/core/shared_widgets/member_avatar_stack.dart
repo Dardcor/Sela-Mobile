@@ -47,7 +47,9 @@ class MemberAvatarStack extends StatelessWidget {
             );
           }
 
-          final avatarUrl = members[idx]['profiles']?['avatar_url'];
+          final userMap = members[idx] as Map<String, dynamic>? ?? {};
+          final avatarUrl = userMap['avatar_url'] ?? userMap['profiles']?['avatar_url'];
+          
           return Positioned(
             left: idx * overlap,
             child: Container(

@@ -1,9 +1,13 @@
+import 'package:dio/dio.dart';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/api_client.dart';
+import 'dart:convert';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/shared_widgets/success_dialog.dart';
@@ -15,7 +19,7 @@ import '../widgets/task_detail_widgets.dart';
 ///
 /// Mendukung:
 /// - Multiple links (disimpan ke tabel task_links)
-/// - Upload file (PDF, Word, Excel, PPT, Gambar) ke Supabase storage
+/// - Upload file via ApiClient
 class AddProjectScreen extends StatefulWidget {
   const AddProjectScreen({super.key});
 
@@ -24,7 +28,6 @@ class AddProjectScreen extends StatefulWidget {
 }
 
 class _AddProjectScreenState extends State<AddProjectScreen> {
-  final supabase = Supabase.instance.client;
   bool isGroup = true;
   final titleCtrl = TextEditingController();
   final dateCtrl = TextEditingController();
@@ -63,11 +66,22 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   }
 
   Future<void> _fetchGroups() async {
-    final res = await supabase
-        .from('groups')
-        .select('*, group_members!inner(user_id)')
-        .eq('group_members.user_id', supabase.auth.currentUser!.id);
-    if (mounted) setState(() => userGroups = res);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userData = json.decode(prefs.getString('user_data') ?? '{}');
+      final userId = userData['id'];
+
+      final res = await ApiClient().dio.get('/groups/user/$userId');
+
+      if (mounted) {
+        setState(() {
+          final allGroups = res.data['groups'] ?? res.data['data'] ?? res.data;
+          userGroups = (allGroups as List).where((g) => g['role'] == 'leader').toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching groups: $e');
+    }
   }
 
   Future<void> _save() async {
@@ -112,64 +126,56 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
 
     setState(() => isLoading = true);
     try {
-      // 1. Simpan task ke tabel tasks
-      final taskRes = await supabase
-          .from('tasks')
-          .insert({
-            'title': titleCtrl.text,
-            'description': descCtrl.text,
-            'due_date': dateCtrl.text.isNotEmpty
-                ? DateFormat(
-                    'MM/dd/yyyy',
-                  ).parse(dateCtrl.text).toIso8601String()
-                : null,
-            'is_group': isGroup,
-            'group_id': isGroup ? selectedGroup['id'] : null,
-            'created_by': supabase.auth.currentUser!.id,
-          })
-          .select()
-          .single();
+      final prefs = await SharedPreferences.getInstance();
+      final userData = json.decode(prefs.getString('user_data') ?? '{}');
+      final userId = userData['id'];
 
-      final taskId = taskRes['id'] as String;
+      // 1. Simpan task ke tabel tasks via API
+      final taskRes = await ApiClient().dio.post('/tasks', data: {
+        'title': titleCtrl.text,
+        'description': descCtrl.text,
+        'due_date': dateCtrl.text.isNotEmpty
+            ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
+            : null,
+        'is_group': isGroup,
+        'group_id': isGroup ? selectedGroup['id'] : null,
+        'created_by': userId,
+        'category': userData['class_name'] ?? null,
+      });
 
-      // 2. Simpan multiple links ke tabel task_links
+      final taskId = taskRes.data['data']['id'].toString();
+
+      // 2. Simpan multiple links ke tabel task_links via API
       for (final link in _links) {
         if (link.trim().isNotEmpty) {
-          await supabase.from('task_links').insert({
-            'task_id': taskId,
-            'url': link.trim(),
+          // If the link doesn't have http/https, we add it to pass URL validation
+          String url = link.trim();
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://$url';
+          }
+          await ApiClient().dio.post('/tasks/$taskId/links', data: {
+            'url': url,
           });
         }
       }
 
-      // 3. Upload files ke Supabase storage bucket "task-files"
+      // 3. Upload files via API
       for (final file in _files) {
-        final path = '$taskId/${file.name}';
-        bool uploadSuccess = false;
+        final formData = FormData.fromMap({
+          'file': file.bytes != null
+              ? MultipartFile.fromBytes(file.bytes!, filename: file.name)
+              : await MultipartFile.fromFile(file.path!, filename: file.name),
+        });
 
-        if (file.bytes != null) {
-          // File dari web (karena withData: true)
-          await supabase.storage
-              .from('task-files')
-              .uploadBinary(path, file.bytes!);
-          uploadSuccess = true;
-        } else if (file.path != null) {
-          // File dari device asli (Android/iOS)
-          await supabase.storage
-              .from('task-files')
-              .upload(path, File(file.path!));
-          uploadSuccess = true;
-        }
-
-        if (uploadSuccess) {
-          await supabase.from('task_files').insert({
-            'task_id': taskId,
-            'file_name': file.name,
-            'file_path': path,
-            'file_type': file.extension,
-            'file_size': file.size,
-            'uploaded_by': supabase.auth.currentUser!.id,
-          });
+        final uploadRes = await ApiClient().dio.post('/upload/task-file', data: formData);
+        
+        if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
+            await ApiClient().dio.post('/tasks/$taskId/files', data: {
+                'file_name': file.name,
+                'file_path': uploadRes.data['url'],
+                'file_type': file.extension ?? '',
+                'file_size': file.size ?? 0,
+            });
         }
       }
 

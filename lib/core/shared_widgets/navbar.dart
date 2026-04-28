@@ -26,7 +26,7 @@ class _NavbarState extends State<Navbar> {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _screens = [
-      const DashboardScreen(),
+      DashboardScreen(onNavigateTab: _onItemTapped),
       const CalendarScreen(),
       const SizedBox.shrink(), // index 2 = tombol Add (tidak ada screen)
       const GroupScreen(),
