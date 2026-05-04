@@ -41,57 +41,26 @@ class CalendarHeader extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Baris 1: back button kiri | judul pill tengah | spacer kanan
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/dashboard',
-                          (route) => false,
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.primaryTeal,
-                        size: 24,
-                      ),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 35,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: Text(
+                    'Calender',
+                    style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTeal,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 35,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(40),
-                    ),
-                    child: Text(
-                      'Calender',
-                      style: GoogleFonts.outfit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryTeal,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  const SizedBox(width: 44), // spacer penyeimbang
-                ],
+                ),
               ),
               const SizedBox(height: 30),
               // Baris 2: navigasi bulan terpusat

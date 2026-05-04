@@ -1596,52 +1596,28 @@ class AddTaskTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(25, 55, 25, 0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        GestureDetector(
-          onTap: () {
-            FocusManager.instance.primaryFocus?.unfocus();
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (context.mounted) Navigator.pop(context);
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+    child: Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
             ),
-            child: const Icon(
-              Icons.arrow_back,
-              color: AppColors.primaryTeal,
-              size: 24,
-            ),
+          ],
+        ),
+        child: Text(
+          'Add Task',
+          style: GoogleFonts.outfit(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryTeal,
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Text(
-            'Add Task',
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryTeal,
-            ),
-          ),
-        ),
-        const SizedBox(width: 36),
-      ],
+      ),
     ),
   );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
 import '../widgets/auth_toggle_tab.dart';
@@ -12,7 +13,6 @@ import '../widgets/auth_buttons.dart';
 import '../utils/auth_error_utils.dart';
 import 'forgot_password_screen.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../../../core/services/notification_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -31,6 +31,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   List<String> _classes = [];
   String? _selectedClass;
+
+  final _secureStorage = const FlutterSecureStorage();
 
   final _emailLoginController = TextEditingController();
   final _passwordLoginController = TextEditingController();
@@ -66,11 +68,10 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _loadRememberedCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final remembered = prefs.getBool('remember_me') ?? false;
-    if (remembered) {
-      final savedEmail = prefs.getString('remembered_email') ?? '';
-      final savedPassword = prefs.getString('remembered_password') ?? '';
+    final remembered = await _secureStorage.read(key: 'remember_me');
+    if (remembered == 'true') {
+      final savedEmail = await _secureStorage.read(key: 'remembered_email') ?? '';
+      final savedPassword = await _secureStorage.read(key: 'remembered_password') ?? '';
       if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -120,6 +121,24 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
+      // --- START DUMMY LECTURER BYPASS ---
+      if (email == 'dosen@gmail.com' && password == 'dosen123') {
+        await Future.delayed(const Duration(seconds: 1)); // Simulate network
+        final prefs = await SharedPreferences.getInstance();
+        final mockUser = {
+          'id': 999,
+          'full_name': 'Jokowidodo',
+          'email': 'dosen@gmail.com',
+          'role': 'lecturer',
+          'class_name': 'Dosen'
+        };
+        await prefs.setString('auth_token', 'dummy_token_lecturer');
+        await prefs.setString('user_data', json.encode(mockUser));
+        if (mounted) Navigator.pushReplacementNamed(context, '/lecturer_navbar');
+        return;
+      }
+      // --- END DUMMY LECTURER BYPASS ---
+
       final res = await ApiClient().login(email, password);
 
       if (res.statusCode == 200 && mounted) {
@@ -128,19 +147,21 @@ class _AuthScreenState extends State<AuthScreen> {
         await prefs.setString('user_data', json.encode(res.data['user']));
         
         if (_rememberMe) {
-          await prefs.setBool('remember_me', true);
-          await prefs.setString('remembered_email', email);
-          await prefs.setString('remembered_password', password);
+          await _secureStorage.write(key: 'remember_me', value: 'true');
+          await _secureStorage.write(key: 'remembered_email', value: email);
+          await _secureStorage.write(key: 'remembered_password', value: password);
         } else {
-          await prefs.remove('remember_me');
-          await prefs.remove('remembered_email');
-          await prefs.remove('remembered_password');
+          await _secureStorage.delete(key: 'remember_me');
+          await _secureStorage.delete(key: 'remembered_email');
+          await _secureStorage.delete(key: 'remembered_password');
         }
 
-        // Setup notifications
-        NotificationService.setupGlobalListener();
-
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        final userRole = res.data['user']['role'];
+        if (userRole == 'lecturer') {
+          Navigator.pushReplacementNamed(context, '/lecturer_navbar');
+        } else {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
       }
     } on DioException catch (e) {
       debugPrint('🔥 LOGIN DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');
@@ -409,7 +430,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   const SizedBox(height: 30),
                                   SizedBox(
-                                    height: 540,
+                                    height: MediaQuery.of(context).size.height * 0.55,
                                     child: PageView(
                                       controller: _pageController,
                                       physics: const BouncingScrollPhysics(),

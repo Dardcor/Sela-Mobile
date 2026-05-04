@@ -1,7 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../constants/colors.dart';
 import 'api_client.dart';
 
 class NotificationService {
@@ -77,10 +77,6 @@ class NotificationService {
     }
   }
 
-  static void setupGlobalListener() {
-    // Removed Supabase realtime listener
-  }
-
   static Future<void> showNotification({
     required int id,
     required String title,
@@ -88,9 +84,6 @@ class NotificationService {
     String? payload,
   }) async {
     debugPrint('Triggering Native Notification Display...');
-
-    // Gunakan warna utama aplikasi (Teal)
-    const Color selaPrimaryColor = Color(0xFF008080); // Warna Teal
 
     final AndroidNotificationDetails
     androidDetails = AndroidNotificationDetails(
@@ -104,7 +97,7 @@ class NotificationService {
       largeIcon: const DrawableResourceAndroidBitmap(
         '@mipmap/ic_launcher',
       ), // Logo muncul besar & berwarna di samping
-      color: selaPrimaryColor, // Memberikan warna pada ikon & teks notifikasi
+      color: AppColors.primaryTeal, // Memberikan warna pada ikon & teks notifikasi
       colorized: true, // Mengaktifkan pewarnaan di versi Android yang mendukung
       playSound: true,
       enableVibration: true,

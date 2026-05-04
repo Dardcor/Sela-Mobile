@@ -37,7 +37,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     _fetchNotifications();
-    NotificationService.setupGlobalListener(); // Extra insurance
   }
 
   @override

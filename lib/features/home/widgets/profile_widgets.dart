@@ -47,31 +47,7 @@ class ProfileHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              GestureDetector(
-                onTap: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/dashboard',
-                      (route) => false,
-                    );
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: AppColors.primaryTeal,
-                    size: 24,
-                  ),
-                ),
-              ),
+              const SizedBox(width: 44), // Pengganti tombol back agar judul tetap di tengah
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -318,15 +294,34 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Change Password',
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryTeal,
-                  ),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Change Password',
+                        style: GoogleFonts.outfit(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(
+                          Icons.close,
+                          color: AppColors.primaryTeal,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 15),
                 const Divider(color: AppColors.primaryTeal, thickness: 1.2),
                 const SizedBox(height: 20),
                 
@@ -1159,5 +1154,137 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
         _newAbilityCtrl.clear();
       });
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DashedBorderPainter — Untuk menggambar border putus-putus
+// ─────────────────────────────────────────────────────────────────────────────
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double borderRadius;
+  final double strokeWidth;
+  final double dashWidth;
+  final double dashSpace;
+
+  DashedBorderPainter({
+    required this.color,
+    this.borderRadius = 18,
+    this.strokeWidth = 1.5,
+    this.dashWidth = 5,
+    this.dashSpace = 4,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    var path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(borderRadius),
+      ));
+
+    // Mengubah path menjadi dashed path
+    PathMetrics pathMetrics = path.computeMetrics();
+    Path dashedPath = Path();
+    for (PathMetric pathMetric in pathMetrics) {
+      double distance = 0.0;
+      while (distance < pathMetric.length) {
+        dashedPath.addPath(
+          pathMetric.extractPath(distance, distance + dashWidth),
+          Offset.zero,
+        );
+        distance += dashWidth + dashSpace;
+      }
+    }
+
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LecturerRegistrationModal — Dialog konfirmasi daftar dosen
+// ─────────────────────────────────────────────────────────────────────────────
+class LecturerRegistrationModal extends StatelessWidget {
+  final VoidCallback onConfirm;
+
+  const LecturerRegistrationModal({super.key, required this.onConfirm});
+
+  @override
+  Widget build(BuildContext context) {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+      child: Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 25),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Register to become a\nlecturer',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTeal,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Divider(color: AppColors.primaryTeal, thickness: 1.2),
+                const SizedBox(height: 20),
+                Text(
+                  'Use this feature to request a change in account access rights to the Lecturer level. Activating this role will unlock teaching-specific modules and functions. The system will create a request ticket and send it to the Administrator. Your account status will be updated as soon as the Administrator approves it.',
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    color: Colors.black87,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(height: 40),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    onConfirm();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Confirm',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
@@ -56,7 +57,20 @@ class _SplashScreenState extends State<SplashScreen>
     final token = prefs.getString('auth_token');
     
     if (token != null) {
-      // Jika ada sesi aktif, langsung ke Dashboard
+      // Jika ada sesi aktif, periksa role
+      final userDataStr = prefs.getString('user_data');
+      if (userDataStr != null) {
+        try {
+          final userData = jsonDecode(userDataStr);
+          if (userData['role'] == 'lecturer') {
+            Navigator.pushReplacementNamed(context, '/lecturer_navbar');
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error parsing user data in splash: $e');
+        }
+      }
+      // Fallback ke mahasiswa
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       // Jika tidak ada, ke halaman Auth

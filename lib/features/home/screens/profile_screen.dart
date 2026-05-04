@@ -248,6 +248,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showLecturerRegistration() {
+    showDialog(
+      context: context,
+      builder: (context) => LecturerRegistrationModal(
+        onConfirm: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Request sent to Administrator successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.bgLight,
@@ -291,6 +307,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       elevation: 5,
                       shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                // Are you a lecturer? Button
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 25),
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: DashedBorderPainter(
+                      color: AppColors.primaryTeal,
+                      borderRadius: 18,
+                    ),
+                    child: InkWell(
+                      onTap: _showLecturerRegistration,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.badge_outlined, color: AppColors.primaryTeal),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Are you a lecturer?',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: AppColors.primaryTeal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

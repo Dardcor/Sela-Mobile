@@ -17,6 +17,8 @@ import 'features/home/screens/profile_screen.dart';
 import 'features/groups/screens/group_detail_screen.dart';
 import 'features/tasks/screens/independent_task_detail_screen.dart';
 import 'features/notifications/screens/notification_screen.dart';
+import 'features/lecturer/screens/lecturer_navbar.dart';
+import 'features/lecturer/screens/lecturer_notification_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/constants/colors.dart';
@@ -39,11 +41,6 @@ void main() async {
   }
 
   runApp(const MyApp());
-
-  // Setup global listener after app starts for better reliability
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    NotificationService.setupGlobalListener();
-  });
 }
 
 class MyApp extends StatelessWidget {
@@ -69,6 +66,8 @@ class MyApp extends StatelessWidget {
       '/': (context) => const SplashScreen(),
       '/auth': (context) => const AuthScreen(),
       '/dashboard': (context) => const Navbar(initialIndex: 0),
+      '/lecturer_navbar': (context) => const LecturerNavbar(initialIndex: 0),
+      '/lecturer_notifications': (context) => const LecturerNotificationScreen(),
       '/forgot_password': (context) => const ForgotPasswordScreen(),
       '/new_password': (context) {
         final args = ModalRoute.of(context)?.settings.arguments as Map?;

@@ -1180,65 +1180,32 @@ class _GroupScreenState extends State<GroupScreen> {
                 25,
                 20,
               ),
-              child: Row(
-                children: [
-                  // Tombol back — kiri
-                  GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/dashboard',
-                          (route) => false,
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 35,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
                       ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.primaryTeal,
-                        size: 24,
-                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'Group',
+                    style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryTeal,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const Spacer(),
-                  // Judul — pill putih tengah
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 35,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(40),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'Group',
-                      style: GoogleFonts.outfit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryTeal,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Penyeimbang ukuran tombol back (agar judul tetap center)
-                  const SizedBox(width: 44),
-                ],
+                ),
               ),
             ),
           ),
