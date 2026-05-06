@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 import 'lecturer_task_overview_screen.dart';
-import 'lecturer_mock_data.dart';
 
-class LecturerClassDetailScreen extends StatelessWidget {
+class LecturerClassDetailScreen extends StatefulWidget {
   final Map<String, dynamic> classData;
 
   const LecturerClassDetailScreen({
@@ -13,15 +13,58 @@ class LecturerClassDetailScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Filter tasks based on class ID
-    final tasks = LecturerMockData.classTasks.where((task) => task['class_id'] == classData['id']).toList();
+  State<LecturerClassDetailScreen> createState() => _LecturerClassDetailScreenState();
+}
 
+class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
+  List<Map<String, dynamic>> _tasks = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTasks();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchTasks() async {
+    try {
+      final response = await ApiClient().dio.get('lecturer/classes/${widget.classData['id']}/tasks');
+      setState(() {
+        _tasks = List<Map<String, dynamic>>.from(response.data['data'] ?? []);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() { _isLoading = false; });
+      debugPrint('ClassDetail fetch error: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredTasks {
+    if (_searchQuery.isEmpty) return _tasks;
+    final query = _searchQuery.toLowerCase();
+    return _tasks.where((t) {
+      final taskName = (t['task_name']?.toString() ?? t['title']?.toString() ?? '').toLowerCase();
+      final groupName = (t['group_name']?.toString() ?? '').toLowerCase();
+      final subject = (t['subject']?.toString() ?? '').toLowerCase();
+      return taskName.contains(query) || groupName.contains(query) || subject.contains(query);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [
-          // Background Header (Solid Teal dengan radius bawah melengkung)
+          // Background Header
           Container(
             height: 220,
             decoration: const BoxDecoration(
@@ -91,7 +134,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 5),
                       Text(
-                        classData['name'],
+                        widget.classData['name'] ?? 'Class Name',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 32,
@@ -112,7 +155,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                                 const Icon(Icons.group_outlined, color: AppColors.primaryTeal, size: 16),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '${classData['total_groups']} Group',
+                                  '${widget.classData['total_groups'] ?? 0} Group',
                                   style: GoogleFonts.outfit(
                                     color: AppColors.primaryTeal,
                                     fontSize: 12,
@@ -134,7 +177,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                                 const Icon(Icons.assignment_outlined, color: AppColors.primaryTeal, size: 16),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '${classData['total_tasks']} Task',
+                                  '${widget.classData['total_tasks'] ?? 0} Task',
                                   style: GoogleFonts.outfit(
                                     color: AppColors.primaryTeal,
                                     fontSize: 12,
@@ -173,11 +216,22 @@ class LecturerClassDetailScreen extends StatelessWidget {
                             ],
                           ),
                           child: TextField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() => _searchQuery = v),
                             decoration: InputDecoration(
                               icon: const Icon(Icons.search, color: Colors.grey),
                               hintText: 'Search a task...',
                               hintStyle: GoogleFonts.outfit(color: Colors.grey),
                               border: InputBorder.none,
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      },
+                                      child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -187,19 +241,28 @@ class LecturerClassDetailScreen extends StatelessWidget {
                       
                       // Task List
                       Expanded(
-                        child: tasks.isEmpty 
+                        child: _isLoading
+                        ? const Center(child: CircularProgressIndicator(color: AppColors.primaryTeal))
+                        : _filteredTasks.isEmpty
                         ? Center(
                             child: Text(
-                              'No tasks found for this class',
+                              _searchQuery.isNotEmpty
+                                  ? 'No results for "$_searchQuery"'
+                                  : 'No tasks found for this class',
                               style: GoogleFonts.outfit(color: Colors.grey),
                             ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                            itemCount: tasks.length,
-                            itemBuilder: (context, index) {
-                              return _buildTaskCard(context, tasks[index]);
-                            },
+                        : RefreshIndicator(
+                            onRefresh: _fetchTasks,
+                            color: AppColors.primaryTeal,
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                              itemCount: _filteredTasks.length,
+                              itemBuilder: (context, index) {
+                                return _buildTaskCard(context, _filteredTasks[index]);
+                              },
+                            ),
                           ),
                       ),
                     ],
@@ -214,6 +277,10 @@ class LecturerClassDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTaskCard(BuildContext context, Map<String, dynamic> taskData) {
+    // Collect members for avatars
+    final List<dynamic> membersData = taskData['members'] ?? [];
+    final int extraMembers = membersData.length > 3 ? membersData.length - 3 : 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(20),
@@ -248,7 +315,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      taskData['group_name'],
+                      taskData['group_name'] ?? 'Group Name',
                       style: GoogleFonts.outfit(
                         color: AppColors.primaryTeal,
                         fontSize: 12,
@@ -256,7 +323,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      taskData['task_name'],
+                      taskData['task_name'] ?? taskData['title'] ?? 'Task Name',
                       style: GoogleFonts.outfit(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -276,7 +343,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    '${taskData['progress']}%',
+                    '${taskData['progress'] ?? 0}%',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -289,7 +356,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 15),
           Text(
-            '${taskData['date_range']} | ${taskData['subject']}',
+            '${taskData['date_range'] ?? taskData['deadline'] ?? ''} | ${taskData['subject'] ?? ''}',
             style: GoogleFonts.outfit(
               fontSize: 11,
               color: Colors.grey,
@@ -299,51 +366,82 @@ class LecturerClassDetailScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Avatar Stack Mockup
+              // Avatar Stack
               SizedBox(
                 width: 100,
                 height: 30,
                 child: Stack(
                   children: [
-                    _buildAvatar(0),
-                    _buildAvatar(20),
-                    _buildAvatar(40),
-                    Positioned(
-                      left: 60,
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '3+',
-                            style: GoogleFonts.outfit(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[600],
+                    if (membersData.isNotEmpty) _buildAvatar(0, membersData[0]['avatar_url']),
+                    if (membersData.length > 1) _buildAvatar(20, membersData[1]['avatar_url']),
+                    if (membersData.length > 2) _buildAvatar(40, membersData[2]['avatar_url']),
+                    if (extraMembers > 0)
+                      Positioned(
+                        left: 60,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$extraMembers+',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    if (membersData.isEmpty) ...[
+                      _buildAvatar(0, null),
+                      _buildAvatar(20, null),
+                      _buildAvatar(40, null),
+                      Positioned(
+                        left: 60,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '3+',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]
                   ],
                 ),
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LecturerTaskOverviewScreen(
-                        taskData: taskData,
-                        className: classData['name'],
+                  final String taskId = taskData['id']?.toString() ?? '';
+                  if (taskId.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LecturerTaskOverviewScreen(
+                          taskId: taskId,
+                          className: widget.classData['name'] ?? '',
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -368,7 +466,7 @@ class LecturerClassDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(double leftPosition) {
+  Widget _buildAvatar(double leftPosition, String? avatarUrl) {
     return Positioned(
       left: leftPosition,
       child: Container(
@@ -380,10 +478,19 @@ class LecturerClassDetailScreen extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: Image.asset(
-            'assets/images/default_profile.png',
-            fit: BoxFit.cover,
-          ),
+          child: (avatarUrl != null && (avatarUrl.startsWith('http') || avatarUrl.startsWith('https')))
+              ? Image.network(
+                  avatarUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                    'assets/images/default_profile.png',
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Image.asset(
+                  'assets/images/default_profile.png',
+                  fit: BoxFit.cover,
+                ),
         ),
       ),
     );

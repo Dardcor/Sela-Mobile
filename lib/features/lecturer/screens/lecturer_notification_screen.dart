@@ -1,46 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/api_client.dart';
 
-class LecturerNotificationScreen extends StatelessWidget {
+class LecturerNotificationScreen extends StatefulWidget {
   const LecturerNotificationScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock Data Notifikasi Dosen
-    final List<Map<String, String>> notifications = [
-      {
-        'title': 'Tugas Selesai',
-        'message': 'Kelompok 1 (2 D3 IT B) telah menyelesaikan tugas "Makalah AWS".',
-        'time': '10 menit yang lalu',
-        'icon': 'task_alt',
-      },
-      {
-        'title': 'Tugas Selesai',
-        'message': 'Kelompok 3 (1 D3 IT A) telah menyelesaikan tugas "Implementasi Jaringan".',
-        'time': '1 jam yang lalu',
-        'icon': 'task_alt',
-      },
-      {
-        'title': 'Subtask Selesai',
-        'message': 'Syahrul (Kelompok 1) menyelesaikan subtask "Bab 2: bagaimana cara daftar akun aws".',
-        'time': '2 jam yang lalu',
-        'icon': 'check_circle_outline',
-      },
-      {
-        'title': 'Tugas Selesai',
-        'message': 'Kelompok 2 (2 D3 IT B) telah menyelesaikan tugas "Setup Docker Compose".',
-        'time': '1 hari yang lalu',
-        'icon': 'task_alt',
-      },
-      {
-        'title': 'Peringatan Tenggat',
-        'message': 'Tugas "Makalah AWS" (2 D3 IT B) akan ditutup dalam 12 Hari.',
-        'time': '2 hari yang lalu',
-        'icon': 'warning_amber_rounded',
-      },
-    ];
+  State<LecturerNotificationScreen> createState() => _LecturerNotificationScreenState();
+}
 
+class _LecturerNotificationScreenState extends State<LecturerNotificationScreen> {
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
+    try {
+      final response = await ApiClient().dio.get('notifications');
+      setState(() {
+        _notifications = List<Map<String, dynamic>>.from(response.data['notifications'] ?? []);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() { _isLoading = false; });
+      debugPrint('Notifications fetch error: $e');
+    }
+  }
+
+  String _formatRelativeTime(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr);
+      final difference = DateTime.now().difference(date);
+      
+      if (difference.inDays > 1) {
+        return '${difference.inDays} days ago';
+      } else if (difference.inDays == 1) {
+        return '1 day ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hours ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} mins ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return dateStr.split('T').first;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: Stack(
@@ -91,99 +107,110 @@ class LecturerNotificationScreen extends StatelessWidget {
                 
                 // Notification List
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    itemCount: notifications.length,
-                    itemBuilder: (context, index) {
-                      final notif = notifications[index];
-                      
-                      // Menentukan ikon berdasarkan tipe string
-                      IconData iconData = Icons.notifications;
-                      Color iconColor = AppColors.primaryTeal;
-                      if (notif['icon'] == 'task_alt') {
-                        iconData = Icons.task_alt;
-                        iconColor = Colors.green;
-                      } else if (notif['icon'] == 'check_circle_outline') {
-                        iconData = Icons.check_circle_outline;
-                        iconColor = Colors.blue;
-                      } else if (notif['icon'] == 'warning_amber_rounded') {
-                        iconData = Icons.warning_amber_rounded;
-                        iconColor = Colors.orange;
-                      }
+                  child: _isLoading 
+                    ? const Center(child: CircularProgressIndicator())
+                    : _notifications.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No notifications',
+                            style: GoogleFonts.outfit(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                          itemCount: _notifications.length,
+                          itemBuilder: (context, index) {
+                            final notif = _notifications[index];
+                            final type = notif['type']?.toString() ?? '';
+                            
+                            // Menentukan ikon berdasarkan tipe
+                            IconData iconData = Icons.notifications;
+                            Color iconColor = AppColors.primaryTeal;
+                            
+                            if (type == 'task_complete') {
+                              iconData = Icons.task_alt;
+                              iconColor = Colors.green;
+                            } else if (type == 'subtask_complete') {
+                              iconData = Icons.check_circle_outline;
+                              iconColor = Colors.blue;
+                            } else if (type == 'deadline_warning') {
+                              iconData = Icons.warning_amber_rounded;
+                              iconColor = Colors.orange;
+                            }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 15),
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 15),
+                              padding: const EdgeInsets.all(15),
                               decoration: BoxDecoration(
-                                color: iconColor.withOpacity(0.1),
-                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              child: Icon(iconData, color: iconColor, size: 24),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Column(
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          notif['title']!,
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        notif['time']!,
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 10,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: iconColor.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(iconData, color: iconColor, size: 24),
                                   ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    notif['message']!,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                      height: 1.4,
+                                  const SizedBox(width: 15),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                notif['title']?.toString() ?? 'Notification',
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black87,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              _formatRelativeTime(notif['created_at']),
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 10,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          notif['message']?.toString() ?? '',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 13,
+                                            color: Colors.black54,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),

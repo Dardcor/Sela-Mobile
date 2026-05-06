@@ -21,7 +21,7 @@ class _LecturerNavbarState extends State<LecturerNavbar> {
     _selectedIndex = widget.initialIndex;
     // Dosen hanya punya 2 tab: Dashboard dan Profile
     _screens = [
-      const LecturerDashboardScreen(),
+      LecturerDashboardScreen(onNavigateToProfile: () => _onItemTapped(1)),
       const LecturerProfileScreen(),
     ];
   }

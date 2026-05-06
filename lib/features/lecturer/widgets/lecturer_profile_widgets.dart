@@ -1,23 +1,28 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/constants/colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LecturerEditProfileModal - Untuk mengubah nama dosen
+// LecturerEditProfileModal - Edit name + change profile photo
 // ─────────────────────────────────────────────────────────────────────────────
 class LecturerEditProfileModal extends StatefulWidget {
   final Map<String, dynamic> profile;
   final ValueChanged<Map<String, dynamic>> onSave;
+  final Function(String path) onPhotoChange;
 
   const LecturerEditProfileModal({
     super.key,
     required this.profile,
     required this.onSave,
+    required this.onPhotoChange,
   });
 
   @override
-  State<LecturerEditProfileModal> createState() => _LecturerEditProfileModalState();
+  State<LecturerEditProfileModal> createState() =>
+      _LecturerEditProfileModalState();
 }
 
 class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
@@ -107,7 +112,8 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                       right: 0,
                       child: GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close, color: AppColors.primaryTeal, size: 24),
+                        child: const Icon(Icons.close,
+                            color: AppColors.primaryTeal, size: 24),
                       ),
                     ),
                   ],
@@ -115,14 +121,98 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                 const SizedBox(height: 15),
                 const Divider(color: AppColors.primaryTeal, thickness: 1.2),
                 const SizedBox(height: 20),
-                
+
+                // ── Avatar with tap-to-change ──
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    try {
+                      final ImagePicker picker = ImagePicker();
+                      final XFile? image = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 70,
+                      );
+                      if (image != null && mounted) {
+                        widget.onPhotoChange(image.path);
+                        Navigator.pop(context);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..clearSnackBars()
+                          ..showSnackBar(
+                            SnackBar(
+                              duration: const Duration(milliseconds: 1500),
+                              content: Text('Failed to open gallery: $e'),
+                            ),
+                          );
+                      }
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primaryTeal.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 45,
+                          backgroundColor: const Color(0xFFE0F2F1),
+                          child: ClipOval(
+                            child: (widget.profile['avatar'] != null &&
+                                    widget.profile['avatar']
+                                        .toString()
+                                        .startsWith('http'))
+                                ? Image.network(
+                                    widget.profile['avatar'],
+                                    width: 90,
+                                    height: 90,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Image.asset(
+                                      'assets/images/default_profile.png',
+                                      width: 90,
+                                      height: 90,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Image.asset(
+                                    'assets/images/default_profile.png',
+                                    width: 90,
+                                    height: 90,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Edit Photo Profile',
+                        style: GoogleFonts.outfit(
+                          color: AppColors.primaryTeal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 25),
+
                 // Form Fields
                 _buildField('Nama Lengkap', _nameCtrl),
-                
+
                 const SizedBox(height: 40),
                 GestureDetector(
                   onTap: () {
-                    final updatedProfile = Map<String, dynamic>.from(widget.profile);
+                    final updatedProfile =
+                        Map<String, dynamic>.from(widget.profile);
                     updatedProfile['name'] = _nameCtrl.text.trim();
                     widget.onSave(updatedProfile);
                     Navigator.pop(context);
@@ -156,52 +246,59 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LecturerEditClassModal - Untuk menambah/menghapus kelas yang dipantau
+// LecturerPickClassModal - Pick class from database list
 // ─────────────────────────────────────────────────────────────────────────────
-class LecturerEditClassModal extends StatefulWidget {
+class LecturerPickClassModal extends StatefulWidget {
   final List<Map<String, dynamic>> currentClasses;
-  final ValueChanged<List<Map<String, dynamic>>> onSave;
+  final ValueChanged<List<String>> onSave;
 
-  const LecturerEditClassModal({
+  const LecturerPickClassModal({
     super.key,
     required this.currentClasses,
     required this.onSave,
   });
 
   @override
-  State<LecturerEditClassModal> createState() => _LecturerEditClassModalState();
+  State<LecturerPickClassModal> createState() =>
+      _LecturerPickClassModalState();
 }
 
-class _LecturerEditClassModalState extends State<LecturerEditClassModal> {
-  late List<Map<String, dynamic>> _tempClasses;
-  final _newClassCtrl = TextEditingController();
+class _LecturerPickClassModalState extends State<LecturerPickClassModal> {
+  List<Map<String, dynamic>> _allClasses = [];
+  final Set<String> _selectedNames = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Bikin salinan dari list aslinya agar tak langsung mengubah data asli
-    _tempClasses = List<Map<String, dynamic>>.from(widget.currentClasses);
+    for (final c in widget.currentClasses) {
+      final name = c['name']?.toString() ?? '';
+      if (name.isNotEmpty) _selectedNames.add(name);
+    }
+    _fetchAllClasses();
   }
 
-  @override
-  void dispose() {
-    _newClassCtrl.dispose();
-    super.dispose();
-  }
-
-  void _addClass() {
-    final text = _newClassCtrl.text.trim();
-    if (text.isNotEmpty) {
+  Future<void> _fetchAllClasses() async {
+    try {
+      final response = await ApiClient().dio.get('classes');
+      final data = response.data;
+      List<dynamic> rawList;
+      if (data is Map && data.containsKey('data')) {
+        rawList = data['data'] as List<dynamic>;
+      } else if (data is List) {
+        rawList = data;
+      } else {
+        rawList = [];
+      }
       setState(() {
-        _tempClasses.add({
-          'id': 'c_new_${DateTime.now().millisecondsSinceEpoch}',
-          'name': text,
-          'total_groups': 0,
-          'total_tasks': 0,
-          'last_updated': 'Just now',
-        });
-        _newClassCtrl.clear();
+        _allClasses = List<Map<String, dynamic>>.from(rawList);
+        _isLoading = false;
       });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      debugPrint('Fetch classes error: $e');
     }
   }
 
@@ -211,7 +308,8 @@ class _LecturerEditClassModalState extends State<LecturerEditClassModal> {
       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
       child: Dialog(
         backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(25, 30, 25, 30),
@@ -224,7 +322,7 @@ class _LecturerEditClassModalState extends State<LecturerEditClassModal> {
                   Align(
                     alignment: Alignment.center,
                     child: Text(
-                      'Edit Class',
+                      'Pick Class',
                       style: GoogleFonts.outfit(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -236,99 +334,76 @@ class _LecturerEditClassModalState extends State<LecturerEditClassModal> {
                     right: 0,
                     child: GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, color: AppColors.primaryTeal, size: 24),
+                      child: const Icon(Icons.close,
+                          color: AppColors.primaryTeal, size: 24),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 15),
               const Divider(color: AppColors.primaryTeal, thickness: 1.2),
-              const SizedBox(height: 20),
-              
-              // Dynamic List
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      ..._tempClasses.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        var classItem = entry.value;
-                        return Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    classItem['name'],
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.primaryTeal,
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _tempClasses.removeAt(index);
-                                    });
-                                  },
-                                  child: const Icon(
-                                    Icons.remove_circle_outline,
-                                    color: Colors.red,
-                                    size: 24,
-                                  ),
-                                ),
-                              ],
+              const SizedBox(height: 10),
+
+              // Class list
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child:
+                      CircularProgressIndicator(color: AppColors.primaryTeal),
+                )
+              else if (_allClasses.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 30),
+                  child: Text(
+                    'No classes available',
+                    style:
+                        GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
+                  ),
+                )
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: _allClasses.map((classItem) {
+                        final name = classItem['name']?.toString() ?? '';
+                        final isSelected = _selectedNames.contains(name);
+                        return CheckboxListTile(
+                          value: isSelected,
+                          activeColor: AppColors.primaryTeal,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          title: Text(
+                            name,
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected
+                                  ? AppColors.primaryTeal
+                                  : Colors.grey[700],
                             ),
-                            Divider(height: 20, color: Colors.grey.shade200),
-                          ],
+                          ),
+                          onChanged: (checked) {
+                            setState(() {
+                              if (checked == true) {
+                                _selectedNames.add(name);
+                              } else {
+                                _selectedNames.remove(name);
+                              }
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
                         );
-                      }),
-                      
-                      // Input Form to add new Class
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _newClassCtrl,
-                              style: GoogleFonts.outfit(
-                                fontSize: 16,
-                                color: AppColors.primaryTeal,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Add new class...',
-                                hintStyle: GoogleFonts.outfit(
-                                  fontSize: 16,
-                                  color: Colors.grey.shade400,
-                                ),
-                                border: InputBorder.none,
-                              ),
-                              onSubmitted: (_) => _addClass(),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _addClass,
-                            child: const Icon(
-                              Icons.add_rounded,
-                              color: AppColors.primaryTeal,
-                              size: 28,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Divider(height: 10, color: Colors.grey.shade200),
-                    ],
+                      }).toList(),
+                    ),
                   ),
                 ),
-              ),
-              
-              const SizedBox(height: 40),
+
+              const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  _addClass(); // Auto-add if text is left in the input
-                  widget.onSave(_tempClasses);
+                  widget.onSave(_selectedNames.toList());
                   Navigator.pop(context);
                 },
                 child: Container(

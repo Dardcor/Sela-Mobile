@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
+import '../../../core/services/notification_service.dart';
 import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
@@ -121,30 +122,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
-      // --- START DUMMY LECTURER BYPASS ---
-      if (email == 'dosen@gmail.com' && password == 'dosen123') {
-        await Future.delayed(const Duration(seconds: 1)); // Simulate network
-        final prefs = await SharedPreferences.getInstance();
-        final mockUser = {
-          'id': 999,
-          'full_name': 'Jokowidodo',
-          'email': 'dosen@gmail.com',
-          'role': 'lecturer',
-          'class_name': 'Dosen'
-        };
-        await prefs.setString('auth_token', 'dummy_token_lecturer');
-        await prefs.setString('user_data', json.encode(mockUser));
-        if (mounted) Navigator.pushReplacementNamed(context, '/lecturer_navbar');
-        return;
-      }
-      // --- END DUMMY LECTURER BYPASS ---
-
       final res = await ApiClient().login(email, password);
 
       if (res.statusCode == 200 && mounted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', res.data['token']);
         await prefs.setString('user_data', json.encode(res.data['user']));
+        
+        // Register FCM device token
+        await NotificationService.registerDeviceToken();
         
         if (_rememberMe) {
           await _secureStorage.write(key: 'remember_me', value: 'true');

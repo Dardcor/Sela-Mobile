@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -57,6 +58,9 @@ class _SplashScreenState extends State<SplashScreen>
     final token = prefs.getString('auth_token');
     
     if (token != null) {
+      // Re-register FCM token on auto-login (tokens can rotate)
+      NotificationService.registerDeviceToken();
+
       // Jika ada sesi aktif, periksa role
       final userDataStr = prefs.getString('user_data');
       if (userDataStr != null) {

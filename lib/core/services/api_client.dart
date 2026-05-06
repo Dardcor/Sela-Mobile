@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import '../../main.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -15,7 +16,7 @@ class ApiClient {
   }
 
   Future<void> init() async {
-    String baseUrl = dotenv.env['LARAVEL_BASE_URL'] ?? 'http://10.0.2.2:8000/api';
+    String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000/api';
     if (!baseUrl.endsWith('/')) {
       baseUrl += '/';
     }
@@ -44,11 +45,15 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
-          // Handle token expiration or unauthorized errors globally if needed
           if (e.response?.statusCode == 401) {
             final prefs = await SharedPreferences.getInstance();
             await prefs.remove('auth_token');
             await prefs.remove('user_data');
+
+            final navigator = MyApp.navigatorKey.currentState;
+            if (navigator != null) {
+              navigator.pushNamedAndRemoveUntil('/auth', (_) => false);
+            }
           }
           return handler.next(e);
         },

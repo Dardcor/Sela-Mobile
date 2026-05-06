@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 
 import '../../../core/services/api_client.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/widgets/auth_form_fields.dart';
 
@@ -126,6 +127,7 @@ class ProfileHeader extends StatelessWidget {
     );
 
     if (confirmed == true) {
+      await NotificationService.unregisterDeviceToken();
       await ApiClient().logout();
       if (context.mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);

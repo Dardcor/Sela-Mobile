@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/shared_widgets/navbar.dart';
 import 'core/widgets/connectivity_wrapper.dart';
 import 'features/home/screens/splash_screen.dart';
@@ -30,15 +31,25 @@ import 'core/services/api_client.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notifications
-  await NotificationService.init();
-
+  // Initialize Firebase FIRST
   try {
-    await dotenv.load(fileName: ".env");
+    await Firebase.initializeApp();
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
+
+  // Load env and API client BEFORE notifications — 
+  // NotificationService uses ApiClient().dio internally
+  try {
+    await dotenv.load(fileName: '.env');
     await ApiClient().init();
   } catch (e) {
     debugPrint('Initialization error: $e');
   }
+
+  // Initialize notifications (includes FCM setup — needs ApiClient ready)
+  await NotificationService.init();
 
   runApp(const MyApp());
 }
@@ -46,10 +57,13 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'SELA',
     debugShowCheckedModeBanner: false,
+    navigatorKey: navigatorKey,
     theme: ThemeData(
       colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryTeal),
       useMaterial3: true,

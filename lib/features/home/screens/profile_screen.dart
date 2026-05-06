@@ -249,16 +249,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLecturerRegistration() {
+    // Capture the ScaffoldMessenger using the main screen's context,
+    // NOT the dialog's context, because the dialog is immediately popped.
+    final messenger = ScaffoldMessenger.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => LecturerRegistrationModal(
-        onConfirm: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Request sent to Administrator successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+      builder: (dialogContext) => LecturerRegistrationModal(
+        onConfirm: () async {
+          try {
+            await ApiClient().dio.post('users/request-lecturer');
+            if (mounted) {
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Request sent to Administrator successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('Failed to send request: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
         },
       ),
     );
