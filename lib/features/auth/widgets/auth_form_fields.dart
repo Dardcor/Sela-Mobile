@@ -122,7 +122,7 @@ class AuthPasswordField extends StatelessWidget {
   }
 }
 
-/// Input field dropdown untuk memilih kelas.
+/// Input field dropdown untuk memilih kelas menggunakan DropdownButtonHideUnderline.
 class AuthDropdownField extends StatelessWidget {
   final String label;
   final String hint;
@@ -143,64 +143,78 @@ class AuthDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return DropdownMenu<String>(
-          width: constraints.maxWidth,
-          initialSelection: value,
-          onSelected: onChanged,
-          leadingIcon: Icon(icon, color: Colors.black54),
-          trailingIcon: Transform.translate(
-            offset: const Offset(8, 0),
-            child: const Icon(Icons.expand_more_rounded, color: Colors.black54),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 60,
+          padding: const EdgeInsets.only(left: 20, right: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: Colors.grey[400]!,
+              width: 1.0,
+            ),
+            color: Colors.transparent,
           ),
-          selectedTrailingIcon: Transform.translate(
-            offset: const Offset(8, 0),
-            child: const Icon(Icons.expand_less_rounded, color: Colors.black54),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.black54),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: value,
+                    hint: Text(
+                      hint,
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                    ),
+                    items: items.map((e) {
+                      return DropdownMenuItem<String>(
+                        value: e,
+                        child: Text(
+                          e,
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: Colors.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: onChanged,
+                    icon: const Icon(
+                      Icons.expand_more_rounded,
+                      color: Colors.black54,
+                    ),
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    menuMaxHeight: 250,
+                  ),
+                ),
+              ),
+            ],
           ),
-          textStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
-          menuStyle: MenuStyle(
-            backgroundColor: WidgetStateProperty.all(Colors.white),
-            shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+        ),
+        Positioned(
+          left: 15,
+          top: -8,
+          child: Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: Colors.black54,
+                fontSize: 12,
               ),
             ),
           ),
-          inputDecorationTheme: InputDecorationTheme(
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            labelStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black54),
-            floatingLabelStyle: GoogleFonts.outfit(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-            hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 18,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide(color: Colors.grey[400]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(color: Colors.black87, width: 1.5),
-            ),
-          ),
-          label: Text(label),
-          hintText: hint,
-          dropdownMenuEntries: items
-              .map((e) => DropdownMenuEntry<String>(
-                    value: e,
-                    label: e,
-                    style: MenuItemButton.styleFrom(
-                      textStyle: GoogleFonts.outfit(fontSize: 14, color: Colors.black),
-                    ),
-                  ))
-              .toList(),
-        );
-      },
+        ),
+      ],
     );
   }
 }

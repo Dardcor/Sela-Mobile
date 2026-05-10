@@ -25,6 +25,20 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
   @override
   void initState() {
     super.initState();
+    _fetchTaskOverview();
+  }
+
+  Future<void> _fetchTaskOverview() async {
+    try {
+      final response = await ApiClient().dio.get('lecturer/tasks/${widget.taskId}/overview');
+      setState(() {
+        _taskData = response.data['data'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() { _isLoading = false; });
+      debugPrint('TaskOverview fetch error: $e');
+    }
   }
 
   @override
@@ -56,7 +70,6 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
     if (taskData['group_number'] != null && taskData['group_number'].toString().isNotEmpty && taskData['group_number'].toString() != 'null') {
       groupTag = 'Kelompok ${taskData['group_number']}';
     } else {
-      // Fallback: Extract from group_name (e.g. "2 - D4 IT D-Konsep Teknologi Informasi-Kelompok 3")
       final gn = taskData['group_name']?.toString() ?? '';
       if (gn.toLowerCase().contains('kelompok')) {
         final parts = gn.split(RegExp(r'kelompok', caseSensitive: false));
@@ -138,46 +151,51 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${widget.className} - ${taskData['subject'] ?? taskData['group_name'] ?? ''}',
-                          style: GoogleFonts.outfit(
-                            color: AppColors.primaryTeal,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              widget.className,
+                              style: GoogleFonts.outfit(
+                                color: AppColors.primaryTeal,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          groupTag,
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              groupTag,
+                              style: GoogleFonts.outfit(
+                                color: AppColors.primaryTeal,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
                 ),
                 Positioned(
-                  bottom: -40,
+                  bottom: -20,
                   left: 25,
                   right: 25,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -201,9 +219,9 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 70),
+            const SizedBox(height: 50),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              padding: const EdgeInsets.symmetric(horizontal: 35.0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -215,7 +233,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withOpacity(0.15),
                           blurRadius: 15,
                           offset: const Offset(2, 6),
                         ),
@@ -225,11 +243,11 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                       fit: StackFit.expand,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.all(6.0),
                           child: CircularProgressIndicator(
                             value: (taskData['progress'] as num? ?? 0) / 100,
-                            strokeWidth: 15,
-                            backgroundColor: Colors.grey.shade200,
+                            strokeWidth: 14,
+                            backgroundColor: Colors.grey.shade100,
                             color: AppColors.primaryTeal,
                             strokeCap: StrokeCap.round,
                           ),
@@ -247,7 +265,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(width: 30),
+                  const SizedBox(width: 25),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,24 +388,25 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
         Text(
           title,
           style: GoogleFonts.outfit(
-            fontSize: 10,
+            fontSize: 12,
             color: Colors.black54,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           value,
           style: GoogleFonts.outfit(
-            fontSize: 22,
+            fontSize: 34,
             fontWeight: FontWeight.bold,
             color: AppColors.primaryTeal,
             height: 1.0,
           ),
         ),
+        const SizedBox(height: 8),
         Text(
           subtitle,
           style: GoogleFonts.outfit(
-            fontSize: 10,
+            fontSize: 12,
             color: AppColors.primaryTeal,
             fontWeight: FontWeight.bold,
           ),

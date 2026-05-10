@@ -127,10 +127,24 @@ class ProfileHeader extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await NotificationService.unregisterDeviceToken();
-      await ApiClient().logout();
-      if (context.mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
+
+      try {
+        await NotificationService.unregisterDeviceToken();
+        await ApiClient().logout();
+      } catch (e) {
+        debugPrint('Logout err: $e');
+      } finally {
+        if (context.mounted) {
+          Navigator.pop(context); // close loading
+          Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+        }
       }
     }
   }
@@ -729,12 +743,20 @@ class _EditProfileModalState extends State<EditProfileModal> {
 
   Future<void> _loadClasses() async {
     try {
-      final String response = await rootBundle.loadString('lib/data/class.json');
-      final data = json.decode(response) as List<dynamic>;
+      final response = await ApiClient().dio.get('classes');
+      final data = response.data;
+      List<dynamic> rawList;
+      if (data is Map && data.containsKey('data')) {
+        rawList = data['data'];
+      } else if (data is List) {
+        rawList = data;
+      } else {
+        rawList = [];
+      }
       if (mounted) {
         setState(() {
-          _classes = data.map((e) => e.toString()).toList();
-          // Jika kelas dari DB tidak ada di JSON, tambahkan sementara agar tidak kosong di dropdown
+          _classes = rawList.map((e) => e['name']?.toString() ?? e['class_name']?.toString() ?? e.toString()).toList();
+          // Jika kelas dari DB tidak ada di API, tambahkan sementara agar tidak kosong di dropdown
           if (_selectedClass != null && 
               _selectedClass!.isNotEmpty && 
               !_classes.contains(_selectedClass)) {
@@ -743,7 +765,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
         });
       }
     } catch (e) {
-      debugPrint('Error loading class.json: $e');
+      debugPrint('Error fetching classes: $e');
     }
   }
 
@@ -918,59 +940,44 @@ class _EditProfileModalState extends State<EditProfileModal> {
       children: [
         Container(
           height: 55,
+          padding: const EdgeInsets.only(left: 18, right: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+            color: Colors.transparent,
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return DropdownMenu<String>(
-                key: ValueKey(items.length),
-                width: constraints.maxWidth,
-                initialSelection: value,
-                onSelected: onChanged,
-                trailingIcon: Transform.translate(
-                  offset: const Offset(4, 0),
-                  child: const Icon(Icons.expand_more_rounded, color: Colors.grey),
-                ),
-                selectedTrailingIcon: Transform.translate(
-                  offset: const Offset(4, 0),
-                  child: const Icon(Icons.expand_less_rounded, color: Colors.grey),
-                ),
-                textStyle: GoogleFonts.outfit(
-                  fontSize: 15,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: value,
+              hint: Text(
+                'Select $label',
+                style: GoogleFonts.outfit(
                   color: Colors.grey[700],
+                  fontSize: 15,
                 ),
-                menuStyle: MenuStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.white),
-                  shape: WidgetStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+              ),
+              items: items.map((e) {
+                return DropdownMenuItem<String>(
+                  value: e,
+                  child: Text(
+                    e,
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      color: Colors.grey[700],
                     ),
                   ),
-                ),
-                inputDecorationTheme: InputDecorationTheme(
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.only(left: 18, bottom: 2),
-                ),
-                dropdownMenuEntries: items
-                    .map(
-                      (e) => DropdownMenuEntry<String>(
-                        value: e,
-                        label: e,
-                        style: MenuItemButton.styleFrom(
-                          textStyle: GoogleFonts.outfit(
-                            fontSize: 15,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
+                );
+              }).toList(),
+              onChanged: onChanged,
+              icon: const Icon(
+                Icons.expand_more_rounded,
+                color: Colors.grey,
+              ),
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              menuMaxHeight: 250,
+            ),
           ),
         ),
         Positioned(

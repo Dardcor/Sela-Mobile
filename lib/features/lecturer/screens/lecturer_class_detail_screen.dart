@@ -7,13 +7,11 @@ import 'lecturer_task_overview_screen.dart';
 class LecturerClassDetailScreen extends StatefulWidget {
   final Map<String, dynamic> classData;
 
-  const LecturerClassDetailScreen({
-    super.key,
-    required this.classData,
-  });
+  const LecturerClassDetailScreen({super.key, required this.classData});
 
   @override
-  State<LecturerClassDetailScreen> createState() => _LecturerClassDetailScreenState();
+  State<LecturerClassDetailScreen> createState() =>
+      _LecturerClassDetailScreenState();
 }
 
 class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
@@ -36,13 +34,17 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
 
   Future<void> _fetchTasks() async {
     try {
-      final response = await ApiClient().dio.get('lecturer/classes/${widget.classData['id']}/tasks');
+      final response = await ApiClient().dio.get(
+        'lecturer/classes/${widget.classData['id']}/tasks',
+      );
       setState(() {
         _tasks = List<Map<String, dynamic>>.from(response.data['data'] ?? []);
         _isLoading = false;
       });
     } catch (e) {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
       debugPrint('ClassDetail fetch error: $e');
     }
   }
@@ -51,10 +53,14 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
     if (_searchQuery.isEmpty) return _tasks;
     final query = _searchQuery.toLowerCase();
     return _tasks.where((t) {
-      final taskName = (t['task_name']?.toString() ?? t['title']?.toString() ?? '').toLowerCase();
+      final taskName =
+          (t['task_name']?.toString() ?? t['title']?.toString() ?? '')
+              .toLowerCase();
       final groupName = (t['group_name']?.toString() ?? '').toLowerCase();
       final subject = (t['subject']?.toString() ?? '').toLowerCase();
-      return taskName.contains(query) || groupName.contains(query) || subject.contains(query);
+      return taskName.contains(query) ||
+          groupName.contains(query) ||
+          subject.contains(query);
     }).toList();
   }
 
@@ -66,7 +72,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
         children: [
           // Background Header
           Container(
-            height: 220,
+            height: 230,
             decoration: const BoxDecoration(
               color: AppColors.primaryTeal,
               borderRadius: BorderRadius.only(
@@ -82,7 +88,10 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
               children: [
                 // Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 25.0,
+                    vertical: 10,
+                  ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -97,10 +106,19 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                // Class Info
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 35,
-                          vertical: 8,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -115,29 +133,19 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                         child: Text(
                           'CLASS',
                           style: GoogleFonts.outfit(
-                            fontSize: 24,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryTeal,
                             letterSpacing: -0.5,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                
-                // Class Info
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 15),
                       Text(
                         widget.classData['name'] ?? 'Class Name',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
-                          fontSize: 32,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -145,14 +153,21 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.group_outlined, color: AppColors.primaryTeal, size: 16),
+                                const Icon(
+                                  Icons.group_outlined,
+                                  color: AppColors.primaryTeal,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   '${widget.classData['total_groups'] ?? 0} Group',
@@ -167,14 +182,21 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                           ),
                           const SizedBox(width: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.assignment_outlined, color: AppColors.primaryTeal, size: 16),
+                                const Icon(
+                                  Icons.assignment_outlined,
+                                  color: AppColors.primaryTeal,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   '${widget.classData['total_tasks'] ?? 0} Task',
@@ -193,7 +215,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 25),
+                const SizedBox(height: 35),
                 
                 // Search Bar & Content
                 Expanded(
@@ -218,8 +240,22 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                           child: TextField(
                             controller: _searchController,
                             onChanged: (v) => setState(() => _searchQuery = v),
+                            maxLength: 50,
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
-                              icon: const Icon(Icons.search, color: Colors.grey),
+                              counterText: '',
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 48,
+                                minHeight: 48,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: Colors.grey,
+                              ),
                               hintText: 'Search a task...',
                               hintStyle: GoogleFonts.outfit(color: Colors.grey),
                               border: InputBorder.none,
@@ -229,41 +265,55 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                                         _searchController.clear();
                                         setState(() => _searchQuery = '');
                                       },
-                                      child: const Icon(Icons.close, color: Colors.grey, size: 20),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
                                     )
                                   : null,
                             ),
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 25),
-                      
+
                       // Task List
                       Expanded(
                         child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: AppColors.primaryTeal))
-                        : _filteredTasks.isEmpty
-                        ? Center(
-                            child: Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'No results for "$_searchQuery"'
-                                  : 'No tasks found for this class',
-                              style: GoogleFonts.outfit(color: Colors.grey),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _fetchTasks,
-                            color: AppColors.primaryTeal,
-                            child: ListView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                              itemCount: _filteredTasks.length,
-                              itemBuilder: (context, index) {
-                                return _buildTaskCard(context, _filteredTasks[index]);
-                              },
-                            ),
-                          ),
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primaryTeal,
+                                ),
+                              )
+                            : _filteredTasks.isEmpty
+                            ? Center(
+                                child: Text(
+                                  _searchQuery.isNotEmpty
+                                      ? 'No results for "$_searchQuery"'
+                                      : 'No tasks found for this class',
+                                  style: GoogleFonts.outfit(color: Colors.grey),
+                                ),
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _fetchTasks,
+                                color: AppColors.primaryTeal,
+                                child: ListView.builder(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 25.0,
+                                  ),
+                                  itemCount: _filteredTasks.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildTaskCard(
+                                      context,
+                                      _filteredTasks[index],
+                                    );
+                                  },
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -279,7 +329,22 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
   Widget _buildTaskCard(BuildContext context, Map<String, dynamic> taskData) {
     // Collect members for avatars
     final List<dynamic> membersData = taskData['members'] ?? [];
-    final int extraMembers = membersData.length > 3 ? membersData.length - 3 : 0;
+    final int extraMembers = membersData.length > 3
+        ? membersData.length - 3
+        : 0;
+
+    String groupTag = 'Kelompok -';
+    if (taskData['group_number'] != null && taskData['group_number'].toString().isNotEmpty && taskData['group_number'].toString() != 'null') {
+      groupTag = 'Kelompok ${taskData['group_number']}';
+    } else {
+      final gn = taskData['group_name']?.toString() ?? '';
+      if (gn.toLowerCase().contains('kelompok')) {
+        final parts = gn.split(RegExp(r'kelompok', caseSensitive: false));
+        if (parts.length > 1) {
+          groupTag = 'Kelompok ${parts[1].trim()}';
+        }
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -307,7 +372,11 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                   color: AppColors.primaryTeal,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.menu_book, color: Colors.white, size: 16),
+                child: const Icon(
+                  Icons.menu_book,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -315,7 +384,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      taskData['group_name'] ?? 'Group Name',
+                      groupTag,
                       style: GoogleFonts.outfit(
                         color: AppColors.primaryTeal,
                         fontSize: 12,
@@ -339,7 +408,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                 height: 45,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryTeal, width: 3),
+                  border: Border.all(color: AppColors.primaryTeal, width: 5),
                 ),
                 child: Center(
                   child: Text(
@@ -357,10 +426,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
           const SizedBox(height: 15),
           Text(
             '${taskData['date_range'] ?? taskData['deadline'] ?? ''} | ${taskData['subject'] ?? ''}',
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              color: Colors.grey,
-            ),
+            style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey),
           ),
           const SizedBox(height: 15),
           Row(
@@ -372,9 +438,12 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                 height: 30,
                 child: Stack(
                   children: [
-                    if (membersData.isNotEmpty) _buildAvatar(0, membersData[0]['avatar_url']),
-                    if (membersData.length > 1) _buildAvatar(20, membersData[1]['avatar_url']),
-                    if (membersData.length > 2) _buildAvatar(40, membersData[2]['avatar_url']),
+                    if (membersData.isNotEmpty)
+                      _buildAvatar(0, membersData[0]['avatar_url']),
+                    if (membersData.length > 1)
+                      _buildAvatar(20, membersData[1]['avatar_url']),
+                    if (membersData.length > 2)
+                      _buildAvatar(40, membersData[2]['avatar_url']),
                     if (extraMembers > 0)
                       Positioned(
                         left: 60,
@@ -424,13 +493,16 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                           ),
                         ),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),
               GestureDetector(
                 onTap: () {
-                  final String taskId = taskData['id']?.toString() ?? '';
+                  final String taskId =
+                      taskData['task_id']?.toString() ??
+                      taskData['id']?.toString() ??
+                      '';
                   if (taskId.isNotEmpty) {
                     Navigator.push(
                       context,
@@ -444,7 +516,10 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryTeal,
                     borderRadius: BorderRadius.circular(15),
@@ -478,7 +553,10 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: (avatarUrl != null && (avatarUrl.startsWith('http') || avatarUrl.startsWith('https')))
+          child:
+              (avatarUrl != null &&
+                  (avatarUrl.startsWith('http') ||
+                      avatarUrl.startsWith('https')))
               ? Image.network(
                   avatarUrl,
                   fit: BoxFit.cover,

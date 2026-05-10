@@ -136,52 +136,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  Future<void> _deleteSingle(String id) async {
-    final backupIndex = _notifications.indexWhere((n) => n['id'].toString() == id);
-    if (backupIndex == -1) return;
-    
-    final backup = _notifications[backupIndex];
-    
-    setState(() {
-      _notifications.removeAt(backupIndex);
-    });
-    
-    bool isUndone = false;
-    final completer = Completer<bool>();
-    _pendingDeletes.add(completer);
-
-    if (mounted) {
-      showUndoSnackBar(context, 'Notifikasi dihapus', () {
-        isUndone = true;
-        if (!completer.isCompleted) completer.complete(true);
-        if (mounted) {
-          setState(() {
-            _notifications.insert(backupIndex, backup);
-          });
-        }
-      });
-    }
-
-    final earlyResult = await Future.any([
-      Future.delayed(const Duration(seconds: 10), () => false),
-      completer.future,
-    ]);
-    
-    _pendingDeletes.remove(completer);
-    if (isUndone || earlyResult) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    }
-
-    try {
-      await ApiClient().dio.delete('/notifications/$id');
-    } catch (e) {
-      debugPrint('Err Delete Single: $e');
-      if (mounted) _fetchNotifications();
-    }
-  }
-
   Future<void> _fetchNotifications() async {
     await _forceExecutePendingDeletes();
     try {
@@ -295,10 +249,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   });
                                 }
                               },
-                              confirmDismiss: (direction) async {
-                                _deleteSingle(_notifications[index]['id'].toString());
-                                return true;
-                              },
+
                             ),
                             childCount: _notifications.length,
                           ),

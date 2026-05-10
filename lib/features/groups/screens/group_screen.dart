@@ -22,7 +22,7 @@ class _GroupScreenState extends State<GroupScreen> {
   bool isLoading = true;
   String _currentUserId = '';
   String _currentUserClass = '';
-  
+
   List<String> _courses = [];
   final _searchCtrl = TextEditingController();
 
@@ -34,11 +34,14 @@ class _GroupScreenState extends State<GroupScreen> {
         if (userDataStr != null) {
           final userData = json.decode(userDataStr);
           _currentUserId = userData['id'] ?? '';
-          
+
           // Check if class_name is flat or nested in profile
-          _currentUserClass = userData['class_name'] ?? 
-                             (userData['profile'] != null ? userData['profile']['class_name'] : '') ?? 
-                             '';
+          _currentUserClass =
+              userData['class_name'] ??
+              (userData['profile'] != null
+                  ? userData['profile']['class_name']
+                  : '') ??
+              '';
         } else {
           _currentUserId = '';
           _currentUserClass = '';
@@ -51,28 +54,13 @@ class _GroupScreenState extends State<GroupScreen> {
   void initState() {
     super.initState();
     _initUserId();
-    _loadCourses();
     _fetch();
-  }
-
-  Future<void> _loadCourses() async {
-    try {
-      final String response = await rootBundle.loadString('lib/data/course.json');
-      final data = await json.decode(response);
-      if (mounted) {
-        setState(() {
-          _courses = List<String>.from(data);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading courses: $e');
-    }
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
-    
+
     super.dispose();
   }
 
@@ -87,6 +75,22 @@ class _GroupScreenState extends State<GroupScreen> {
         final res = await apiClient.dio.get('/groups/user/$userId');
         _allTeams = res.data['groups'] ?? res.data['data'] ?? [];
       }
+
+      try {
+        final courseRes = await apiClient.dio.get('/courses');
+        if (courseRes.data is List) {
+          _courses = (courseRes.data as List)
+              .map((c) => c['name'].toString())
+              .toList();
+        } else if (courseRes.data != null && courseRes.data['data'] is List) {
+          _courses = (courseRes.data['data'] as List)
+              .map((c) => c['name'].toString())
+              .toList();
+        }
+      } catch (e) {
+        debugPrint('fetch courses info: $e');
+      }
+
       _applySearch();
     } catch (e) {
       debugPrint('fetch teams info: $e');
@@ -251,7 +255,10 @@ class _GroupScreenState extends State<GroupScreen> {
     try {
       List deletedMembers = [];
 
-      await apiClient.dio.delete('/groups/${team['id']}/members', queryParameters: {'user_id': memberUserId});
+      await apiClient.dio.delete(
+        '/groups/${team['id']}/members',
+        queryParameters: {'user_id': memberUserId},
+      );
       deletedMembers = [1];
 
       if (deletedMembers.isEmpty) {
@@ -260,12 +267,15 @@ class _GroupScreenState extends State<GroupScreen> {
         );
       }
 
-      await apiClient.dio.post('/notifications', data: {
-        'user_id': memberUserId,
-        'title': 'Dikeluarkan dari grup',
-        'message': 'Kamu telah dikeluarkan dari grup $groupLabel',
-        'type': 'system',
-      });
+      await apiClient.dio.post(
+        '/notifications',
+        data: {
+          'user_id': memberUserId,
+          'title': 'Dikeluarkan dari grup',
+          'message': 'Kamu telah dikeluarkan dari grup $groupLabel',
+          'type': 'system',
+        },
+      );
 
       if (!bottomSheetContext.mounted) return;
       Navigator.pop(bottomSheetContext);
@@ -362,7 +372,9 @@ class _GroupScreenState extends State<GroupScreen> {
                           if (userDataStr != null) {
                             final userData = json.decode(userDataStr);
                             final userId = userData['id'];
-                            await apiClient.dio.delete('/groups/${team['id']}/members/$userId');
+                            await apiClient.dio.delete(
+                              '/groups/${team['id']}/members/$userId',
+                            );
                           }
 
                           if (!context.mounted) return;
@@ -545,24 +557,24 @@ class _GroupScreenState extends State<GroupScreen> {
                                   );
                                   return;
                                 }
-                                  try {
-                                    final res = await apiClient.dio.post(
-                                      '/groups/join',
-                                      data: {'code': c},
-                                    );
-                                    
-                                    if (!ctx.mounted) return;
-                                    Navigator.pop(ctx);
-                                    _fetch();
-                                    showAlert(
-                                      'Successfully joined group! ✅',
-                                      isSuccess: true,
-                                    );
-                                  } catch (e) {
-                                    showAlert(
-                                      'Failed to join. Invalid code or already a member.',
-                                    );
-                                  }
+                                try {
+                                  final res = await apiClient.dio.post(
+                                    '/groups/join',
+                                    data: {'code': c},
+                                  );
+
+                                  if (!ctx.mounted) return;
+                                  Navigator.pop(ctx);
+                                  _fetch();
+                                  showAlert(
+                                    'Successfully joined group! ✅',
+                                    isSuccess: true,
+                                  );
+                                } catch (e) {
+                                  showAlert(
+                                    'Failed to join. Invalid code or already a member.',
+                                  );
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryTeal,
@@ -602,7 +614,7 @@ class _GroupScreenState extends State<GroupScreen> {
                             children: [
                               Expanded(
                                 child: GroupInputField(
-                                  label: 'Group member limits',
+                                  label: 'Member limits',
                                   hint: 'total member',
                                   controller: limitCtrl,
                                   isNum: true,
@@ -652,7 +664,10 @@ class _GroupScreenState extends State<GroupScreen> {
                                       });
 
                                       if (curCourse == null) {
-                                        setS(() => courseError = 'Please select a course');
+                                        setS(
+                                          () => courseError =
+                                              'Please select a course',
+                                        );
                                         hasErr = true;
                                       }
 
@@ -660,17 +675,27 @@ class _GroupScreenState extends State<GroupScreen> {
                                       final noVal = int.tryParse(noText);
 
                                       if (noText.isEmpty) {
-                                        setS(() => groupNumberError = 'Please input a group number');
+                                        setS(
+                                          () => groupNumberError =
+                                              'Please input a group number',
+                                        );
                                         hasErr = true;
                                       } else if (noVal == null || noVal <= 0) {
-                                        setS(() => groupNumberError = 'Must be greater than 0');
+                                        setS(
+                                          () => groupNumberError =
+                                              'Must be greater than 0',
+                                        );
                                         hasErr = true;
                                       }
 
                                       if (limitText.isEmpty) {
-                                        setS(() => limitError = 'Please fill limit');
+                                        setS(
+                                          () =>
+                                              limitError = 'Please fill limit',
+                                        );
                                         hasErr = true;
-                                      } else if (parsedLimit == null || parsedLimit <= 0) {
+                                      } else if (parsedLimit == null ||
+                                          parsedLimit <= 0) {
                                         setS(() => limitError = 'Must be > 0');
                                         hasErr = true;
                                       }
@@ -688,20 +713,24 @@ class _GroupScreenState extends State<GroupScreen> {
                                       ).join();
 
                                       try {
-                                        final res = await apiClient.dio.post('/groups', data: {
-                                              'name':
-                                                  '${_currentUserClass.isNotEmpty ? _currentUserClass : 'Kelas Baru'} - $curCourse - Kelompok ${noCtrl.text.trim()}',
-                                              'course_name': curCourse,
-                                              // Jika dari frontend kosong, jangan kirim class_name agar backend mengambil langsung dari DB profile
-                                              if (_currentUserClass.isNotEmpty) 'class_name': _currentUserClass,
-                                              'group_number': int.parse(
-                                                noCtrl.text.trim(),
-                                              ),
-                                              'member_limit': parsedLimit,
-                                              'invitation_code': inv,
-                                              'lecture_code': inv,
-                                            });
-                                        
+                                        final res = await apiClient.dio.post(
+                                          '/groups',
+                                          data: {
+                                            'name':
+                                                '${_currentUserClass.isNotEmpty ? _currentUserClass : 'Kelas Baru'} $curCourse Kelompok ${noCtrl.text.trim()}',
+                                            'course_name': curCourse,
+                                            // Jika dari frontend kosong, jangan kirim class_name agar backend mengambil langsung dari DB profile
+                                            if (_currentUserClass.isNotEmpty)
+                                              'class_name': _currentUserClass,
+                                            'group_number': int.parse(
+                                              noCtrl.text.trim(),
+                                            ),
+                                            'member_limit': parsedLimit,
+                                            'invitation_code': inv,
+                                            'lecture_code': inv,
+                                          },
+                                        );
+
                                         if (!context.mounted) return;
                                         Navigator.pop(ctx);
                                         _fetch();
@@ -989,7 +1018,9 @@ class _GroupScreenState extends State<GroupScreen> {
                                   showDialog(
                                     context: ctx,
                                     builder: (dialogCtx) => Dialog(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(30),
                                         child: Column(
@@ -1010,12 +1041,20 @@ class _GroupScreenState extends State<GroupScreen> {
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                                 children: [
-                                                  const TextSpan(text: 'Are you sure you want to '),
+                                                  const TextSpan(
+                                                    text:
+                                                        'Are you sure you want to ',
+                                                  ),
                                                   const TextSpan(
                                                     text: 'kick',
-                                                    style: TextStyle(color: AppColors.primaryTeal),
+                                                    style: TextStyle(
+                                                      color:
+                                                          AppColors.primaryTeal,
+                                                    ),
                                                   ),
-                                                  const TextSpan(text: ' this member?'),
+                                                  const TextSpan(
+                                                    text: ' this member?',
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -1024,20 +1063,31 @@ class _GroupScreenState extends State<GroupScreen> {
                                               children: [
                                                 Expanded(
                                                   child: ElevatedButton(
-                                                    onPressed: () => Navigator.pop(dialogCtx),
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                          dialogCtx,
+                                                        ),
                                                     style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.grey[200],
+                                                      backgroundColor:
+                                                          Colors.grey[200],
                                                       elevation: 0,
                                                       shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              15,
+                                                            ),
                                                       ),
-                                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 15,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       'Cancel',
                                                       style: GoogleFonts.outfit(
                                                         color: Colors.grey[700],
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -1054,17 +1104,25 @@ class _GroupScreenState extends State<GroupScreen> {
                                                       );
                                                     },
                                                     style: ElevatedButton.styleFrom(
-                                                      backgroundColor: AppColors.primaryTeal,
+                                                      backgroundColor:
+                                                          AppColors.primaryTeal,
                                                       shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              15,
+                                                            ),
                                                       ),
-                                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 15,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       'Accept',
                                                       style: GoogleFonts.outfit(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -1124,10 +1182,7 @@ class _GroupScreenState extends State<GroupScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Colors.red,
-                              width: 1.2,
-                            ),
+                            border: Border.all(color: Colors.red, width: 1.2),
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Row(
@@ -1224,52 +1279,52 @@ class _GroupScreenState extends State<GroupScreen> {
                   ),
                 )
               : teams.isEmpty
-                  ? SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 80),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.group_off_rounded,
-                                color: Colors.grey[300],
-                                size: 80,
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'No groups found',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Join or create a group to get started',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  color: Colors.grey[400],
-                                ),
-                              ),
-                            ],
+              ? SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 80),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.group_off_rounded,
+                            color: Colors.grey[300],
+                            size: 80,
                           ),
-                        ),
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 22),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          // ✅ GroupCard dari local widgets — rebuild terisolasi
-                          (context, index) => GroupCard(
-                            team: teams[index],
-                            onDetailTap: () => _showGroupDetail(teams[index]),
+                          const SizedBox(height: 20),
+                          Text(
+                            'No groups found',
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                            ),
                           ),
-                          childCount: teams.length,
-                        ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Join or create a group to get started',
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
+                )
+              : SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      // ✅ GroupCard dari local widgets — rebuild terisolasi
+                      (context, index) => GroupCard(
+                        team: teams[index],
+                        onDetailTap: () => _showGroupDetail(teams[index]),
+                      ),
+                      childCount: teams.length,
+                    ),
+                  ),
+                ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
@@ -1284,32 +1339,54 @@ class _GroupScreenState extends State<GroupScreen> {
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-            child: TextField(
-              controller: _searchCtrl,
-              onChanged: (_) => _applySearch(),
-              onSubmitted: (_) => _applySearch(),
-              decoration: InputDecoration(
-                hintText: 'Search',
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 15,
-                ),
-                hintStyle: GoogleFonts.outfit(color: Colors.grey[500]),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.primaryTeal,
-                ),
-              ),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _searchCtrl,
+              builder: (context, value, child) {
+                return TextField(
+                  controller: _searchCtrl,
+                  onChanged: (_) => _applySearch(),
+                  onSubmitted: (_) => _applySearch(),
+                  maxLength: 50,
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: 'Search',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    hintStyle: GoogleFonts.outfit(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    suffixIcon: value.text.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchCtrl.clear();
+                              _applySearch();
+                            },
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
           ),
         ),

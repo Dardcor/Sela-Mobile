@@ -9,7 +9,8 @@ class LecturerDashboardScreen extends StatefulWidget {
   const LecturerDashboardScreen({super.key, this.onNavigateToProfile});
 
   @override
-  State<LecturerDashboardScreen> createState() => _LecturerDashboardScreenState();
+  State<LecturerDashboardScreen> createState() =>
+      _LecturerDashboardScreenState();
 }
 
 class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
@@ -17,11 +18,33 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
   Map<String, dynamic>? _profile;
   bool _isLoading = true;
   String? _error;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  int _unreadNotificationsCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchUnreadNotificationsCount() async {
+    try {
+      final res = await ApiClient().dio.get('/notifications', queryParameters: {'is_read': false});
+      if (mounted) {
+        setState(() {
+          _unreadNotificationsCount = (res.data['notifications'] as List).length;
+        });
+      }
+    } catch (e) {
+      debugPrint('Err Notifications Count: $e');
+    }
   }
 
   Future<void> _fetchData() async {
@@ -34,9 +57,16 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
         ApiClient().dio.get('lecturer/classes'),
         ApiClient().dio.get('me'),
       ]);
+      _fetchUnreadNotificationsCount();
       setState(() {
-        _classes = List<Map<String, dynamic>>.from(responses[0].data['data'] ?? []);
-        _profile = Map<String, dynamic>.from(responses[1].data['user'] ?? responses[1].data['data'] ?? responses[1].data);
+        _classes = List<Map<String, dynamic>>.from(
+          responses[0].data['data'] ?? [],
+        );
+        _profile = Map<String, dynamic>.from(
+          responses[1].data['user'] ??
+              responses[1].data['data'] ??
+              responses[1].data,
+        );
         _isLoading = false;
       });
     } catch (e) {
@@ -45,6 +75,26 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
         _isLoading = false;
       });
       debugPrint('LecturerDashboard fetch error: $e');
+    }
+  }
+
+  List<Map<String, dynamic>> get _filteredClasses {
+    if (_searchQuery.isEmpty) return _classes;
+    final query = _searchQuery.toLowerCase();
+    return _classes.where((c) {
+      final className = (c['name']?.toString() ?? '').toLowerCase();
+      return className.contains(query);
+    }).toList();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning!';
+    } else if (hour < 18) {
+      return 'Good Afternoon!';
+    } else {
+      return 'Good Evening!';
     }
   }
 
@@ -79,14 +129,17 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                       children: [
                         // Header Top
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 25.0,
+                            vertical: 10,
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               GestureDetector(
                                 onTap: widget.onNavigateToProfile,
                                 child: CircleAvatar(
-                                  radius: 25,
+                                  radius: 20,
                                   backgroundColor: Colors.white,
                                   child: ClipOval(
                                     child: _profile?['avatar_url'] != null
@@ -95,12 +148,17 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                             width: 40,
                                             height: 40,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => Image.asset(
-                                              'assets/images/default_profile.png',
-                                              width: 40,
-                                              height: 40,
-                                              fit: BoxFit.cover,
-                                            ),
+                                            errorBuilder:
+                                                (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) => Image.asset(
+                                                  'assets/images/default_profile.png',
+                                                  width: 40,
+                                                  height: 40,
+                                                  fit: BoxFit.cover,
+                                                ),
                                           )
                                         : Image.asset(
                                             'assets/images/default_profile.png',
@@ -111,36 +169,108 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/lecturer_notifications');
-                                },
+                              Expanded(
+                                child: Text(
+                                  'Dashboard',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(
+                                        Icons.notifications_outlined,
+                                        color: AppColors.primaryTeal,
+                                        size: 24,
+                                      ),
+                                      onPressed: () async {
+                                        await Navigator.pushNamed(
+                                          context,
+                                          '/lecturer_notifications',
+                                        );
+                                        _fetchUnreadNotificationsCount();
+                                      },
+                                    ),
+                                    if (_unreadNotificationsCount > 0)
+                                      Positioned(
+                                        top: 10,
+                                        right: 12,
+                                        child: Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 20),
 
                         // Welcome Text
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                'Hello, ${_profile?['full_name'] ?? 'Lecturer'}',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _getGreeting(),
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    _profile?['full_name'] ?? 'Lecturer',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 5),
-                              Text(
-                                'Welcome back to your dashboard',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white70,
-                                  fontSize: 14,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Dosen',
+                                  style: GoogleFonts.outfit(
+                                    color: AppColors.primaryTeal,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ],
@@ -153,12 +283,71 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
               ),
             ),
 
+            // Search Bar
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25.0,
+                  vertical: 10,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    maxLength: 50,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: 'Search a class...',
+                      hintStyle: GoogleFonts.outfit(color: Colors.grey),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: InputBorder.none,
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
             // "Your Classes" title
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(25, 25, 25, 15),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25.0,
+                  vertical: 10,
+                ),
                 child: Text(
-                  'Your Classes',
+                  'Class',
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -174,7 +363,9 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                 child: Center(
                   child: Padding(
                     padding: EdgeInsets.all(50),
-                    child: CircularProgressIndicator(color: AppColors.primaryTeal),
+                    child: CircularProgressIndicator(
+                      color: AppColors.primaryTeal,
+                    ),
                   ),
                 ),
               )
@@ -185,35 +376,56 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     padding: const EdgeInsets.all(50),
                     child: Column(
                       children: [
-                        Icon(Icons.error_outline, color: Colors.grey[400], size: 48),
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.grey[400],
+                          size: 48,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           _error!,
-                          style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 16),
+                          style: GoogleFonts.outfit(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
               )
-            else if (_classes.isEmpty)
+            else if (_filteredClasses.isEmpty)
               SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(50),
                     child: Column(
                       children: [
-                        Icon(Icons.class_outlined, color: Colors.grey[300], size: 60),
+                        Icon(
+                          Icons.class_outlined,
+                          color: Colors.grey[300],
+                          size: 60,
+                        ),
                         const SizedBox(height: 16),
                         Text(
-                          'No classes yet',
-                          style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 16),
+                          _searchQuery.isNotEmpty
+                              ? 'No results for "$_searchQuery"'
+                              : 'No classes yet',
+                          style: GoogleFonts.outfit(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Pick classes from your profile',
-                          style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 12),
-                        ),
+                        if (_searchQuery.isEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Pick classes from your profile',
+                            style: GoogleFonts.outfit(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -229,13 +441,10 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     mainAxisSpacing: 15,
                     childAspectRatio: 0.85,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final classData = _classes[index];
-                      return _buildClassCard(context, classData);
-                    },
-                    childCount: _classes.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final classData = _filteredClasses[index];
+                    return _buildClassCard(context, classData);
+                  }, childCount: _filteredClasses.length),
                 ),
               ),
 
@@ -253,7 +462,8 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => LecturerClassDetailScreen(classData: classData),
+            builder: (context) =>
+                LecturerClassDetailScreen(classData: classData),
           ),
         );
       },
@@ -278,7 +488,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(7),
+                  padding: const EdgeInsets.all(5),
                   decoration: const BoxDecoration(
                     color: AppColors.primaryTeal,
                     shape: BoxShape.circle,
@@ -290,7 +500,10 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE0F2F1),
                     borderRadius: BorderRadius.circular(8),

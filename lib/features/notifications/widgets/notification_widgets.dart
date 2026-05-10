@@ -229,9 +229,6 @@ class NotificationCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
-  final Future<bool> Function(DismissDirection)? confirmDismiss;
-  final VoidCallback? onDismissed;
-
   const NotificationCard({
     super.key,
     required this.notification,
@@ -239,8 +236,6 @@ class NotificationCard extends StatelessWidget {
     this.isSelected = false,
     this.onLongPress,
     this.onTap,
-    this.confirmDismiss,
-    this.onDismissed,
   });
 
   String _getTimeAgo(DateTime dateTime) {
@@ -379,27 +374,6 @@ class NotificationCard extends StatelessWidget {
         ),
       ),
     );
-
-    // Swipe to delete hanya di normal mode (bukan selection)
-    if (!isSelectionMode) {
-      return Dismissible(
-        key: ValueKey(notification['id']),
-        direction: DismissDirection.endToStart,
-        confirmDismiss: confirmDismiss,
-        onDismissed: (_) => onDismissed?.call(),
-        background: Container(
-          margin: const EdgeInsets.only(bottom: 15),
-          decoration: BoxDecoration(
-            color: Colors.red,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 25),
-          child: const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
-        ),
-        child: card,
-      );
-    }
 
     return card;
   }

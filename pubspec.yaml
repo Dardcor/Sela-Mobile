@@ -2,7 +2,7 @@ name: SELA
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.2+3
+version: 1.0.4+5
 
 environment:
   sdk: ^3.11.0
@@ -47,7 +47,6 @@ flutter:
     - assets/images/default_profile.png
     - assets/images/group_task.png
     - assets/images/independent_task.png
-    - lib/data/
     - .env
 
 flutter_launcher_icons:

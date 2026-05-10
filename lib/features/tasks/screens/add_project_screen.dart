@@ -75,7 +75,9 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       if (mounted) {
         setState(() {
           final allGroups = res.data['groups'] ?? res.data['data'] ?? res.data;
-          userGroups = (allGroups as List).where((g) => g['role'] == 'leader').toList();
+          userGroups = (allGroups as List)
+              .where((g) => g['role'] == 'leader')
+              .toList();
         });
       }
     } catch (e) {
@@ -130,17 +132,20 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
       final userId = userData['id'];
 
       // 1. Simpan task ke tabel tasks via API
-      final taskRes = await ApiClient().dio.post('/tasks', data: {
-        'title': titleCtrl.text,
-        'description': descCtrl.text,
-        'due_date': dateCtrl.text.isNotEmpty
-            ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
-            : null,
-        'is_group': isGroup,
-        'group_id': isGroup ? selectedGroup['id'] : null,
-        'created_by': userId,
-        'category': userData['class_name'] ?? null,
-      });
+      final taskRes = await ApiClient().dio.post(
+        '/tasks',
+        data: {
+          'title': titleCtrl.text,
+          'description': descCtrl.text,
+          'due_date': dateCtrl.text.isNotEmpty
+              ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
+              : null,
+          'is_group': isGroup,
+          'group_id': isGroup ? selectedGroup['id'] : null,
+          'created_by': userId,
+          'category': userData['class_name'] ?? null,
+        },
+      );
 
       final taskId = taskRes.data['data']['id'].toString();
 
@@ -152,9 +157,10 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = 'https://$url';
           }
-          await ApiClient().dio.post('/tasks/$taskId/links', data: {
-            'url': url,
-          });
+          await ApiClient().dio.post(
+            '/tasks/$taskId/links',
+            data: {'url': url},
+          );
         }
       }
 
@@ -166,15 +172,21 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               : await MultipartFile.fromFile(file.path!, filename: file.name),
         });
 
-        final uploadRes = await ApiClient().dio.post('/upload/task-file', data: formData);
-        
+        final uploadRes = await ApiClient().dio.post(
+          '/upload/task-file',
+          data: formData,
+        );
+
         if (uploadRes.statusCode == 200 || uploadRes.statusCode == 201) {
-            await ApiClient().dio.post('/tasks/$taskId/files', data: {
-                'file_name': file.name,
-                'file_path': uploadRes.data['url'],
-                'file_type': file.extension ?? '',
-                'file_size': file.size ?? 0,
-            });
+          await ApiClient().dio.post(
+            '/tasks/$taskId/files',
+            data: {
+              'file_name': file.name,
+              'file_path': uploadRes.data['url'],
+              'file_type': file.extension ?? '',
+              'file_size': file.size ?? 0,
+            },
+          );
         }
       }
 

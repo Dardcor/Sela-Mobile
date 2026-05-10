@@ -9,6 +9,7 @@ class ApiClient {
   factory ApiClient() => _instance;
 
   late Dio dio;
+  bool _isNavigatingToAuth = false;
 
   ApiClient._internal() {
     // Initial dummy initialization
@@ -47,12 +48,24 @@ class ApiClient {
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.remove('auth_token');
-            await prefs.remove('user_data');
+            final hasToken = prefs.getString('auth_token') != null;
 
-            final navigator = MyApp.navigatorKey.currentState;
-            if (navigator != null) {
-              navigator.pushNamedAndRemoveUntil('/auth', (_) => false);
+            if (hasToken && !_isNavigatingToAuth) {
+              _isNavigatingToAuth = true;
+              
+              await prefs.remove('auth_token');
+              await prefs.remove('user_data');
+
+              final navigator = MyApp.navigatorKey.currentState;
+              if (navigator != null) {
+                // Remove all routes and push to AuthScreen
+                navigator.pushNamedAndRemoveUntil('/auth', (_) => false);
+              }
+
+              // Reset flags after short delay to allow UI to settle
+              Future.delayed(const Duration(seconds: 2), () {
+                _isNavigatingToAuth = false;
+              });
             }
           }
           return handler.next(e);

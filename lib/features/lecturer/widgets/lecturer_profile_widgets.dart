@@ -250,7 +250,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
 // ─────────────────────────────────────────────────────────────────────────────
 class LecturerPickClassModal extends StatefulWidget {
   final List<Map<String, dynamic>> currentClasses;
-  final ValueChanged<List<String>> onSave;
+  final ValueChanged<List<Map<String, dynamic>>> onSave;
 
   const LecturerPickClassModal({
     super.key,
@@ -403,7 +403,10 @@ class _LecturerPickClassModalState extends State<LecturerPickClassModal> {
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  widget.onSave(_selectedNames.toList());
+                  final selectedClasses = _allClasses
+                      .where((c) => _selectedNames.contains(c['name']?.toString()))
+                      .toList();
+                  widget.onSave(selectedClasses);
                   Navigator.pop(context);
                 },
                 child: Container(

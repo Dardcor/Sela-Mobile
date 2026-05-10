@@ -22,107 +22,179 @@ class GroupCard extends StatelessWidget {
     final members = (team['members'] as List?) ?? [];
     final totalMember = team['total_member'] ?? members.length;
 
+    String groupTag = 'Kelompok -';
+    if (team['group_number'] != null &&
+        team['group_number'].toString().isNotEmpty &&
+        team['group_number'].toString() != 'null') {
+      groupTag = 'Kelompok ${team['group_number']}';
+    } else {
+      final gn = team['name']?.toString() ?? '';
+      if (gn.toLowerCase().contains('kelompok')) {
+        final parts = gn.split(RegExp(r'kelompok', caseSensitive: false));
+        if (parts.length > 1) {
+          groupTag = 'Kelompok ${parts[1].trim()}';
+        }
+      }
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 25),
-      padding: const EdgeInsets.all(22),
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar stack anggota di kiri atas
-          SizedBox(
-            height: 40,
-            child: Stack(
-              children: [
-                ...List.generate(
-                  min(members.length, 3),
-                  (idx) => Positioned(
-                    left: idx * 24.0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: CircleAvatar(
-                        radius: 16,
-                        backgroundImage:
-                            members[idx]['avatar_url'] != null &&
-                                members[idx]['avatar_url'].toString().isNotEmpty
-                            ? NetworkImage(members[idx]['avatar_url'])
-                                  as ImageProvider
-                            : const AssetImage(
-                                'assets/images/default_profile.png',
-                              ),
-                      ),
-                    ),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  shape: BoxShape.circle,
                 ),
-                if (members.length > 3)
-                  Positioned(
-                    left: 72,
-                    child: CircleAvatar(
-                      radius: 17,
-                      backgroundColor: AppColors.buttonGray,
-                      child: Text(
-                        '+${members.length - 3}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textGray,
-                        ),
+                child: const Icon(
+                  Icons.menu_book,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      groupTag,
+                      style: GoogleFonts.outfit(
+                        color: AppColors.primaryTeal,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-              ],
-            ),
+                    Text(
+                      team['class_name'] ?? team['name'] ?? '',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 15),
           Text(
-            team['name'] ?? '',
-            style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.black,
-            ),
+            team['course_name'] != null &&
+                    team['course_name'].toString().isNotEmpty
+                ? '$totalMember Member | ${team['course_name']}'
+                : '$totalMember Member',
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${members.length} Member',
-                style: GoogleFonts.outfit(
-                  color: AppColors.textGray,
-                  fontSize: 13,
+              // Avatar Stack
+              SizedBox(
+                width: 100,
+                height: 30,
+                child: Stack(
+                  children: [
+                    ...List.generate(
+                      min(members.length, 3),
+                      (idx) => Positioned(
+                        left: idx * 20.0,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child:
+                                members[idx]['avatar_url'] != null &&
+                                    members[idx]['avatar_url']
+                                        .toString()
+                                        .startsWith('http')
+                                ? Image.network(
+                                    members[idx]['avatar_url'],
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) => Image.asset(
+                                          'assets/images/default_profile.png',
+                                          fit: BoxFit.cover,
+                                        ),
+                                  )
+                                : Image.asset(
+                                    'assets/images/default_profile.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (members.length > 3)
+                      Positioned(
+                        left: 60,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '+${members.length - 3}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               GestureDetector(
                 onTap: onDetailTap,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 35,
-                    vertical: 10,
+                    horizontal: 20,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: Text(
                     'Detail',
                     style: GoogleFonts.outfit(
                       color: Colors.white,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -401,7 +473,7 @@ class GroupInputField extends StatelessWidget {
 
 /// Dropdown field dengan floating label untuk modal di GroupScreen.
 /// Kini mendukung pencarian/search.
-class GroupDropdownField extends StatefulWidget {
+class GroupDropdownField extends StatelessWidget {
   final String label;
   final String hint;
   final String? value;
@@ -422,164 +494,93 @@ class GroupDropdownField extends StatefulWidget {
   });
 
   @override
-  State<GroupDropdownField> createState() => _GroupDropdownFieldState();
-}
-
-class _GroupDropdownFieldState extends State<GroupDropdownField> {
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.value != null) {
-      _searchController.text = widget.value!;
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant GroupDropdownField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != oldWidget.value && widget.value != null) {
-      _searchController.text = widget.value!;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+    final hasError = errorText != null && errorText!.isNotEmpty;
+    final validValue = items.contains(value) ? value : null;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Autocomplete<String>(
-                initialValue: TextEditingValue(text: widget.value ?? ''),
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  final keyword = textEditingValue.text.toLowerCase();
-                  if (keyword.isEmpty) {
-                    return widget.items.take(5);
-                  }
-                  return widget.items
-                      .where((String option) {
-                        return option.toLowerCase().contains(keyword);
-                      })
-                      .take(15);
-                },
-                onSelected: widget.onChanged,
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                  // Sinkronisasi controller jika value dari luar berubah
-                  if (widget.value != null && controller.text != widget.value) {
-                    // Hanya update jika fokus tidak ada untuk mencegah cursor jump
-                    if (!focusNode.hasFocus) {
-                      controller.text = widget.value!;
-                    }
-                  }
-
-                  return Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: hasError ? Colors.red : AppColors.primaryTeal,
-                        width: 1.2,
-                      ),
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 55,
+                  padding: const EdgeInsets.only(left: 18, right: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: hasError ? Colors.red : AppColors.primaryTeal,
+                      width: 1.2,
                     ),
-                    child: TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      textAlignVertical: TextAlignVertical.center,
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        color: Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: widget.hint,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                        ),
-                        hintStyle: GoogleFonts.outfit(
-                          color: Colors.grey[300],
+                    color: Colors.transparent,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: validValue,
+                      hint: Text(
+                        hint,
+                        style: GoogleFonts.outfit(
+                          color: Colors.grey[700],
                           fontSize: 15,
                         ),
-                        suffixIcon: Icon(
-                          Icons.expand_more_rounded,
-                          color: Colors.grey[400],
-                        ),
                       ),
-                      onChanged: (v) {
-                        // Jika user mengetik sembarang yang tidak ada di list, tetap trigger onChanged jika perlu
-                        // Namun biasanya user hanya ingin memilih dari list
-                      },
-                    ),
-                  );
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 8,
+                      items: items.map((String item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(
+                            item,
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: onChanged,
+                      icon: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Colors.grey,
+                      ),
+                      dropdownColor: Colors.white,
                       borderRadius: BorderRadius.circular(15),
-                      color: Colors.white,
-                      child: Container(
-                        width:
-                            MediaQuery.of(context).size.width -
-                            50, // Match field width approximately
-                        constraints: const BoxConstraints(maxHeight: 250),
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: options.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final String option = options.elementAt(index);
-                            return ListTile(
-                              title: Text(
-                                option,
-                                style: GoogleFonts.outfit(
-                                  fontSize: 15,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              onTap: () => onSelected(option),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                left: 14,
-                top: -10,
-                child: Container(
-                  color: widget.bgColor,
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Text(
-                    widget.label,
-                    style: GoogleFonts.outfit(
-                      color: hasError ? Colors.red : AppColors.primaryTeal,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      menuMaxHeight: 250,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          if (hasError)
-            Padding(
-              padding: const EdgeInsets.only(top: 8, left: 16),
-              child: Text(
-                widget.errorText!,
-                style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
-              ),
+                Positioned(
+                  left: 15,
+                  top: -11,
+                  child: Container(
+                    color: bgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      label,
+                      style: GoogleFonts.outfit(
+                        color: hasError ? Colors.red : AppColors.primaryTeal,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-        ],
+            if (hasError)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 16),
+                child: Text(
+                  errorText!,
+                  style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -53,18 +53,24 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _loadClasses() async {
     try {
-      final String response = await rootBundle.loadString(
-        'lib/data/class.json',
-      );
-      final data = json.decode(response) as List<dynamic>;
+      final response = await ApiClient().dio.get('classes');
+      final data = response.data;
+      List<dynamic> rawList;
+      if (data is Map && data.containsKey('data')) {
+        rawList = data['data'];
+      } else if (data is List) {
+        rawList = data;
+      } else {
+        rawList = [];
+      }
       if (mounted) {
         setState(() {
-          _classes = data.map((e) => e.toString()).toList();
+          _classes = rawList.map((e) => e['name']?.toString() ?? e['class_name']?.toString() ?? e.toString()).toList();
           // _selectedClass tetap null agar dropdown menampilkan "Select Class" di awal
         });
       }
     } catch (e) {
-      debugPrint('Error loading class.json: $e');
+      debugPrint('Error fetching classes: $e');
     }
   }
 

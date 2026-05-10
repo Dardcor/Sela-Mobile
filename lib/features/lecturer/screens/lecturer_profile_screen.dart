@@ -143,11 +143,18 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
       context: context,
       builder: (context) => LecturerPickClassModal(
         currentClasses: _classes,
-        onSave: (selectedNames) async {
+        onSave: (selectedClasses) async {
           try {
+            // Send names to match backend expectations in LecturerService.php
+            final selectedNames = selectedClasses
+                .map((c) => c['name']?.toString() ?? '')
+                .where((name) => name.isNotEmpty)
+                .toList();
+
             final response = await ApiClient()
                 .dio
                 .put('lecturer/classes', data: {'classes': selectedNames});
+
             setState(() {
               _classes = List<Map<String, dynamic>>.from(
                   response.data['data'] ?? []);
