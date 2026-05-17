@@ -164,6 +164,55 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _deleteSingleNotification(String notificationId) async {
+    // Backup data untuk fitur URUNGKAN (Undo)
+    final indexToRestore = _notifications.indexWhere((n) => n['id'].toString() == notificationId);
+    if (indexToRestore == -1) return;
+    
+    final backupData = _notifications[indexToRestore];
+    
+    // Hapus sementara dari layar (Optimistic UI)
+    setState(() {
+      _notifications.removeAt(indexToRestore);
+    });
+
+    bool isUndone = false;
+    final completer = Completer<bool>();
+    _pendingDeletes.add(completer);
+
+    if (mounted) {
+      showUndoSnackBar(context, '1 notifikasi dihapus', () {
+        isUndone = true;
+        if (!completer.isCompleted) completer.complete(true);
+        if (mounted) {
+          setState(() {
+            _notifications.insert(indexToRestore, backupData);
+          });
+        }
+      });
+    }
+
+    final earlyResult = await Future.any([
+      Future.delayed(const Duration(seconds: 5), () => false),
+      completer.future,
+    ]);
+
+    _pendingDeletes.remove(completer);
+    if (isUndone || earlyResult) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    }
+
+    try {
+      // Menjalankan API asli di belakang layar setelah jeda Undo berakhir
+      await ApiClient().dio.post('/notifications/delete-multiple', data: {'ids': [notificationId]});
+    } catch (e) {
+      debugPrint('Err Delete Single: $e');
+      if (mounted) _fetchNotifications();
+    }
+  }
+
   Future<void> _markSingleAsRead(String notificationId) async {
     try {
       await ApiClient().dio.put('/notifications/$notificationId', data: {'is_read': true});
@@ -216,7 +265,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey[300]),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No notifications yet',
+                                  'Belum ada notifikasi',
                                   style: GoogleFonts.outfit(color: Colors.grey[400]),
                                 ),
                               ],
@@ -249,7 +298,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   });
                                 }
                               },
-
+                              onDismissed: () {
+                                // Eksekusi fungsi hapus tunggal
+                                _deleteSingleNotification(_notifications[index]['id'].toString());
+                              },
                             ),
                             childCount: _notifications.length,
                           ),

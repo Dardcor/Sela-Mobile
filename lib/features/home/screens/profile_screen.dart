@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/services/connectivity_service.dart';
@@ -99,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Failed to update profile: $e')),
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Gagal memperbarui profil: $e')),
           );
         }
       }
@@ -126,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Profile photo updated successfully!')),
+          const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Foto profil berhasil diperbarui!')),
         );
       }
     } catch (e) {
@@ -217,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (context.mounted) {
         Navigator.pop(context); // Close modal
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated successfully!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Kata sandi berhasil diperbarui!'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
@@ -233,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to change password: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text('Gagal mengganti kata sandi: $e'), backgroundColor: Colors.red),
           );
         }
         throw Exception(e);
@@ -248,38 +249,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showLecturerRegistration() {
-    // Capture the ScaffoldMessenger using the main screen's context,
-    // NOT the dialog's context, because the dialog is immediately popped.
-    final messenger = ScaffoldMessenger.of(context);
-    
-    showDialog(
+  Future<void> _handleLogout(BuildContext context) async {
+    // Tampilkan dialog konfirmasi
+    final shouldLogout = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => LecturerRegistrationModal(
-        onConfirm: () async {
-          try {
-            await ApiClient().dio.post('users/request-lecturer');
-            if (mounted) {
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Request sent to Administrator successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          } catch (e) {
-            if (mounted) {
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text('Failed to send request: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-        },
+      builder: (context) => AlertDialog(
+        title: Text('Keluar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text('Apakah Anda yakin ingin keluar dari aplikasi?', style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: GoogleFonts.outfit(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Keluar', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
+
+    if (shouldLogout != true) return;
+
+    try {
+      // Hapus token dan logout via API
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token != null) {
+        await ApiClient().logout();
+      }
+      
+      await prefs.remove('auth_token');
+      await prefs.remove('user_data');
+      
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      }
+    } catch (e) {
+      // Walau error di server, tetap paksa logout dari aplikasi lokal
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await prefs.remove('user_data');
+      
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
+      }
+    }
   }
 
   @override
@@ -295,14 +311,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const ProfileHeader(),
+                ProfileHeader(onLogoutTap: () => _handleLogout(context)),
                 const SizedBox(height: 20),
                 UserInfoCard(profile: profile, onEditTap: _showEditProfile),
                 const SizedBox(height: 35),
                 // Abilities Card
                 AbilitiesCard(abilities: abilities, onEditTap: _showEditAbility),
                 const SizedBox(height: 35),
-                // Change Password Button
+                // Ganti Kata Sandi Button
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 25),
                   width: double.infinity,
@@ -310,7 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: _showChangePassword,
                     icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
                     label: Text(
-                      'Change Password',
+                      'Ganti Kata Sandi',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -325,40 +341,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       elevation: 5,
                       shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                // Are you a lecturer? Button
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 25),
-                  width: double.infinity,
-                  child: CustomPaint(
-                    painter: DashedBorderPainter(
-                      color: AppColors.primaryTeal,
-                      borderRadius: 18,
-                    ),
-                    child: InkWell(
-                      onTap: _showLecturerRegistration,
-                      borderRadius: BorderRadius.circular(18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.badge_outlined, color: AppColors.primaryTeal),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Are you a lecturer?',
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: AppColors.primaryTeal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
                 ),

@@ -15,7 +15,8 @@ import '../../auth/widgets/auth_form_fields.dart';
 // ProfileHeader — Header layar Profil (Back + Judul Profile).
 // ─────────────────────────────────────────────────────────────────────────────
 class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({super.key});
+  final VoidCallback onLogoutTap;
+  const ProfileHeader({super.key, required this.onLogoutTap});
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,7 @@ class ProfileHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(40),
                 ),
                 child: Text(
-                  'Profile',
+                  'Profil',
                   style: GoogleFonts.outfit(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -71,7 +72,7 @@ class ProfileHeader extends StatelessWidget {
               ),
               const Spacer(),
               GestureDetector(
-                onTap: () => _handleLogout(context),
+                onTap: onLogoutTap,
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: const BoxDecoration(
@@ -91,31 +92,32 @@ class ProfileHeader extends StatelessWidget {
       ],
     );
   }
+}
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Logout',
+          'Keluar',
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to logout?',
+          'Apakah Anda yakin ingin keluar dari aplikasi?',
           style: GoogleFonts.outfit(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              'Cancel',
+              'Batal',
               style: GoogleFonts.outfit(color: Colors.grey),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
-              'Logout',
+              'Keluar',
               style: GoogleFonts.outfit(
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
@@ -148,7 +150,6 @@ class ProfileHeader extends StatelessWidget {
       }
     }
   }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ChangePasswordModal — Modal untuk mengganti password
@@ -181,7 +182,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     final oldPass = _oldPassCtrl.text.trim();
     if (oldPass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your old password')),
+        const SnackBar(content: Text('Silakan masukkan kata sandi lama Anda')),
       );
       return;
     }
@@ -219,21 +220,21 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
 
     if (newPass.isEmpty || confirmPass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
+        const SnackBar(content: Text('Silakan lengkapi semua bidang')),
       );
       return;
     }
 
     if (newPass.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New password must be at least 6 characters')),
+        const SnackBar(content: Text('Kata sandi baru minimal 6 karakter')),
       );
       return;
     }
 
     if (newPass != confirmPass) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New passwords do not match')),
+        const SnackBar(content: Text('Kata sandi baru tidak cocok')),
       );
       return;
     }
@@ -517,7 +518,7 @@ class UserInfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          _SmallEditButton(label: 'Edit Profile', onTap: onEditTap),
+          _SmallEditButton(label: 'Ubah Profil', onTap: onEditTap),
         ],
       ),
     );
@@ -562,7 +563,7 @@ class AbilitiesCard extends StatelessWidget {
                       : abilities.map((a) => _AbilityTag(label: a)).toList(),
                 ),
                 const SizedBox(height: 20),
-                _SmallEditButton(label: 'Edit ability', onTap: onEditTap),
+                _SmallEditButton(label: 'Edit Kemampuan', onTap: onEditTap),
               ],
             ),
           ),
@@ -575,7 +576,7 @@ class AbilitiesCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 color: AppColors.bgLight,
                 child: Text(
-                  'Your ability',
+                  'Kemampuan Anda',
                   style: GoogleFonts.outfit(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

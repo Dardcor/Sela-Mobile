@@ -28,13 +28,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            duration: Duration(milliseconds: 1500),
-            content: Text('Please enter your email address'),
-          ),
-        );
+          .showSnackBar(const SnackBar(content: Text('Silakan masukkan alamat email Anda')));
+      return;
+    }
+
+    // Validasi domain email
+    final isStudentEmail = email.endsWith('@it.student.pens.ac.id');
+    final isLecturerEmail = email.endsWith('@pens.ac.id');
+
+    if (!isStudentEmail && !isLecturerEmail) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Gunakan email kampus: @it.student.pens.ac.id (Mahasiswa) atau @pens.ac.id (Dosen)')));
       return;
     }
 
@@ -55,7 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Reset code sent! Check your email.'),
+              content: Text('Kode reset telah dikirim! Periksa email Anda.'),
             ),
           );
         Navigator.push(

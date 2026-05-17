@@ -52,7 +52,7 @@ class CalendarHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(40),
                   ),
                   child: Text(
-                    'Calender',
+                    'Kalender',
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -114,18 +114,18 @@ class CalendarHeader extends StatelessWidget {
 
   String _getMonthName(int month) {
     const months = [
-      'January',
-      'February',
-      'March',
+      'Januari',
+      'Februari',
+      'Maret',
       'April',
-      'May',
-      'June',
-      'July',
-      'August',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
       'September',
-      'October',
+      'Oktober',
       'November',
-      'December',
+      'Desember',
     ];
     return months[month - 1];
   }
@@ -163,6 +163,7 @@ class CalendarCard extends StatelessWidget {
         ],
       ),
       child: TableCalendar(
+        locale: 'id_ID', // Menambahkan lokalisasi Bahasa Indonesia untuk format hari (Sen, Sel, dll.)
         firstDay: DateTime.utc(2000, 1, 1),
         lastDay: DateTime.utc(2100, 12, 31),
         focusedDay: selectedDate,
@@ -401,7 +402,7 @@ class UpcomingTaskSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pending Task',
+            'Tugas Tertunda',
             style: GoogleFonts.outfit(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -411,7 +412,7 @@ class UpcomingTaskSection extends StatelessWidget {
           if (tasks.isEmpty)
             Center(
               child: Text(
-                'No upcoming tasks',
+                'Tidak ada tugas',
                 style: GoogleFonts.outfit(color: Colors.grey),
               ),
             )

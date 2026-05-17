@@ -30,9 +30,6 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscureRegisterPassword = true;
   bool _rememberMe = false;
 
-  List<String> _classes = [];
-  String? _selectedClass;
-
   final _secureStorage = const FlutterSecureStorage();
 
   final _emailLoginController = TextEditingController();
@@ -48,30 +45,6 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _loadRememberedCredentials();
-    _loadClasses();
-  }
-
-  Future<void> _loadClasses() async {
-    try {
-      final response = await ApiClient().dio.get('classes');
-      final data = response.data;
-      List<dynamic> rawList;
-      if (data is Map && data.containsKey('data')) {
-        rawList = data['data'];
-      } else if (data is List) {
-        rawList = data;
-      } else {
-        rawList = [];
-      }
-      if (mounted) {
-        setState(() {
-          _classes = rawList.map((e) => e['name']?.toString() ?? e['class_name']?.toString() ?? e.toString()).toList();
-          // _selectedClass tetap null agar dropdown menampilkan "Select Class" di awal
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching classes: $e');
-    }
   }
 
   Future<void> _loadRememberedCredentials() async {
@@ -108,8 +81,51 @@ class _AuthScreenState extends State<AuthScreen> {
     _usernameRegisterController.clear();
     _emailRegisterController.clear();
     _passwordRegisterController.clear();
-    setState(() => _selectedClass = null);
     await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  void _showUnregisteredError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Akun belum terdaftar, silakan registrasi terlebih dahulu.',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                setState(() {
+                  isLogin = false;
+                });
+                _pageController.animateToPage(
+                  1,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                );
+              },
+              child: const Text(
+                'DAFTAR',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -163,18 +179,34 @@ class _AuthScreenState extends State<AuthScreen> {
           isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        String msg = 'Email atau Password salah. Silakan coba lagi.';
-        if (e.response?.data is Map && e.response?.data['message'] != null) {
-          msg = e.response?.data['message'];
+        String msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
+        if (e.response?.data is Map && e.response!.data['message'] != null) {
+          String backendMessage = e.response!.data['message'].toString().toLowerCase();
+          if (backendMessage.contains('unauthorized') || 
+              backendMessage.contains('not found') || 
+              backendMessage.contains('invalid') || 
+              backendMessage.contains('incorrect') ||
+              backendMessage.contains('credential')) {
+             msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
+          } else {
+             // Jika error lain dari backend yang aman untuk ditampilkan
+             msg = e.response!.data['message'].toString();
+          }
         }
-        _showError(msg);
+        
+        // Memeriksa pesan spesifik (jika akun tidak ada/belum register)
+        if (e.response?.statusCode == 404 || msg.toLowerCase().contains('not found') || msg.toLowerCase().contains('belum terdaftar') || msg.toLowerCase().contains('tidak ditemukan')) {
+          _showUnregisteredError();
+        } else {
+          _showError(msg);
+        }
       }
     } catch (e) {
-      debugPrint('🔥 LOGIN EXCEPTION: $e');
+      debugPrint('dY" LOGIN EXCEPTION: $e');
       if (e.toString().contains('SocketException')) {
         showNoInternetSnackBar(context);
       } else {
-        _showError('Email atau Password salah. Silakan coba lagi.');
+        _showError('Terjadi kesalahan yang tidak terduga. Silakan coba lagi.');
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -207,16 +239,22 @@ class _AuthScreenState extends State<AuthScreen> {
       _showError('Email tidak boleh kosong');
       return;
     }
+
+    // Validasi domain email
+    final isStudentEmail = email.endsWith('@it.student.pens.ac.id');
+    final isLecturerEmail = email.endsWith('@pens.ac.id');
+
+    if (!isStudentEmail && !isLecturerEmail) {
+      _showError('Gunakan email kampus: @it.student.pens.ac.id (Mahasiswa) atau @pens.ac.id (Dosen)');
+      return;
+    }
+
     if (password.isEmpty) {
-      _showError('Password tidak boleh kosong');
+      _showError('Kata sandi tidak boleh kosong');
       return;
     }
     if (password.length < 6) {
       _showError('Password minimal 6 karakter');
-      return;
-    }
-    if (_selectedClass == null || _selectedClass!.isEmpty) {
-      _showError('Kelas tidak boleh kosong');
       return;
     }
 
@@ -232,7 +270,6 @@ class _AuthScreenState extends State<AuthScreen> {
         'username': username,
         'email': email,
         'password': password,
-        'class_name': _selectedClass ?? '',
       });
 
       if (mounted && (res.statusCode == 201 || res.statusCode == 200)) {
@@ -262,12 +299,18 @@ class _AuthScreenState extends State<AuthScreen> {
           isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        String msg = e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+        String msg = e.message ?? 'Kesalahan tidak diketahui';
+        if (e.response?.data is Map<String, dynamic>) {
+          msg = e.response?.data?['message'] ?? msg;
+        } else if (e.response?.data is String) {
+          msg = 'Kesalahan Server: ${e.response?.statusCode}';
+        }
+
         if (msg.contains('User already registered') || msg.contains('The email has already been taken')) {
           msg = 'Email ini sudah terdaftar. Silakan login.';
         } else if (msg.contains('Database error saving new user') || msg.contains('username already exists') || msg.contains('The username has already been taken')) {
           msg = 'Username atau Email sudah digunakan. Silakan pilih yang lain.';
-        } else if (e.response?.data?['errors'] != null) {
+        } else if (e.response?.data is Map<String, dynamic> && e.response?.data?['errors'] != null) {
           msg = "Form tidak valid: ${e.response?.data['errors'].toString()}";
         }
         _showError(msg);
@@ -349,15 +392,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello!',
+                          'Halo!',
                           style: GoogleFonts.outfit(
-                            fontSize: 48,
+                            fontSize: 32,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                         Text(
-                          'Welcome to SELA',
+                          'Selamat datang di SELA',
                           style: GoogleFonts.outfit(
                             fontSize: 18,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -468,37 +511,29 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 15,
-                                            left: 30,
-                                            right: 30,
-                                          ),
-                                          child: _RegisterForm(
-                                            usernameController:
-                                                _usernameRegisterController,
-                                            emailController:
-                                                _emailRegisterController,
-                                            passwordController:
-                                                _passwordRegisterController,
-                                            obscurePassword:
-                                                _obscureRegisterPassword,
-                                            isLoading: isLoading,
-                                            selectedClass: _selectedClass,
-                                            classes: _classes,
-                                            onClassChanged: (val) {
-                                              if (val != null) {
-                                                setState(() =>
-                                                    _selectedClass = val);
-                                              }
-                                            },
-                                            onToggleObscure: () => setState(
-                                              () => _obscureRegisterPassword =
-                                                  !_obscureRegisterPassword,
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 15,
+                                              left: 30,
+                                              right: 30,
                                             ),
-                                            onRegister: _handleRegister,
+                                            child: _RegisterForm(
+                                              usernameController:
+                                                  _usernameRegisterController,
+                                              emailController:
+                                                  _emailRegisterController,
+                                              passwordController:
+                                                  _passwordRegisterController,
+                                              obscurePassword:
+                                                  _obscureRegisterPassword,
+                                              isLoading: isLoading,
+                                              onToggleObscure: () => setState(
+                                                () => _obscureRegisterPassword =
+                                                    !_obscureRegisterPassword,
+                                              ),
+                                              onRegister: _handleRegister,
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ),
@@ -554,20 +589,20 @@ class _LoginForm extends StatelessWidget {
       children: [
         AuthTextField(
           controller: emailController,
-          label: 'Email Address',
+          label: 'Alamat Email',
           hint: 'contoh@email.com',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         AuthPasswordField(
           controller: passwordController,
-          label: 'Password',
-          hint: 'Masukkan password',
+          label: 'Kata Sandi',
+          hint: 'Masukkan kata sandi',
           obscure: obscurePassword,
           onToggle: onToggleObscure,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -578,24 +613,24 @@ class _LoginForm extends StatelessWidget {
                   onChanged: onRememberMeChanged,
                   activeColor: AppColors.primaryTeal,
                 ),
-                Text('Remember me', style: GoogleFonts.outfit(fontSize: 14)),
+                Text('Ingat saya', style: GoogleFonts.outfit(fontSize: 14)),
               ],
             ),
             TextButton(
               onPressed: onForgotPassword,
               child: Text(
-                'Forgot Password?',
+                'Lupa Kata Sandi?',
                 style: GoogleFonts.outfit(
-                  color: AppColors.lightTeal,
-                  fontSize: 14,
+                  color: AppColors.primaryTeal,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         AuthSubmitButton(
-          label: 'Login',
+          label: 'Masuk',
           isLoading: isLoading,
           onPressed: onLogin,
         ),
@@ -614,9 +649,6 @@ class _RegisterForm extends StatelessWidget {
   final TextEditingController passwordController;
   final bool obscurePassword;
   final bool isLoading;
-  final String? selectedClass;
-  final List<String> classes;
-  final ValueChanged<String?> onClassChanged;
   final VoidCallback onToggleObscure;
   final VoidCallback onRegister;
 
@@ -626,9 +658,6 @@ class _RegisterForm extends StatelessWidget {
     required this.passwordController,
     required this.obscurePassword,
     required this.isLoading,
-    required this.selectedClass,
-    required this.classes,
-    required this.onClassChanged,
     required this.onToggleObscure,
     required this.onRegister,
   });
@@ -652,32 +681,34 @@ class _RegisterForm extends StatelessWidget {
         const SizedBox(height: 20),
         AuthTextField(
           controller: emailController,
-          label: 'Email Address',
-          hint: 'contoh@email.com',
+          label: 'Alamat Email',
+          hint: 'contoh@it.student.pens.ac.id',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Hanya mendukung email @it.student.pens.ac.id (Mahasiswa) atau @pens.ac.id (Dosen)',
+            style: GoogleFonts.outfit(
+              color: Colors.grey[600],
+              fontSize: 12,
+              height: 1.3,
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         AuthPasswordField(
           controller: passwordController,
-          label: 'Password',
+          label: 'Kata Sandi',
           hint: 'Minimal 6 karakter',
           obscure: obscurePassword,
           onToggle: onToggleObscure,
         ),
-        const SizedBox(height: 20),
-        AuthDropdownField(
-          key: ValueKey(classes.length),
-          label: 'Class',
-          hint: 'Pilih Kelas',
-          value: selectedClass,
-          items: classes,
-          onChanged: onClassChanged,
-          icon: Icons.school_outlined,
-        ),
         const SizedBox(height: 40),
         AuthSubmitButton(
-          label: 'Register',
+          label: 'Daftar',
           isLoading: isLoading,
           onPressed: onRegister,
         ),

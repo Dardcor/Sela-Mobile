@@ -23,24 +23,29 @@ class AutomaticTaskDivision {
       parts.addAll(fileParts);
     }
 
-    final response = await _createModel().generateContent([
-      Content.multi(parts),
-    ]);
-
-    final text = response.text;
-    if (text == null || text.isEmpty) {
-      throw Exception('AI memberikan respons kosong.');
-    }
-
     try {
+      final response = await _createModel().generateContent([
+        Content.multi(parts),
+      ]);
+
+      final text = response.text;
+      if (text == null || text.isEmpty) {
+        throw Exception('Server AI sedang sibuk. Silakan coba beberapa saat lagi.');
+      }
+
       final dynamic decoded = jsonDecode(_stripMarkdownFence(text));
       if (decoded is! List) {
-        throw Exception('Respons AI bukan array JSON yang valid.');
+        throw Exception('Server AI gagal memproses data dengan benar. Silakan coba lagi.');
       }
 
       return List<Map<String, dynamic>>.from(decoded);
-    } catch (_) {
-      throw Exception('Gagal membaca respons AI: $text');
+    } on GenerativeAIException catch (e) {
+      throw Exception('Server AI sedang sibuk atau kelebihan muatan. Silakan coba beberapa saat lagi.');
+    } catch (e) {
+      if (e.toString().contains('Server AI')) {
+        rethrow;
+      }
+      throw Exception('Terjadi gangguan koneksi dengan sistem AI. Pastikan internet stabil lalu coba lagi.');
     }
   }
 
@@ -94,34 +99,29 @@ class AutomaticTaskDivision {
     // Prompt dalam Bahasa Indonesia yang mewajibkan output Bahasa Indonesia
     final prompt =
         """
-Kamu adalah asisten pembagi tugas yang cerdas. Semua respons WAJIB menggunakan Bahasa Indonesia.
+Kamu adalah manajer proyek yang ahli dalam menganalisis tugas dan membaginya. Semua respons WAJIB dalam Bahasa Indonesia yang profesional.
 
-Tugas utama: "$taskTitle"
-Deskripsi: "$taskDescription"
-${links != null && links.isNotEmpty ? "Link referensi:\n${links.join('\n')}\n" : ""}
-${files != null && files.isNotEmpty ? "File yang dilampirkan:\n${files.join('\n')}\n" : ""}
+TUGAS UTAMA: "$taskTitle"
+DESKRIPSI: "$taskDescription"
+${links != null && links.isNotEmpty ? "TAUTAN REFERENSI TUGAS:\n${links.join('\n')}\n" : ""}
+${files != null && files.isNotEmpty ? "FILE REFERENSI TERLAMPIR:\n${files.join('\n')}\n" : ""}
 
-Anggota tim beserta kemampuan mereka:
+DAFTAR ANGGOTA & KEAHLIAN MEREKA (JSON):
 ${jsonEncode(membersList)}
 
-Tugasmu adalah membagi tugas utama menjadi beberapa subtask yang merata di antara anggota. Setiap anggota WAJIB mendapatkan minimal satu subtask. Pertimbangkan kemampuan (abilities) masing-masing anggota saat membagi tugas — berikan subtask yang sesuai dengan kemampuan anggota tersebut. Jika anggota tidak memiliki kemampuan terdaftar, bagi secara merata.
+INSTRUKSI WAJIB UNTUKMU:
+1. Pahami dengan sangat detail apa konteks dari tugas utama ini (berdasarkan judul, deskripsi, tautan, dan file). Jangan asal menebak.
+2. Pecah tugas utama tersebut menjadi beberapa sub-tugas yang SPESIFIK dan BISA DIKERJAKAN.
+3. Cocokkan sifat dari setiap sub-tugas dengan keahlian (abilities) spesifik yang dimiliki anggota di daftar JSON tersebut.
+4. JIKA ada anggota yang ahli desain, beri dia tugas mendesain. JIKA ada yang ahli coding, beri dia tugas programming.
+5. SETIAP ANGGOTA WAJIB MENDAPATKAN MINIMAL SATU TUGAS. Jangan ada yang menganggur.
 
-Kembalikan HANYA array JSON yang valid tanpa blok markdown. Tiap objek berisi:
-- "title": judul singkat subtask dalam Bahasa Indonesia
-- "description": penjelasan subtask dalam Bahasa Indonesia
-- "user_id": ID anggota yang ditugaskan (gunakan ID yang persis sama)
-
-Contoh output:
+Kembalikan HANYA format array JSON yang valid persis seperti di bawah ini tanpa blok teks markdown apa pun.
 [
   {
-    "title": "Desain Antarmuka",
-    "description": "Membuat tampilan dashboard utama aplikasi",
-    "user_id": "member-id-1"
-  },
-  {
-    "title": "Integrasi API",
-    "description": "Menghubungkan frontend dengan layanan backend",
-    "user_id": "member-id-2"
+    "title": "Judul spesifik sub-tugas",
+    "description": "Langkah detail apa yang harus dia kerjakan berdasarkan tautan/file",
+    "user_id": "masukkan id anggota yang cocok dari json di atas"
   }
 ]
 """;

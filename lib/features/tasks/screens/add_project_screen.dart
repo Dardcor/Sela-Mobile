@@ -97,19 +97,19 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
     bool hasError = false;
 
     if (titleCtrl.text.isEmpty) {
-      titleError = 'Title is required';
+      titleError = 'Judul harus diisi';
       hasError = true;
     }
     if (dateCtrl.text.isEmpty) {
-      dateError = 'Due Date is required';
+      dateError = 'Tenggat waktu harus diisi';
       hasError = true;
     }
     if (descCtrl.text.isEmpty) {
-      descError = 'Description is required';
+      descError = 'Deskripsi harus diisi';
       hasError = true;
     }
     if (isGroup && selectedGroup == null) {
-      groupError = 'Please select a group';
+      groupError = 'Silakan pilih grup';
       hasError = true;
     }
 
@@ -138,7 +138,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           'title': titleCtrl.text,
           'description': descCtrl.text,
           'due_date': dateCtrl.text.isNotEmpty
-              ? DateFormat('MM/dd/yyyy').parse(dateCtrl.text).toIso8601String()
+              ? DateFormat('dd/MM/yyyy').parse(dateCtrl.text).toIso8601String()
               : null,
           'is_group': isGroup,
           'group_id': isGroup ? selectedGroup['id'] : null,
@@ -194,10 +194,13 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
         setState(() => isLoading = false);
         SuccessDialog.show(
           context,
-          message: 'Task successfully added',
+          message: 'Tugas berhasil ditambahkan',
           onOk: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
+            // Karena AddProjectScreen sudah menyatu di dalam PageView dari Navbar, 
+            // cukup melompat kembali ke Dashboard (index 0) setelah berhasil ditambahkan
+            // Jangan memanggil pop(context) 2 kali berturut-turut karena akan mengakibatkan blank/black screen!
+            final State? navbarState = context.findAncestorStateOfType<State>();
+            Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (r) => false);
           },
         );
       }
@@ -290,8 +293,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           children: [
             const SizedBox(height: 15),
             LabeledInputField(
-              label: 'Title',
-              hint: 'Enter a task title',
+              label: 'Judul',
+              hint: 'Masukkan judul tugas',
               controller: titleCtrl,
               errorText: titleError,
               inputFormatters: [NoLeadingSpaceFormatter()],
@@ -301,8 +304,8 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
             ),
             const SizedBox(height: 25),
             LabeledInputField(
-              label: 'Due Date',
-              hint: 'mm/dd/yyyy',
+              label: 'Tenggat Waktu',
+              hint: 'hh/bb/tttt',
               controller: dateCtrl,
               icon: Icons.calendar_month_rounded,
               errorText: dateError,
@@ -315,26 +318,83 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                   lastDate: DateTime(2100),
                 );
                 if (d != null) {
-                  dateCtrl.text = DateFormat('MM/dd/yyyy').format(d);
+                  dateCtrl.text = DateFormat('dd/MM/yyyy').format(d);
                 }
               },
             ),
             const SizedBox(height: 25),
             if (forGroup) ...[
-              AddTaskGroupDropdown(
-                userGroups: userGroups,
-                selectedGroup: selectedGroup,
-                errorText: groupError,
-                onChanged: (v) {
-                  if (groupError != null) setState(() => groupError = null);
-                  setState(() => selectedGroup = v);
-                },
-              ),
+              if (userGroups.isEmpty)
+                // Pesan jika belum masuk grup manapun
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightTealBg,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Anda belum bergabung dalam grup apa pun.',
+                        style: GoogleFonts.outfit(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Menutup keyboard dan memindahkan layar ke Tab Group (Index 3)
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            
+                            // Karena AddProjectScreen sudah berada di dalam PageView dari Navbar, 
+                            // kita bisa langsung mencari state AppBottomNavBar terdekat atau memanipulasi route.
+                            // Solusi teraman dan paling mulus untuk mengubah State Parent (Navbar) adalah dengan argumen navigasi.
+                            // Kita arahkan ke dashboard dan sertakan instruksi untuk membuka tab Grup dan memicu pop-up.
+                            Navigator.pushNamedAndRemoveUntil(
+                              context, 
+                              '/dashboard', 
+                              (route) => false,
+                              arguments: {'open_group_modal': true}, // Argumen khusus untuk trigger pop-up
+                            );
+                          },
+                          icon: const Icon(Icons.group_add_rounded, size: 18),
+                          label: Text(
+                            'Buat atau Gabung Grup',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryTeal,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                AddTaskGroupDropdown(
+                  userGroups: userGroups,
+                  selectedGroup: selectedGroup,
+                  errorText: groupError,
+                  onChanged: (v) {
+                    if (groupError != null) setState(() => groupError = null);
+                    setState(() => selectedGroup = v);
+                  },
+                ),
               const SizedBox(height: 25),
             ],
             LabeledInputField(
-              label: 'Description',
-              hint: 'Description',
+              label: 'Deskripsi',
+              hint: 'Tambahkan deskripsi',
               controller: descCtrl,
               lines: 4,
               errorText: descError,
@@ -344,14 +404,14 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               },
             ),
             const SizedBox(height: 30),
-            // Divider "Support"
+            // Divider "Pendukung"
             Row(
               children: [
                 const Expanded(child: Divider()),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
-                    'Support',
+                    'Pendukung',
                     style: GoogleFonts.outfit(
                       color: Colors.grey[400],
                       fontSize: 13,
@@ -392,7 +452,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Create',
+                        'Buat',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           color: Colors.white,

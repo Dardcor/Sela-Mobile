@@ -143,7 +143,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                           ..showSnackBar(
                             SnackBar(
                               duration: const Duration(milliseconds: 1500),
-                              content: Text('Failed to open gallery: $e'),
+                              content: Text('Gagal membuka galeri: $e'),
                             ),
                           );
                       }

@@ -93,7 +93,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Profile photo updated successfully!'),
+              content: Text('Foto profil berhasil diperbarui!'),
             ),
           );
       }
@@ -179,7 +179,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Password updated successfully!'),
+              content: Text('Kata sandi berhasil diperbarui!'),
               backgroundColor: Colors.green),
         );
       }
@@ -197,7 +197,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Failed to change password: $e'),
+                content: Text('Gagal mengganti kata sandi: $e'),
                 backgroundColor: Colors.red),
           );
         }
@@ -219,18 +219,18 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
     final confirm = await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Logout'),
-            content: const Text('Are you sure you want to logout?'),
+            title: const Text('Keluar'),
+            content: const Text('Apakah Anda yakin ingin keluar?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child:
-                    const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    const Text('Batal', style: TextStyle(color: Colors.grey)),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child:
-                    const Text('Logout', style: TextStyle(color: Colors.red)),
+                    const Text('Keluar', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
@@ -330,7 +330,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                 borderRadius: BorderRadius.circular(40),
                               ),
                               child: Text(
-                                'Profile',
+                                'Profil',
                                 style: GoogleFonts.outfit(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -456,7 +456,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                             size: 14),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Edit Profile',
+                                          'Ubah Profil',
                                           style: GoogleFonts.outfit(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
@@ -635,7 +635,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(milliseconds: 1500),
-              content: Text('Failed to open gallery: $e'),
+              content: Text('Gagal membuka galeri: $e'),
             ),
           );
       }

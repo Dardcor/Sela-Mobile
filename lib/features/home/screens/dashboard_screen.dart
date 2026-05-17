@@ -19,7 +19,7 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAliveClientMixin {
   Map<String, dynamic>? _cachedProfile;
   List<dynamic>? _cachedGroups;
   List<dynamic>? _cachedIndependent;
@@ -29,6 +29,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
   int _unreadNotificationsCount = 0;
+
+  @override
+  bool get wantKeepAlive => true; // Mencegah rebuild saat swipe PageView
 
   @override
   void initState() {
@@ -228,7 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // ✅ Header seksi diisolasi — const-friendly, rebuild hanya saat navigasi
           SliverToBoxAdapter(
             child: DashboardSectionHeader(
-              title: 'Group Task',
+              title: 'Tugas Kelompok',
               onSeeAll: () => Navigator.pushNamed(
                 context,
                 '/work_in_group',
@@ -240,7 +243,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SliverToBoxAdapter(child: SizedBox(height: 25)),
           SliverToBoxAdapter(
             child: DashboardSectionHeader(
-              title: 'Independent Task',
+              title: 'Tugas Mandiri',
               onSeeAll: () => Navigator.pushNamed(
                 context,
                 '/independent_task',

@@ -159,7 +159,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Please enter subtask title'),
+            content: Text('Silakan masukkan judul tugas'),
             backgroundColor: Colors.red,
           ),
         );
@@ -171,7 +171,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Please select a member'),
+            content: Text('Silakan pilih anggota yang akan ditugaskan'),
             backgroundColor: Colors.red,
           ),
         );
@@ -200,7 +200,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Subtask created successfully'),
+              content: Text('Tugas anggota berhasil dibuat'),
               backgroundColor: AppColors.primaryTeal,
             ),
           );
@@ -346,14 +346,21 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
-          String errorMessage = 'Server is busy try again later: $e';
+          String errorMessage = 'Gagal membagi tugas secara otomatis. Server AI sedang sibuk, silakan coba beberapa saat lagi.';
+          
+          if (e is DioException && e.response?.statusCode == 500) {
+             errorMessage = 'Gagal menyimpan tugas. Terjadi masalah pada server. Silakan coba lagi nanti.';
+          } else if (e.toString().contains('Server AI')) {
+             errorMessage = e.toString().replaceAll('Exception: ', '');
+          }
+          
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 3000),
                 content: Text(errorMessage),
-                backgroundColor: Colors.red,
+                backgroundColor: Colors.red.shade700,
               ),
             );
         }
@@ -478,7 +485,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(milliseconds: 1500),
-              content: Text('Failed to update status: ${e.toString()}'),
+              content: Text('Gagal memperbarui status: ${e.toString()}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -495,7 +502,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('File path is missing'),
+            content: Text('Lokasi file tidak ditemukan'),
             backgroundColor: Colors.red,
           ),
         );
@@ -526,7 +533,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Failed to open file preview'),
+              content: Text('Gagal membuka pratinjau file'),
               backgroundColor: Colors.red,
             ),
           );
@@ -537,7 +544,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Failed to open file preview'),
+            content: Text('Gagal membuka pratinjau file'),
             backgroundColor: Colors.red,
           ),
         );
@@ -586,7 +593,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                      child: const Text('Kembali', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),

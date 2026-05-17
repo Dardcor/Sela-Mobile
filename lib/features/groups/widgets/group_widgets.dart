@@ -1299,7 +1299,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
           Row(
             children: [
               Text(
-                'Create Subtask',
+                'Buat Sub-Tugas',
                 style: GoogleFonts.outfit(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -1315,7 +1315,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Leader only',
+                  'Khusus Ketua',
                   style: GoogleFonts.outfit(
                     fontSize: 11,
                     color: Colors.grey[400],
@@ -1325,7 +1325,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             ],
           ),
           const SizedBox(height: 15),
-          // Tab bar — semua user bisa klik untuk pindah tab
+          // Tab bar ?" semua user bisa klik untuk pindah tab
           Container(
             height: 40,
             decoration: BoxDecoration(
@@ -1334,7 +1334,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             child: Row(
               children: [
                 _TabItem(
-                  title: 'Automatic',
+                  title: 'Otomatis',
                   active: _activeTab == 0,
                   onTap: () => _switchTab(0),
                 ),
@@ -1373,12 +1373,12 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
         children: [
           const SizedBox(height: 10),
           Text(
-            '*Tasks will be automatically divided among each member evenly according to their abilities.',
+            '*Tugas akan otomatis dibagi rata kepada setiap anggota sesuai dengan kemampuan mereka.',
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
           ),
           const SizedBox(height: 20),
-          // Tombol Create — hanya ini yang diblokir untuk member
+          // Tombol Create ?" hanya ini yang diblokir untuk member
           GestureDetector(
             onTap: () {
               if (widget.isLoading) return;
@@ -1416,7 +1416,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                           ),
                         )
                       : Text(
-                          'Create',
+                          'Buat dengan AI ✨',
                           style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1445,8 +1445,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                 child: GestureDetector(
                   onTap: !widget.isLeader ? _showLeaderOnlySnackBar : null,
                   child: GroupInputField(
-                    label: 'Subtask title',
-                    hint: 'subtask title',
+                    label: 'Judul',
+                    hint: 'Judul Sub-Tugas',
                     controller: _titleCtrl,
                     enabled: widget.isLeader,
                     inputFormatters: [NoLeadingSpaceFormatter()],
@@ -1463,8 +1463,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     child: AbsorbPointer(
                       absorbing: !widget.isLeader,
                       child: _DropdownPerson(
-                        label: 'Assign to',
-                        hint: 'pick the person',
+                        label: 'Tugaskan ke',
+                        hint: 'Pilih anggota',
                         value: _selectedMemberId,
                         members: widget.members,
                         enabled: widget.isLeader,
@@ -1482,8 +1482,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
           GestureDetector(
             onTap: !widget.isLeader ? _showLeaderOnlySnackBar : null,
             child: GroupInputField(
-              label: 'Description',
-              hint: 'description',
+              label: 'Deskripsi',
+              hint: 'Deskripsi tugas',
               controller: _descCtrl,
               enabled: widget.isLeader,
               inputFormatters: [NoLeadingSpaceFormatter()],
@@ -1525,7 +1525,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                         ),
                       )
                     : Text(
-                        'Create',
+                        'Buat',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,

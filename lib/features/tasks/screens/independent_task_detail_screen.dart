@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import '../../../core/services/api_client.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
@@ -138,7 +139,7 @@ class _IndependentTaskDetailScreenState
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Please enter a subtask title'),
+            content: Text('Silakan masukkan judul sub-tugas'),
             backgroundColor: Colors.red,
           ),
         );
@@ -169,7 +170,7 @@ class _IndependentTaskDetailScreenState
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Subtask created successfully'),
+              content: Text('Sub-tugas berhasil dibuat'),
               backgroundColor: Colors.green,
             ),
           );
@@ -272,7 +273,14 @@ class _IndependentTaskDetailScreenState
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Server is busy try again later';
+        String errorMessage = 'Gagal menyusun tugas secara otomatis. Server AI sedang sibuk, silakan coba beberapa saat lagi.';
+        
+        if (e is DioException && e.response?.statusCode == 500) {
+           errorMessage = 'Gagal menyimpan tugas. Terjadi masalah pada server. Silakan coba lagi nanti.';
+        } else if (e.toString().contains('Server AI')) {
+           errorMessage = e.toString().replaceAll('Exception: ', '');
+        }
+
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
@@ -282,7 +290,7 @@ class _IndependentTaskDetailScreenState
               SnackBar(
                 duration: const Duration(milliseconds: 3000),
                 content: Text(errorMessage),
-                backgroundColor: Colors.red,
+                backgroundColor: Colors.red.shade700,
               ),
             );
         }
@@ -346,7 +354,7 @@ class _IndependentTaskDetailScreenState
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('File path is missing'),
+            content: Text('Lokasi file tidak ditemukan'),
             backgroundColor: Colors.red,
           ),
         );
@@ -377,7 +385,7 @@ class _IndependentTaskDetailScreenState
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('Failed to open file preview'),
+              content: Text('Gagal membuka pratinjau file'),
               backgroundColor: Colors.red,
             ),
           );

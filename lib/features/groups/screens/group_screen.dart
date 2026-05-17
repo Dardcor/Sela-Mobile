@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/api_client.dart';
 import 'dart:convert';
@@ -15,13 +16,16 @@ class GroupScreen extends StatefulWidget {
   State<GroupScreen> createState() => _GroupScreenState();
 }
 
-class _GroupScreenState extends State<GroupScreen> {
+class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClientMixin {
   final apiClient = ApiClient();
   List<dynamic> _allTeams = [];
   List<dynamic> teams = [];
   bool isLoading = true;
   String _currentUserId = '';
   String _currentUserClass = '';
+
+  @override
+  bool get wantKeepAlive => true; // Mencegah rebuild saat swipe PageView
 
   List<String> _courses = [];
   final _searchCtrl = TextEditingController();
@@ -55,6 +59,15 @@ class _GroupScreenState extends State<GroupScreen> {
     super.initState();
     _initUserId();
     _fetch();
+    
+    // Mengecek apakah layar ini dipanggil dengan instruksi membuka modal dari route arguments
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final args = ModalRoute.of(context)?.settings.arguments as Map?;
+      if (args?['open_group_modal'] == true) {
+        _showJoinCreateModal();
+      }
+    });
   }
 
   @override
@@ -198,20 +211,30 @@ class _GroupScreenState extends State<GroupScreen> {
                             _fetch();
                             SuccessDialog.show(
                               context,
-                              message: 'Group successfully deleted',
+                              message: 'Grup berhasil dihapus',
                             );
                           }
                         } catch (e) {
                           debugPrint('Delete group err: $e');
                           if (!context.mounted) return;
                           Navigator.pop(ctx);
+                          
+                          String errMsg = 'Gagal menghapus grup. Silakan coba lagi.';
+                          if (e is DioException) {
+                            if (e.response?.statusCode == 500) {
+                              errMsg = 'Gagal menghapus grup: Terjadi masalah pada server. Pastikan tidak ada data yang terikat.';
+                            } else if (e.response?.data != null && e.response?.data['message'] != null) {
+                              errMsg = e.response?.data['message'].toString() ?? errMsg;
+                            }
+                          }
+                          
                           ScaffoldMessenger.of(context)
                             ..clearSnackBars()
                             ..showSnackBar(
                               SnackBar(
-                                duration: const Duration(milliseconds: 2200),
-                                content: Text('Failed to delete group: $e'),
-                                backgroundColor: Colors.red,
+                                duration: const Duration(milliseconds: 3000),
+                                content: Text(errMsg),
+                                backgroundColor: Colors.red.shade700,
                               ),
                             );
                         }
@@ -482,7 +505,7 @@ class _GroupScreenState extends State<GroupScreen> {
                 ),
                 const SizedBox(height: 30),
                 Text(
-                  'Group Option',
+                  'Pilihan Grup',
                   style: GoogleFonts.outfit(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -490,7 +513,7 @@ class _GroupScreenState extends State<GroupScreen> {
                   ),
                 ),
                 Text(
-                  'join a code or create a group',
+                  'masukkan kode atau buat grup baru',
                   style: GoogleFonts.outfit(
                     fontSize: 14,
                     color: Colors.grey[500],
@@ -508,8 +531,8 @@ class _GroupScreenState extends State<GroupScreen> {
                     fontSize: 16,
                   ),
                   tabs: const [
-                    Tab(text: 'Join Group'),
-                    Tab(text: 'Create Group'),
+                    Tab(text: 'Gabung Grup'),
+                    Tab(text: 'Buat Grup'),
                   ],
                 ),
                 const SizedBox(height: 25),
@@ -522,8 +545,8 @@ class _GroupScreenState extends State<GroupScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           GroupInputField(
-                            label: 'Code',
-                            hint: 'Input a code',
+                            label: 'Kode',
+                            hint: 'Masukkan kode',
                             controller: joinCodeCtrl,
                             errorText: joinCodeError,
                             onChanged: (_) {
@@ -534,7 +557,7 @@ class _GroupScreenState extends State<GroupScreen> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            '*Note: Enter the code from the group',
+                            '*Catatan: Masukkan kode dari grup',
                             style: GoogleFonts.outfit(
                               fontSize: 10,
                               color: Colors.grey[400],
@@ -583,7 +606,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                 ),
                               ),
                               child: Text(
-                                'Join',
+                                'Gabung',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -599,8 +622,8 @@ class _GroupScreenState extends State<GroupScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           GroupDropdownField(
-                            label: 'Title Group',
-                            hint: 'select course',
+                            label: 'Judul Grup',
+                            hint: 'Pilih mata kuliah',
                             value: curCourse,
                             errorText: courseError,
                             items: _courses,
@@ -614,8 +637,8 @@ class _GroupScreenState extends State<GroupScreen> {
                             children: [
                               Expanded(
                                 child: GroupInputField(
-                                  label: 'Member limits',
-                                  hint: 'total member',
+                                  label: 'Batas Anggota',
+                                  hint: 'Total anggota',
                                   controller: limitCtrl,
                                   isNum: true,
                                   errorText: limitError,
@@ -629,8 +652,8 @@ class _GroupScreenState extends State<GroupScreen> {
                               const SizedBox(width: 15),
                               Expanded(
                                 child: GroupInputField(
-                                  label: 'Number Group',
-                                  hint: 'input number',
+                                  label: 'Nomor Grup',
+                                  hint: 'Masukkan nomor',
                                   controller: noCtrl,
                                   isNum: true,
                                   errorText: groupNumberError,
@@ -666,7 +689,7 @@ class _GroupScreenState extends State<GroupScreen> {
                                       if (curCourse == null) {
                                         setS(
                                           () => courseError =
-                                              'Please select a course',
+                                              'Silakan pilih mata kuliah',
                                         );
                                         hasErr = true;
                                       }
@@ -677,92 +700,76 @@ class _GroupScreenState extends State<GroupScreen> {
                                       if (noText.isEmpty) {
                                         setS(
                                           () => groupNumberError =
-                                              'Please input a group number',
+                                              'Silakan masukkan nomor grup',
                                         );
                                         hasErr = true;
                                       } else if (noVal == null || noVal <= 0) {
                                         setS(
                                           () => groupNumberError =
-                                              'Must be greater than 0',
+                                              'Harus lebih dari 0',
                                         );
                                         hasErr = true;
                                       }
 
                                       if (limitText.isEmpty) {
                                         setS(
-                                          () =>
-                                              limitError = 'Please fill limit',
+                                          () => limitError =
+                                              'Silakan masukkan batas',
                                         );
                                         hasErr = true;
                                       } else if (parsedLimit == null ||
-                                          parsedLimit <= 0) {
-                                        setS(() => limitError = 'Must be > 0');
+                                          parsedLimit < 2) {
+                                        setS(
+                                          () => limitError =
+                                              'Batas min: 2',
+                                        );
                                         hasErr = true;
                                       }
 
                                       if (hasErr) return;
 
                                       setS(() => inProc = true);
-                                      final inv = List.generate(
-                                        6,
-                                        (i) =>
-                                            'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[(DateTime.now()
-                                                        .microsecondsSinceEpoch +
-                                                    i) %
-                                                36],
-                                      ).join();
 
                                       try {
-                                        final res = await apiClient.dio.post(
+                                        await apiClient.dio.post(
                                           '/groups',
                                           data: {
-                                            'name':
-                                                '${_currentUserClass.isNotEmpty ? _currentUserClass : 'Kelas Baru'} $curCourse Kelompok ${noCtrl.text.trim()}',
-                                            'course_name': curCourse,
-                                            // Jika dari frontend kosong, jangan kirim class_name agar backend mengambil langsung dari DB profile
-                                            if (_currentUserClass.isNotEmpty)
-                                              'class_name': _currentUserClass,
-                                            'group_number': int.parse(
-                                              noCtrl.text.trim(),
-                                            ),
-                                            'member_limit': parsedLimit,
-                                            'invitation_code': inv,
-                                            'lecture_code': inv,
+                                            'course': curCourse,
+                                            'member_limits': parsedLimit,
+                                            'group_number': noVal,
                                           },
                                         );
-
-                                        if (!context.mounted) return;
-                                        Navigator.pop(ctx);
-                                        _fetch();
-                                        SuccessDialog.show(
-                                          context,
-                                          message: 'Group successfully created',
-                                        );
+                                        if (context.mounted) {
+                                          Navigator.pop(ctx);
+                                          _fetch();
+                                          showAlert(
+                                            'Grup berhasil dibuat! 🎉',
+                                            isSuccess: true,
+                                          );
+                                        }
                                       } catch (e) {
-                                        debugPrint('create err: $e');
-                                        setS(() => inProc = false);
-                                        showAlert(
-                                          'Failed to create group. Please check the data and try again.',
-                                        );
+                                        if (context.mounted) {
+                                          showAlert('Gagal membuat grup: $e');
+                                        }
+                                      } finally {
+                                        if (context.mounted) {
+                                          setS(() => inProc = false);
+                                        }
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryTeal,
+                                disabledBackgroundColor: AppColors.primaryTeal,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
                               child: inProc
-                                  ? const SizedBox(
-                                      height: 25,
-                                      width: 25,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 3,
-                                      ),
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
                                     )
                                   : Text(
-                                      'Create',
+                                      'Buat',
                                       style: GoogleFonts.outfit(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -807,7 +814,7 @@ class _GroupScreenState extends State<GroupScreen> {
       Navigator.pop(context); // close loading
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to load group details: $e'),
+          content: Text('Gagal memuat rincian grup: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1252,7 +1259,7 @@ class _GroupScreenState extends State<GroupScreen> {
                     ],
                   ),
                   child: Text(
-                    'Group',
+                    'Grup',
                     style: GoogleFonts.outfit(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -1292,19 +1299,19 @@ class _GroupScreenState extends State<GroupScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'No groups found',
+                            'Belum ada grup',
                             style: GoogleFonts.outfit(
                               fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textBlack,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 5),
                           Text(
-                            'Join or create a group to get started',
+                            'Gabung atau buat grup untuk memulai',
                             style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              color: Colors.grey[400],
+                              fontSize: 14,
+                              color: Colors.grey[500],
                             ),
                           ),
                         ],

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/api_client.dart';
 import 'dart:convert';
@@ -15,8 +16,11 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends State<CalendarScreen> with AutomaticKeepAliveClientMixin {
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true; // Mencegah rebuild saat swipe PageView
 
   final Set<Completer<bool>> _pendingDeletes = {};
 
@@ -161,8 +165,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               } catch (_) {}
             }
 
-            String dateLabel = 'No date set';
-            String statusLabel = 'Pending';
+            String dateLabel = 'Tanggal belum diatur';
+            String statusLabel = 'Tertunda';
             bool isOverdue = false;
 
             if (dueDate != null) {
@@ -176,18 +180,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
               }
 
               if (diff == 0) {
-                dateLabel = 'Today';
-                statusLabel = 'This day';
+                dateLabel = 'Hari Ini';
+                statusLabel = 'Hari Ini';
               } else if (diff == 1) {
-                dateLabel = 'Tomorrow';
-                statusLabel = 'Next 1 day';
+                dateLabel = 'Besok';
+                statusLabel = '1 hari lagi';
               } else if (diff > 1) {
                 dateLabel =
                     '${dueDate.day} ${_getMonthName(dueDate.month)} ${dueDate.year}';
-                statusLabel = 'Next $diff days';
+                statusLabel = '$diff hari lagi';
               } else if (diff < 0) {
-                dateLabel = 'Passed';
-                statusLabel = 'Expired';
+                dateLabel = 'Terlewat';
+                statusLabel = 'Kedaluwarsa';
               }
             }
 
@@ -257,12 +261,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await ApiClient().dio.delete('/tasks/$taskId');
     } catch (e) {
       if (mounted) {
+        String errMsg = 'Gagal menghapus tugas. Silakan coba lagi.';
+        
+        // Mencegat error teknis jika server menolak karena ada data yang menyangkut (Code 500)
+        if (e is DioException && e.response?.statusCode == 500) {
+          errMsg = 'Gagal menghapus tugas: Terjadi masalah pada server. Pastikan tidak ada data turunan yang masih terikat.';
+        } else if (e is DioException && e.response?.data != null && e.response?.data['message'] != null) {
+          errMsg = e.response!.data['message'].toString();
+        }
+
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Gagal menghapus task: $e'),
+              duration: const Duration(milliseconds: 3000),
+              backgroundColor: Colors.red.shade700,
+              content: Text(errMsg),
             ),
           );
         _fetchTasks();

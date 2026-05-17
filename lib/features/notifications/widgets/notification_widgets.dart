@@ -85,7 +85,7 @@ class NotificationHeader extends StatelessWidget {
                     ],
                   ),
                   child: Text(
-                    'Notification',
+                    'Notifikasi',
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -229,6 +229,8 @@ class NotificationCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+  final VoidCallback? onDismissed; // Tambahan untuk efek geser hapus
+  
   const NotificationCard({
     super.key,
     required this.notification,
@@ -236,16 +238,17 @@ class NotificationCard extends StatelessWidget {
     this.isSelected = false,
     this.onLongPress,
     this.onTap,
+    this.onDismissed,
   });
 
   String _getTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
-    if (difference.inDays > 0) return '${difference.inDays}d ago';
-    if (difference.inHours > 0) return '${difference.inHours}h ago';
-    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
-    return 'Just now';
+    if (difference.inDays > 0) return '${difference.inDays} hari yang lalu';
+    if (difference.inHours > 0) return '${difference.inHours} jam yang lalu';
+    if (difference.inMinutes > 0) return '${difference.inMinutes} menit yang lalu';
+    return 'Baru saja';
   }
 
   @override
@@ -299,72 +302,77 @@ class NotificationCard extends StatelessWidget {
                       ),
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
                         : null,
                   ),
                 ),
               )
             else
               Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryTeal,
+                margin: const EdgeInsets.only(right: 15),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isUnread 
+                      ? AppColors.lightTealBg 
+                      : Colors.grey[50],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isTask ? Icons.person : Icons.group,
-                  color: Colors.white,
+                  isTask ? Icons.assignment_rounded : Icons.notifications_rounded,
+                  color: isUnread ? AppColors.primaryTeal : Colors.grey[400],
                   size: 24,
                 ),
               ),
-            const SizedBox(width: 15),
+            
+            // Konten
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                          notification['title'] ?? '',
+                          notification['title'] ?? 'Tanpa Judul',
                           style: GoogleFonts.outfit(
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                            color: isUnread ? Colors.black87 : Colors.black54,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: isUnread ? AppColors.primaryTeal : Colors.grey[300],
-                          shape: BoxShape.circle,
+                      if (isUnread)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(top: 6),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    notification['message'] ?? '',
+                    notification['body'] ?? '',
                     style: GoogleFonts.outfit(
                       fontSize: 13,
-                      color: Colors.grey[500],
+                      color: Colors.grey[600],
+                      height: 1.4,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      _getTimeAgo(createdAt),
-                      style: GoogleFonts.outfit(
-                        fontSize: 11,
-                        color: Colors.grey[400],
-                      ),
+                  Text(
+                    _getTimeAgo(createdAt),
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[400],
                     ),
                   ),
                 ],
@@ -375,6 +383,33 @@ class NotificationCard extends StatelessWidget {
       ),
     );
 
-    return card;
+    // Kalau dalam mode selection, jangan aktifkan swipe-to-delete agar UX tidak membingungkan
+    if (isSelectionMode) return card;
+
+    // Menambahkan widget Dismissible agar bisa digeser untuk dihapus
+    return Dismissible(
+      key: Key(notification['id'].toString()),
+      direction: DismissDirection.endToStart, // Geser dari kanan ke kiri
+      onDismissed: (direction) {
+        if (onDismissed != null) {
+          onDismissed!();
+        }
+      },
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(
+          Icons.delete_sweep_rounded,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+      child: card,
+    );
   }
 }

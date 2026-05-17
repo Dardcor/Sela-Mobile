@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/shared_widgets/navbar.dart';
 import 'core/widgets/connectivity_wrapper.dart';
@@ -30,6 +31,9 @@ import 'core/services/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize date formatting untuk lokalisasi kalender (Bahasa Indonesia)
+  await initializeDateFormatting('id_ID', null);
 
   // Initialize Firebase FIRST
   try {
@@ -79,7 +83,12 @@ class MyApp extends StatelessWidget {
     routes: {
       '/': (context) => const SplashScreen(),
       '/auth': (context) => const AuthScreen(),
-      '/dashboard': (context) => const Navbar(initialIndex: 0),
+      '/dashboard': (context) {
+        final args = ModalRoute.of(context)?.settings.arguments as Map?;
+        final bool openModal = args?['open_group_modal'] == true;
+        // Jika ada argumen buka modal, langsung loncat ke index 3 (Tab Group)
+        return Navbar(initialIndex: openModal ? 3 : 0);
+      },
       '/lecturer_navbar': (context) => const LecturerNavbar(initialIndex: 0),
       '/lecturer_notifications': (context) => const LecturerNotificationScreen(),
       '/forgot_password': (context) => const ForgotPasswordScreen(),

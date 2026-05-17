@@ -674,7 +674,7 @@ class _IndependentCreateSubtaskSectionState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Create Subtask',
+            'Buat Sub-Tugas',
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -690,7 +690,7 @@ class _IndependentCreateSubtaskSectionState
             child: Row(
               children: [
                 _IndieTabItem(
-                  title: 'Automatic',
+                  title: 'Otomatis',
                   active: _activeTab == 0,
                   onTap: () => _switchTab(0),
                 ),
@@ -722,7 +722,7 @@ class _IndependentCreateSubtaskSectionState
                       children: [
                         const SizedBox(height: 10),
                         Text(
-                          '*tasks will be automatically divided according to your abilities',
+                          '*tugas akan dibagi otomatis sesuai dengan kemampuan Anda',
                           style: GoogleFonts.outfit(
                             fontSize: 12,
                             color: Colors.grey[500],
@@ -762,7 +762,7 @@ class _IndependentCreateSubtaskSectionState
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Create',
+                                          'Buat dengan AI ✨',
                                           style: GoogleFonts.outfit(
                                             fontWeight: FontWeight.bold,
                                             color: Colors.white,
@@ -1062,7 +1062,7 @@ class TaskTypeToggle extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  'Group',
+                  'Grup',
                   style: GoogleFonts.outfit(
                     color: isGroup ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
@@ -1319,8 +1319,8 @@ class _LinkListSectionState extends State<LinkListSection> {
           children: [
             Expanded(
               child: LabeledInputField(
-                label: 'Link',
-                hint: 'Enter a link',
+                label: 'Tautan',
+                hint: 'Masukkan tautan (link)',
                 controller: _ctrl,
                 errorText: _error,
                 bgColor: widget.bgColor ?? AppColors.bgLight,
@@ -1348,7 +1348,7 @@ class _LinkListSectionState extends State<LinkListSection> {
                   ],
                 ),
                 child: Text(
-                  'Add',
+                  'Tambah',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1556,6 +1556,29 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                 ),
                 const SizedBox(height: 10),
                 Text(
+                  'Unggah file Anda di sini',
+                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'PDF • Word • Excel • PPT • Gambar',
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[400],
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Telusuri',
+                  style: GoogleFonts.outfit(
+                    color: AppColors.primaryTeal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
                   'Upload your file here',
                   style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
                 ),
@@ -1610,7 +1633,7 @@ class AddTaskTopBar extends StatelessWidget {
           ],
         ),
         child: Text(
-          'Add Task',
+          'Tambah Tugas',
           style: GoogleFonts.outfit(
             fontSize: 24,
             fontWeight: FontWeight.bold,

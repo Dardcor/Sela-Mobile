@@ -27,7 +27,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Please enter the 6-digit code'),
+            content: Text('Silakan masukkan 6 digit kode OTP'),
           ),
         );
       return;
@@ -101,7 +101,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
           ..showSnackBar(
             const SnackBar(
               duration: Duration(milliseconds: 1500),
-              content: Text('New code sent to your email'),
+              content: Text('Kode baru telah dikirim ke email Anda'),
             ),
           );
       }
