@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import 'new_password_screen.dart';
 
 class OTPVerifyScreen extends StatefulWidget {
@@ -246,7 +246,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
                       'Resend again',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
-                        color: AppColors.lightTeal,
+                        color: Color(0xFF1597AF),
                         fontWeight: FontWeight.bold,
                       ),
                     ),

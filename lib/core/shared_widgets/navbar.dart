@@ -109,8 +109,16 @@ class _NavbarState extends State<Navbar> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await _onWillPop();
+        if (shouldExit && context.mounted) {
+          // ignore: use_build_context_synchronously
+          Navigator.of(context).pop();
+        }
+      },
       child: Scaffold(
         backgroundColor: AppColors.bgLight,
         resizeToAvoidBottomInset: false, // Mencegah Navbar terangkat saat keyboard muncul

@@ -24,8 +24,6 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
   List<dynamic>? _cachedGroups;
   List<dynamic>? _cachedIndependent;
 
-  // Realtime channel
-
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
   int _unreadNotificationsCount = 0;

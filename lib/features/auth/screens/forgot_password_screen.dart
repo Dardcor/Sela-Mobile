@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import 'otp_verify_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {

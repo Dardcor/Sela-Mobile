@@ -252,7 +252,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
             ),
           ] else ...[
             Text(
-              'Lorem Ipsum is simply dummy text of the printing and typesetting industry...',
+              'Tidak ada deskripsi yang tersedia untuk tugas ini.',
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 color: Colors.grey[600],
@@ -950,83 +950,6 @@ class _CreateSubtaskField extends StatelessWidget {
   }
 }
 
-class _ProgressRow extends StatelessWidget {
-  final String title;
-  final double value;
-
-  const _ProgressRow({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 18),
-    child: Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Text(
-          '${value.toInt()}%',
-          style: GoogleFonts.outfit(
-            fontSize: 13,
-            color: AppColors.primaryTeal,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          flex: 3,
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: (value / 100).clamp(0.0, 1.0),
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              Positioned(
-                left:
-                    (value / 100 * (MediaQuery.of(context).size.width * 0.3))
-                        .clamp(0.0, MediaQuery.of(context).size.width * 0.3) -
-                    6,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primaryTeal,
-                      width: 2.5,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
 /// Toggle Group / Individual di AddProjectScreen.
 class TaskTypeToggle extends StatelessWidget {

@@ -9,7 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../../auth/utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import '../../tasks/widgets/task_detail_widgets.dart';
 
 class FileLinkDialog extends StatefulWidget {

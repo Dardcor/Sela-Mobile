@@ -590,7 +590,7 @@ class DashboardSectionHeader extends StatelessWidget {
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textBlack,
+              color: Colors.black87,
             ),
           ),
           TextButton(

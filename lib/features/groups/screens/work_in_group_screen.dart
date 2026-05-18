@@ -155,10 +155,6 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
         ),
         AppBottomNavBar(
           currentIndex: -1,
-          onAddTap: () => Navigator.pushNamed(
-            context,
-            '/add_project',
-          ).then((_) => _fetchTasks()),
         ),
       ],
     ),

@@ -7,10 +7,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../../auth/utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import '../widgets/task_detail_widgets.dart';
 import '../../groups/widgets/file_link_dialog.dart';
-import '../../../model/automatic.dart';
+import '../../../core/services/ai_task_service.dart';
 
 class IndependentTaskDetailScreen extends StatefulWidget {
   const IndependentTaskDetailScreen({super.key});

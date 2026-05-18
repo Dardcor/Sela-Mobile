@@ -616,31 +616,6 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
   }
     
 
-  // ── Pick avatar directly from profile screen ──
-
-  Future<void> _pickAndUploadAvatar() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 70,
-      );
-      if (image != null && mounted) {
-        await _updateProfilePhoto(image.path);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(milliseconds: 1500),
-              content: Text('Gagal membuka galeri: $e'),
-            ),
-          );
-      }
-    }
-  }
 
   Widget _buildClassPill(String text) {
     return Container(

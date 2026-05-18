@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/shared_widgets/navbar.dart';
-import 'core/widgets/connectivity_wrapper.dart';
+import 'core/shared_widgets/connectivity_wrapper.dart';
 import 'features/home/screens/splash_screen.dart';
 import 'features/auth/screens/auth_screen.dart';
 import 'features/home/screens/dashboard_screen.dart';

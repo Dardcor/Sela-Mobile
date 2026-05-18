@@ -11,7 +11,7 @@ import '../../../core/services/notification_service.dart';
 import '../widgets/auth_toggle_tab.dart';
 import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
-import '../utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import 'forgot_password_screen.dart';
 import '../../../core/services/connectivity_service.dart';
 

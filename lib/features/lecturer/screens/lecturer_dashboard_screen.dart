@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
+import '../../../core/shared_widgets/search_bar_with_button.dart';
 import 'lecturer_class_detail_screen.dart';
 
 class LecturerDashboardScreen extends StatefulWidget {
@@ -286,56 +287,11 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
             // Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 25.0,
-                  vertical: 10,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                    maxLength: 50,
-                    textAlignVertical: TextAlignVertical.center,
-                    decoration: InputDecoration(
-                      counterText: '',
-                      hintText: 'Search a class...',
-                      hintStyle: GoogleFonts.outfit(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 48,
-                        minHeight: 48,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      border: InputBorder.none,
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
+                child: SearchBarWithButton(
+                  controller: _searchController,
+                  hintText: 'Search a class...',
+                  onChanged: (v) => setState(() => _searchQuery = v),
                 ),
               ),
             ),

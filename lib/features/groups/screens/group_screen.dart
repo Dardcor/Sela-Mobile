@@ -498,7 +498,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     width: 100,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppColors.buttonGray,
+                      color: Colors.grey[300]!,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -848,7 +848,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                   width: 100,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.buttonGray,
+                    color: Colors.grey[300]!,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -911,7 +911,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.textFieldBg,
+                            color: Colors.grey[100]!,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -1303,7 +1303,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                             style: GoogleFonts.outfit(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textBlack,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 5),

@@ -74,43 +74,35 @@ class ApiClient {
     );
   }
 
-  // Auth Methods
   Future<Response> login(String email, String password) async {
     return await dio.post(
-      'login',
+      '/login',
       data: {'email': email, 'password': password},
     );
   }
 
   Future<Response> register(Map<String, dynamic> data) async {
-    return await dio.post('register', data: data);
+    return await dio.post('/register', data: data);
   }
 
   Future<Response> forgotPassword(String email) async {
-    return await dio.post('forgot-password', data: {'email': email});
+    return await dio.post('/forgot-password', data: {'email': email});
   }
 
   Future<Response> verifyOTP(String email, String otp) async {
-    return await dio.post('verify-otp', data: {'email': email, 'otp': otp});
+    return await dio.post('/verify-otp', data: {'email': email, 'otp': otp});
   }
 
-  Future<Response> resetPassword(
-    String email,
-    String otp,
-    String newPassword,
-  ) async {
-    return await dio.post(
-      'reset-password',
-      data: {
-        'email': email,
-        'otp': otp,
-        'password': newPassword,
-        'password_confirmation': newPassword,
-      },
-    );
+  Future<Response> resetPassword(String email, String otp, String password) async {
+    return await dio.post('/reset-password', data: {
+      'email': email,
+      'otp': otp,
+      'password': password,
+      'password_confirmation': password,
+    });
   }
 
   Future<Response> logout() async {
-    return await dio.post('logout');
+    return await dio.post('/logout');
   }
 }

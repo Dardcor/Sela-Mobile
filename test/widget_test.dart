@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:SELA/features/auth/utils/auth_error_utils.dart';
-import 'package:SELA/core/widgets/connectivity_wrapper.dart';
+import 'package:SELA/core/utils/network_utils.dart';
+import 'package:SELA/core/shared_widgets/connectivity_wrapper.dart';
 import 'package:SELA/features/auth/widgets/auth_toggle_tab.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   group('UI & Widget Tests', () {
@@ -98,17 +97,7 @@ void main() {
       expect(isNetwork, isTrue);
     });
 
-    test('AuthException network message is converted to friendly text', () {
-      String msg = const AuthException(
-        "ClientException with SocketException: Failed host lookup: 'example.supabase.co'",
-      ).message;
-
-      if (isNetworkErrorMessage(msg)) {
-        msg = 'Tidak ada koneksi internet. Periksa koneksi Anda dan coba lagi.';
-      }
-
-      expect(msg, noInternetMessage);
-    });
+    // AuthException test removed as Supabase dependency was removed
 
     test('mapAuthErrorMessage exposes generic message for non-network errors', () {
       final message = mapAuthErrorMessage(Exception('some unexpected error'));

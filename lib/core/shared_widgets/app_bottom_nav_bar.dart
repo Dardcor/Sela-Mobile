@@ -7,13 +7,11 @@ import '../constants/colors.dart';
 ///             Jika kosong, navigasi menggunakan Navigator.pushNamed (untuk screen standalone).
 class AppBottomNavBar extends StatefulWidget {
   final int currentIndex;
-  final VoidCallback? onAddTap;
   final void Function(int)? onTabTap;
 
   const AppBottomNavBar({
     super.key,
     required this.currentIndex,
-    this.onAddTap,
     this.onTabTap,
   });
 

@@ -8,7 +8,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/api_client.dart';
-import '../../auth/utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import '../widgets/profile_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {

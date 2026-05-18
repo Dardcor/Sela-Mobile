@@ -11,7 +11,7 @@ import '../../../core/constants/colors.dart';
 import '../../../core/shared_widgets/app_bottom_nav_bar.dart';
 import '../../../core/shared_widgets/success_dialog.dart';
 import '../../../core/services/connectivity_service.dart';
-import '../../auth/utils/auth_error_utils.dart';
+import '../../../core/utils/network_utils.dart';
 import '../widgets/task_detail_widgets.dart';
 
 /// AddProjectScreen — Kerangka layar tambah tugas (grup/individual).

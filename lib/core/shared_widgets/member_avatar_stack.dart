@@ -34,7 +34,7 @@ class MemberAvatarStack extends StatelessWidget {
               left: idx * overlap,
               child: CircleAvatar(
                 radius: avatarRadius,
-                backgroundColor: AppColors.buttonGray,
+                backgroundColor: Colors.grey[300]!,
                 child: Text(
                   '+${members.length - (maxVisible - 1)}',
                   style: TextStyle(

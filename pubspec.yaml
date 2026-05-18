@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.1.0
   pinput: ^3.0.1
-  supabase_flutter: ^2.8.0
   flutter_dotenv: ^5.1.0
   table_calendar: ^3.1.2
   image_picker: ^1.1.2

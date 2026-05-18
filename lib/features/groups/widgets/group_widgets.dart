@@ -1779,7 +1779,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     } else if (inProgressCount > 0 || doneCount > 0) {
       return (text: 'In Progress', color: AppColors.accentTeal);
     }
-    return (text: 'Pending', color: AppColors.lightTeal);
+    return (text: 'Pending', color: Color(0xFF1597AF));
   }
 
   void _showDeleteConfirmation(
@@ -1842,7 +1842,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: _isExpanded ? AppColors.lightTeal : Colors.white,
+        color: _isExpanded ? Color(0xFF1597AF) : Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: _isExpanded
             ? null
