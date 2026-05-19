@@ -13,6 +13,7 @@ import '../widgets/auth_form_fields.dart';
 import '../widgets/auth_buttons.dart';
 import '../../../core/utils/network_utils.dart';
 import 'forgot_password_screen.dart';
+import 'register_otp_verify_screen.dart';
 import '../../../core/services/connectivity_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -273,23 +274,14 @@ class _AuthScreenState extends State<AuthScreen> {
       });
 
       if (mounted && (res.statusCode == 201 || res.statusCode == 200)) {
-        _showSuccess('Registrasi berhasil! Silakan login dengan akun Anda.');
         _usernameRegisterController.clear();
-        _emailRegisterController.clear();
         _passwordRegisterController.clear();
-
-        await Future.delayed(const Duration(milliseconds: 1500));
-
-        if (mounted) {
-          setState(() {
-            isLogin = true;
-          });
-          _pageController.animateToPage(
-            0,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
-        }
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RegisterOTPVerifyScreen(email: email)),
+        );
+        _emailRegisterController.clear();
       }
     } on DioException catch (e) {
       debugPrint('🔥 REGISTER DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');

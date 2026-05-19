@@ -93,6 +93,14 @@ class ApiClient {
     return await dio.post('/verify-otp', data: {'email': email, 'otp': otp});
   }
 
+  Future<Response> verifyRegisterOTP(String email, String otp) async {
+    return await dio.post('/verify-register-otp', data: {'email': email, 'otp': otp});
+  }
+
+  Future<Response> resendRegisterOTP(String email) async {
+    return await dio.post('/resend-register-otp', data: {'email': email});
+  }
+
   Future<Response> resetPassword(String email, String otp, String password) async {
     return await dio.post('/reset-password', data: {
       'email': email,
