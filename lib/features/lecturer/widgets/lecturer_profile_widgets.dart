@@ -193,7 +193,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Edit Photo Profile',
+                        'Change Photo Profile',
                         style: GoogleFonts.outfit(
                           color: AppColors.primaryTeal,
                           fontSize: 13,

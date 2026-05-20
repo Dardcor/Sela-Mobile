@@ -55,14 +55,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await ApiClient().forgotPassword(email);
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(
-              duration: Duration(milliseconds: 1500),
-              content: Text('Kode reset telah dikirim! Periksa email Anda.'),
-            ),
-          );
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -141,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               decoration: InputDecoration(
                 labelText: 'Your Email Address',
                 labelStyle: GoogleFonts.outfit(color: Colors.grey),
-                hintText: 'youremail@gmail.com',
+                hintText: 'contoh@it.student.pens.ac.id',
                 hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,

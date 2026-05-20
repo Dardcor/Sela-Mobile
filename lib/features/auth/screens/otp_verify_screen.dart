@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
@@ -19,6 +20,41 @@ class OTPVerifyScreen extends StatefulWidget {
 class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
   String? _otpCode;
   bool _isLoading = false;
+  Timer? _timer;
+  int _countdown = 30;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    setState(() {
+      _countdown = 30;
+      _canResend = false;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 0) {
+        setState(() {
+          _countdown--;
+        });
+      } else {
+        setState(() {
+          _canResend = true;
+        });
+        timer.cancel();
+      }
+    });
+  }
 
   Future<void> _handleVerifyOTP() async {
     if (_otpCode == null || _otpCode!.length < 6) {
@@ -96,6 +132,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
     try {
       await ApiClient().forgotPassword(widget.email);
       if (mounted) {
+        _startCountdown();
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
@@ -241,12 +278,12 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
                     style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
                   ),
                   GestureDetector(
-                    onTap: _handleResendOTP,
+                    onTap: _canResend ? _handleResendOTP : null,
                     child: Text(
-                      'Resend again',
+                      _canResend ? 'Resend again' : 'Resend again (${_countdown}s)',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
-                        color: Color(0xFF1597AF),
+                        color: _canResend ? const Color(0xFF1597AF) : Colors.grey.shade400,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

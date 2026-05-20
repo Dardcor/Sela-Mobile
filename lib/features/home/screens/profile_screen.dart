@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,7 +23,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? profile;
   List<String> abilities = [];
   bool isLoading = true;
-  bool isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -40,6 +40,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Fetch profile
       final response = await ApiClient().dio.get('/me');
       final profileData = response.data['user'];
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(profileData));
 
       // Fetch abilities
       final abilitiesResponse = await ApiClient().dio.get('/profile_abilities');
@@ -114,7 +117,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      setState(() => isUploadingPhoto = true);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
 
       final avatarUrl = await _uploadAvatar(imagePath);
       if (avatarUrl == null) {
@@ -126,12 +135,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _fetchProfile();
 
       if (mounted) {
+        Navigator.pop(context); // close loading dialog
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           const SnackBar(duration: Duration(milliseconds: 1500), content: Text('Foto profil berhasil diperbarui!')),
         );
       }
     } catch (e) {
       if (mounted) {
+        Navigator.pop(context); // close loading dialog
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
@@ -140,8 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }
       }
-    } finally {
-      if (mounted) setState(() => isUploadingPhoto = false);
     }
   }
 
@@ -224,19 +233,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (e is DioException && e.response?.data != null) {
         final errMsg = e.response!.data['message'] ?? 'Failed to change password';
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
-          );
-        }
         // Stop propagation so modal doesn't close on failure if thrown inside widgets
         throw Exception(errMsg); 
       } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal mengganti kata sandi: $e'), backgroundColor: Colors.red),
-          );
-        }
         throw Exception(e);
       }
     }
@@ -271,6 +270,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (shouldLogout != true) return;
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryTeal),
+      ),
+    );
+
     try {
       // Hapus token dan logout via API
       final prefs = await SharedPreferences.getInstance();
@@ -284,6 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.remove('user_data');
       
       if (context.mounted) {
+        Navigator.pop(context); // close loading
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }
     } catch (e) {
@@ -293,6 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await prefs.remove('user_data');
       
       if (context.mounted) {
+        Navigator.pop(context); // close loading
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }
     }
@@ -348,13 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          if (isUploadingPhoto)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
         ],
       ),
     ),

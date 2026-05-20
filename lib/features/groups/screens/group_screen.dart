@@ -21,6 +21,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
   List<dynamic> _allTeams = [];
   List<dynamic> teams = [];
   bool isLoading = true;
+  bool _isModalOpening = false;
   String _currentUserId = '';
   String _currentUserClass = '';
 
@@ -31,26 +32,35 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
   final _searchCtrl = TextEditingController();
 
   Future<void> _initUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        final userDataStr = prefs.getString('user_data');
-        if (userDataStr != null) {
-          final userData = json.decode(userDataStr);
-          _currentUserId = userData['id'] ?? '';
-
-          // Check if class_name is flat or nested in profile
-          _currentUserClass =
-              userData['class_name'] ??
-              (userData['profile'] != null
-                  ? userData['profile']['class_name']
-                  : '') ??
-              '';
-        } else {
-          _currentUserId = '';
-          _currentUserClass = '';
-        }
-      });
+    try {
+      final res = await apiClient.dio.get('/me');
+      final userData = res.data['user'];
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', json.encode(userData));
+      
+      if (mounted) {
+        setState(() {
+          _currentUserId = userData['id']?.toString() ?? '';
+          final cls = userData['class_name'] ?? (userData['profile'] != null ? userData['profile']['class_name'] : null);
+          _currentUserClass = (cls == null || cls.toString() == 'null' || cls.toString().trim().isEmpty) ? '' : cls.toString().trim();
+        });
+      }
+    } catch (e) {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          final userDataStr = prefs.getString('user_data');
+          if (userDataStr != null) {
+            final userData = json.decode(userDataStr);
+            _currentUserId = userData['id']?.toString() ?? '';
+            final cls = userData['class_name'] ?? (userData['profile'] != null ? userData['profile']['class_name'] : null);
+            _currentUserClass = (cls == null || cls.toString() == 'null' || cls.toString().trim().isEmpty) ? '' : cls.toString().trim();
+          } else {
+            _currentUserId = '';
+            _currentUserClass = '';
+          }
+        });
+      }
     }
   }
 
@@ -448,31 +458,44 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
     );
   }
 
-  void _showJoinCreateModal() {
-    String? curCourse;
-    final noCtrl = TextEditingController();
-    final joinCodeCtrl = TextEditingController();
-    final limitCtrl = TextEditingController(text: '4');
-    bool inProc = false;
-    String? joinCodeError;
-    String? courseError;
-    String? limitError;
-    String? groupNumberError;
+  void _showJoinCreateModal() async {
+    if (_isModalOpening) return;
+    _isModalOpening = true;
 
-    void showAlert(String message, {bool isSuccess = false}) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            duration: const Duration(milliseconds: 1800),
-            backgroundColor: isSuccess ? AppColors.primaryTeal : null,
-            content: Text(message),
-          ),
-        );
-    }
+    try {
+      await _initUserId();
+      if (!mounted) return;
 
-    showModalBottomSheet(
+      String? curCourse;
+      final noCtrl = TextEditingController();
+      final joinCodeCtrl = TextEditingController();
+      final limitCtrl = TextEditingController(text: '4');
+      bool inProc = false;
+      bool inProcJoin = false;
+      String? joinCodeError;
+      String? courseError;
+      String? limitError;
+      String? groupNumberError;
+
+      void showAlert(String message, {bool isSuccess = false}) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(milliseconds: 1800),
+              backgroundColor: isSuccess ? AppColors.primaryTeal : null,
+              content: Text(message),
+            ),
+          );
+      }
+
+      if (_currentUserClass.isEmpty) {
+        showAlert('Kelas kosong. Silakan lengkapi kelas di profil untuk membuat grup.');
+        return;
+      }
+
+      showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -568,16 +591,19 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                             width: double.infinity,
                             height: 54,
                             child: ElevatedButton(
-                              onPressed: () async {
+                              onPressed: inProcJoin ? null : () async {
+                                if (inProcJoin) return;
+                                setS(() => inProcJoin = true);
+
                                 final c = joinCodeCtrl.text.trim();
 
                                 setS(() => joinCodeError = null);
 
                                 if (c.isEmpty) {
-                                  setS(
-                                    () => joinCodeError =
-                                        'Please enter the group code first',
-                                  );
+                                  setS(() {
+                                    joinCodeError = 'Please enter the group code first';
+                                    inProcJoin = false;
+                                  });
                                   return;
                                 }
                                 try {
@@ -597,15 +623,22 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                   showAlert(
                                     'Failed to join. Invalid code or already a member.',
                                   );
+                                } finally {
+                                  if (ctx.mounted) {
+                                    setS(() => inProcJoin = false);
+                                  }
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryTeal,
+                                disabledBackgroundColor: AppColors.primaryTeal,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
-                              child: Text(
+                              child: inProcJoin 
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : Text(
                                 'Gabung',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
@@ -674,6 +707,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                               onPressed: inProc
                                   ? null
                                   : () async {
+                                      if (inProc) return;
                                       final limitText = limitCtrl.text.trim();
                                       final parsedLimit = int.tryParse(
                                         limitText,
@@ -686,7 +720,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                         groupNumberError = null;
                                       });
 
-                                      if (curCourse == null) {
+                                      if (curCourse == null || curCourse!.trim().isEmpty) {
                                         setS(
                                           () => courseError =
                                               'Silakan pilih mata kuliah',
@@ -734,9 +768,10 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                         await apiClient.dio.post(
                                           '/groups',
                                           data: {
-                                            'course': curCourse,
-                                            'member_limits': parsedLimit,
+                                            'course_name': curCourse,
+                                            'member_limit': parsedLimit,
                                             'group_number': noVal,
+                                            'class_name': _currentUserClass,
                                           },
                                         );
                                         if (context.mounted) {
@@ -749,7 +784,19 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                         }
                                       } catch (e) {
                                         if (context.mounted) {
-                                          showAlert('Gagal membuat grup: $e');
+                                          String errMsg = 'Gagal membuat grup: $e';
+                                          if (e is DioException && e.response?.data != null) {
+                                            final data = e.response?.data;
+                                            if (data is Map && data['errors'] != null) {
+                                              final errors = data['errors'] as Map;
+                                              errMsg = errors.values.first[0].toString();
+                                            } else if (data is Map && data['message'] != null) {
+                                              errMsg = data['message'].toString();
+                                            } else {
+                                              errMsg = data.toString();
+                                            }
+                                          }
+                                          showAlert(errMsg);
                                         }
                                       } finally {
                                         if (context.mounted) {
@@ -789,6 +836,9 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
         ),
       ),
     );
+    } finally {
+      _isModalOpening = false;
+    }
   }
 
   void _showGroupDetail(dynamic team) async {

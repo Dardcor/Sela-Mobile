@@ -11,6 +11,42 @@ import '../../../core/services/notification_service.dart';
 import '../../../core/constants/colors.dart';
 import '../../auth/widgets/auth_form_fields.dart';
 
+void _showModalToast(BuildContext context, String message, {bool isError = true}) {
+  final overlay = Overlay.of(context);
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) => Positioned(
+      bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+      left: 20,
+      right: 20,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isError ? Colors.red : Colors.green,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+            ]
+          ),
+          child: Text(
+            message,
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay.insert(entry);
+  Future.delayed(const Duration(milliseconds: 2000), () {
+    if (entry.mounted) {
+      entry.remove();
+    }
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileHeader — Header layar Profil (Back + Judul Profile).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,63 +130,6 @@ class ProfileHeader extends StatelessWidget {
   }
 }
 
-  Future<void> _handleLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Keluar',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          'Apakah Anda yakin ingin keluar dari aplikasi?',
-          style: GoogleFonts.outfit(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Batal',
-              style: GoogleFonts.outfit(color: Colors.grey),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Keluar',
-              style: GoogleFonts.outfit(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => const Center(
-          child: CircularProgressIndicator(color: AppColors.primaryTeal),
-        ),
-      );
-
-      try {
-        await NotificationService.unregisterDeviceToken();
-        await ApiClient().logout();
-      } catch (e) {
-        debugPrint('Logout err: $e');
-      } finally {
-        if (context.mounted) {
-          Navigator.pop(context); // close loading
-          Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
-        }
-      }
-    }
-  }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ChangePasswordModal — Modal untuk mengganti password
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,9 +160,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
   Future<void> _verifyOldPassword() async {
     final oldPass = _oldPassCtrl.text.trim();
     if (oldPass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan masukkan kata sandi lama Anda')),
-      );
+      _showModalToast(context, 'Silakan masukkan kata sandi lama Anda');
       return;
     }
 
@@ -207,9 +184,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
         errMsg = e.response!.data['message'] ?? errMsg;
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
-        );
+        _showModalToast(context, errMsg);
       }
     }
   }
@@ -219,23 +194,17 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     final confirmPass = _confirmPassCtrl.text.trim();
 
     if (newPass.isEmpty || confirmPass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan lengkapi semua bidang')),
-      );
+      _showModalToast(context, 'Silakan lengkapi semua bidang');
       return;
     }
 
     if (newPass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kata sandi baru minimal 6 karakter')),
-      );
+      _showModalToast(context, 'Kata sandi baru minimal 6 karakter');
       return;
     }
 
     if (newPass != confirmPass) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kata sandi baru tidak cocok')),
-      );
+      _showModalToast(context, 'Kata sandi baru tidak cocok');
       return;
     }
 
@@ -248,11 +217,11 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
       String errMsg = 'Failed to change password';
       if (e.toString().contains('Password harus berbeda')) {
         errMsg = 'Password harus berbeda dari password lama';
+      } else if (e.toString().contains('pernah digunakan')) {
+        errMsg = 'Anda tidak bisa menggunakan password yang pernah digunakan sebelumnya.';
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
-        );
+        _showModalToast(context, errMsg);
       }
     }
   }
@@ -793,14 +762,12 @@ class _EditProfileModalState extends State<EditProfileModal> {
                       imageQuality: 70, // Optimize image size
                     );
                     if (image != null && mounted) {
+                      Navigator.pop(context); // Close modal after selection BEFORE photo upload starts
                       widget.onPhotoChange(image.path);
-                      Navigator.pop(context); // Close modal after selection
                     }
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Gagal membuka galeri: $e')),
-                      );
+                      _showModalToast(context, 'Gagal membuka galeri: $e');
                     }
                   }
                 },
@@ -832,7 +799,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Edit Photo Profile',
+                      'Change Photo Profile',
                       style: GoogleFonts.outfit(
                         color: AppColors.primaryTeal,
                         fontSize: 13,

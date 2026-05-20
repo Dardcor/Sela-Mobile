@@ -51,8 +51,10 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _loadRememberedCredentials() async {
     final remembered = await _secureStorage.read(key: 'remember_me');
     if (remembered == 'true') {
-      final savedEmail = await _secureStorage.read(key: 'remembered_email') ?? '';
-      final savedPassword = await _secureStorage.read(key: 'remembered_password') ?? '';
+      final savedEmail =
+          await _secureStorage.read(key: 'remembered_email') ?? '';
+      final savedPassword =
+          await _secureStorage.read(key: 'remembered_password') ?? '';
       if (savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
         if (mounted) {
           setState(() {
@@ -151,14 +153,17 @@ class _AuthScreenState extends State<AuthScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', res.data['token']);
         await prefs.setString('user_data', json.encode(res.data['user']));
-        
+
         // Register FCM device token
         await NotificationService.registerDeviceToken();
-        
+
         if (_rememberMe) {
           await _secureStorage.write(key: 'remember_me', value: 'true');
           await _secureStorage.write(key: 'remembered_email', value: email);
-          await _secureStorage.write(key: 'remembered_password', value: password);
+          await _secureStorage.write(
+            key: 'remembered_password',
+            value: password,
+          );
         } else {
           await _secureStorage.delete(key: 'remember_me');
           await _secureStorage.delete(key: 'remembered_email');
@@ -173,30 +178,37 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } on DioException catch (e) {
-      debugPrint('🔥 LOGIN DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');
-      if (e.type == DioExceptionType.connectionTimeout || 
-          e.type == DioExceptionType.receiveTimeout || 
+      debugPrint(
+        '🔥 LOGIN DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}',
+      );
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.connectionError ||
           isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
         String msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
         if (e.response?.data is Map && e.response!.data['message'] != null) {
-          String backendMessage = e.response!.data['message'].toString().toLowerCase();
-          if (backendMessage.contains('unauthorized') || 
-              backendMessage.contains('not found') || 
-              backendMessage.contains('invalid') || 
+          String backendMessage = e.response!.data['message']
+              .toString()
+              .toLowerCase();
+          if (backendMessage.contains('unauthorized') ||
+              backendMessage.contains('not found') ||
+              backendMessage.contains('invalid') ||
               backendMessage.contains('incorrect') ||
               backendMessage.contains('credential')) {
-             msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
+            msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
           } else {
-             // Jika error lain dari backend yang aman untuk ditampilkan
-             msg = e.response!.data['message'].toString();
+            // Jika error lain dari backend yang aman untuk ditampilkan
+            msg = e.response!.data['message'].toString();
           }
         }
-        
+
         // Memeriksa pesan spesifik (jika akun tidak ada/belum register)
-        if (e.response?.statusCode == 404 || msg.toLowerCase().contains('not found') || msg.toLowerCase().contains('belum terdaftar') || msg.toLowerCase().contains('tidak ditemukan')) {
+        if (e.response?.statusCode == 404 ||
+            msg.toLowerCase().contains('not found') ||
+            msg.toLowerCase().contains('belum terdaftar') ||
+            msg.toLowerCase().contains('tidak ditemukan')) {
           _showUnregisteredError();
         } else {
           _showError(msg);
@@ -246,7 +258,9 @@ class _AuthScreenState extends State<AuthScreen> {
     final isLecturerEmail = email.endsWith('@pens.ac.id');
 
     if (!isStudentEmail && !isLecturerEmail) {
-      _showError('Gunakan email kampus: @it.student.pens.ac.id (Mahasiswa) atau @pens.ac.id (Dosen)');
+      _showError(
+        'Gunakan email kampus: @it.student.pens.ac.id (Mahasiswa) atau @pens.ac.id (Dosen)',
+      );
       return;
     }
 
@@ -267,7 +281,6 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => isLoading = true);
     try {
       final res = await ApiClient().register({
-        'full_name': username,
         'username': username,
         'email': email,
         'password': password,
@@ -276,17 +289,21 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted && (res.statusCode == 201 || res.statusCode == 200)) {
         _usernameRegisterController.clear();
         _passwordRegisterController.clear();
-        
+
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => RegisterOTPVerifyScreen(email: email)),
+          MaterialPageRoute(
+            builder: (context) => RegisterOTPVerifyScreen(email: email),
+          ),
         );
         _emailRegisterController.clear();
       }
     } on DioException catch (e) {
-      debugPrint('🔥 REGISTER DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}');
-      if (e.type == DioExceptionType.connectionTimeout || 
-          e.type == DioExceptionType.receiveTimeout || 
+      debugPrint(
+        '🔥 REGISTER DIO ERROR: ${e.response?.statusCode} - ${e.response?.data} - ${e.message}',
+      );
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.connectionError ||
           isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
@@ -298,11 +315,15 @@ class _AuthScreenState extends State<AuthScreen> {
           msg = 'Kesalahan Server: ${e.response?.statusCode}';
         }
 
-        if (msg.contains('User already registered') || msg.contains('The email has already been taken')) {
+        if (msg.contains('User already registered') ||
+            msg.contains('The email has already been taken')) {
           msg = 'Email ini sudah terdaftar. Silakan login.';
-        } else if (msg.contains('Database error saving new user') || msg.contains('username already exists') || msg.contains('The username has already been taken')) {
+        } else if (msg.contains('Database error saving new user') ||
+            msg.contains('username already exists') ||
+            msg.contains('The username has already been taken')) {
           msg = 'Username atau Email sudah digunakan. Silakan pilih yang lain.';
-        } else if (e.response?.data is Map<String, dynamic> && e.response?.data?['errors'] != null) {
+        } else if (e.response?.data is Map<String, dynamic> &&
+            e.response?.data?['errors'] != null) {
           msg = "Form tidak valid: ${e.response?.data['errors'].toString()}";
         }
         _showError(msg);
@@ -430,7 +451,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(
-                                        30, 30, 30, 0),
+                                      30,
+                                      30,
+                                      30,
+                                      0,
+                                    ),
                                     child: AuthToggleTab(
                                       isLogin: isLogin,
                                       onLoginTap: () {
@@ -438,7 +463,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                           _pageController.animateToPage(
                                             0,
                                             duration: const Duration(
-                                                milliseconds: 300),
+                                              milliseconds: 300,
+                                            ),
                                             curve: Curves.easeInOut,
                                           );
                                         }
@@ -448,7 +474,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                           _pageController.animateToPage(
                                             1,
                                             duration: const Duration(
-                                                milliseconds: 300),
+                                              milliseconds: 300,
+                                            ),
                                             curve: Curves.easeInOut,
                                           );
                                         }
@@ -457,14 +484,15 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   const SizedBox(height: 30),
                                   SizedBox(
-                                    height: MediaQuery.of(context).size.height * 0.55,
+                                    height:
+                                        MediaQuery.of(context).size.height *
+                                        0.55,
                                     child: PageView(
                                       controller: _pageController,
                                       physics: const BouncingScrollPhysics(),
                                       onPageChanged: (index) {
                                         if (mounted) {
-                                          setState(
-                                              () => isLogin = index == 0);
+                                          setState(() => isLogin = index == 0);
                                         }
                                       },
                                       children: [
@@ -489,12 +517,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ),
                                             onRememberMeChanged: (val) =>
                                                 setState(
-                                              () =>
-                                                  _rememberMe = val ?? false,
-                                            ),
+                                                  () => _rememberMe =
+                                                      val ?? false,
+                                                ),
                                             onLogin: _handleLogin,
-                                            onForgotPassword: () =>
-                                                Navigator.push(
+                                            onForgotPassword: () => Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) =>
@@ -503,29 +530,29 @@ class _AuthScreenState extends State<AuthScreen> {
                                             ),
                                           ),
                                         ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 15,
-                                              left: 30,
-                                              right: 30,
-                                            ),
-                                            child: _RegisterForm(
-                                              usernameController:
-                                                  _usernameRegisterController,
-                                              emailController:
-                                                  _emailRegisterController,
-                                              passwordController:
-                                                  _passwordRegisterController,
-                                              obscurePassword:
-                                                  _obscureRegisterPassword,
-                                              isLoading: isLoading,
-                                              onToggleObscure: () => setState(
-                                                () => _obscureRegisterPassword =
-                                                    !_obscureRegisterPassword,
-                                              ),
-                                              onRegister: _handleRegister,
-                                            ),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 15,
+                                            left: 30,
+                                            right: 30,
                                           ),
+                                          child: _RegisterForm(
+                                            usernameController:
+                                                _usernameRegisterController,
+                                            emailController:
+                                                _emailRegisterController,
+                                            passwordController:
+                                                _passwordRegisterController,
+                                            obscurePassword:
+                                                _obscureRegisterPassword,
+                                            isLoading: isLoading,
+                                            onToggleObscure: () => setState(
+                                              () => _obscureRegisterPassword =
+                                                  !_obscureRegisterPassword,
+                                            ),
+                                            onRegister: _handleRegister,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -582,7 +609,7 @@ class _LoginForm extends StatelessWidget {
         AuthTextField(
           controller: emailController,
           label: 'Alamat Email',
-          hint: 'contoh@email.com',
+          hint: 'contoh@it.student.pens.ac.id',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),

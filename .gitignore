@@ -9,7 +9,6 @@ android/app/google-services.json
 # Database / SQL dump
 db.sql
 
-# Miscellaneous
 *.class
 *.log
 *.pyc

@@ -209,10 +209,15 @@ class NotificationService {
       final authToken = prefs.getString('auth_token');
       if (authToken == null) return;
 
-      await ApiClient().dio.post('device-tokens', data: {
-        'token': token,
-        'platform': defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-      });
+      await ApiClient().dio.post(
+        'device-tokens',
+        data: {
+          'token': token,
+          'platform': defaultTargetPlatform == TargetPlatform.iOS
+              ? 'ios'
+              : 'android',
+        },
+      );
       await prefs.setString('fcm_token', token);
       debugPrint('FCM token registered with backend');
     } catch (e) {
@@ -230,22 +235,25 @@ class NotificationService {
   }) async {
     debugPrint('Triggering Native Notification Display...');
 
+    const String groupKey = 'com.sela.app.NOTIFICATION_GROUP';
+
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-      'sela_high_importance_channel',
-      'Sela High Importance Notifications',
-      channelDescription: 'Notifikasi penting untuk aktivitas Sela.',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-      icon: '@mipmap/ic_launcher',
-      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-      color: AppColors.primaryTeal,
-      colorized: true,
-      playSound: true,
-      enableVibration: true,
-      fullScreenIntent: false,
-    );
+          'sela_high_importance_channel',
+          'Sela High Importance Notifications',
+          channelDescription: 'Notifikasi penting untuk aktivitas Sela.',
+          importance: Importance.max,
+          priority: Priority.high,
+          ticker: 'ticker',
+          icon: '@mipmap/ic_launcher',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+          color: AppColors.primaryTeal,
+          colorized: true,
+          playSound: true,
+          enableVibration: true,
+          fullScreenIntent: false,
+          groupKey: groupKey,
+        );
 
     const NotificationDetails notificationDetails = NotificationDetails(
       android: androidDetails,
@@ -256,7 +264,26 @@ class NotificationService {
       ),
     );
 
+    const AndroidNotificationDetails summaryAndroidDetails =
+        AndroidNotificationDetails(
+          'sela_high_importance_channel',
+          'Sela High Importance Notifications',
+          channelDescription: 'Notifikasi penting untuk aktivitas Sela.',
+          importance: Importance.max,
+          priority: Priority.high,
+          groupKey: groupKey,
+          setAsGroupSummary: true,
+          icon: '@mipmap/ic_launcher',
+          color: AppColors.primaryTeal,
+        );
+
+    const NotificationDetails summaryNotificationDetails = NotificationDetails(
+      android: summaryAndroidDetails,
+      iOS: DarwinNotificationDetails(), // iOS groups automatically
+    );
+
     try {
+      // Show the actual notification
       await _notificationsPlugin.show(
         id,
         title,
@@ -264,6 +291,15 @@ class NotificationService {
         notificationDetails,
         payload: payload,
       );
+
+      // Show the summary notification to group them (use a fixed ID for the summary)
+      await _notificationsPlugin.show(
+        88888, // Fixed ID for summary to avoid collision
+        'Sela Notifications',
+        'You have new notifications',
+        summaryNotificationDetails,
+      );
+
       debugPrint('System Notification SHOWN successfully.');
     } catch (e) {
       debugPrint('Error displaying notification: $e');
