@@ -147,7 +147,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
-      final res = await ApiClient().login(email, password);
+      final res = await ApiClient().login(email, password, rememberMe: _rememberMe);
 
       if (res.statusCode == 200 && mounted) {
         final prefs = await SharedPreferences.getInstance();

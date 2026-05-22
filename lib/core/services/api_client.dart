@@ -74,10 +74,10 @@ class ApiClient {
     );
   }
 
-  Future<Response> login(String email, String password) async {
+  Future<Response> login(String email, String password, {bool rememberMe = false}) async {
     return await dio.post(
       '/login',
-      data: {'email': email, 'password': password},
+      data: {'email': email, 'password': password, 'remember_me': rememberMe},
     );
   }
 
