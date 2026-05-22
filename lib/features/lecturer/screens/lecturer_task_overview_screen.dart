@@ -484,7 +484,8 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                           backgroundImage: (member['avatar_url'] != null &&
                                   member['avatar_url']
                                       .toString()
-                                      .startsWith('http'))
+                                      .startsWith('http') &&
+                                  !member['avatar_url'].toString().endsWith('/'))
                               ? NetworkImage(member['avatar_url'])
                                   as ImageProvider
                               : const AssetImage(

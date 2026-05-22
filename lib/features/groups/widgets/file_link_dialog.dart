@@ -127,7 +127,10 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
       // 3. Sync Files
       // Get IDs and paths of existing files to compare
       final existingFilePaths = widget.currentFiles.map((f) => f['path'] as String).toList();
-      final keptFilePaths = _files.where((f) => f.path != null && f.path!.startsWith('${widget.taskId}/')).map((f) => f.path!).toList();
+      final keptFilePaths = _files
+          .where((f) => f.path != null && existingFilePaths.contains(f.path))
+          .map((f) => f.path!)
+          .toList();
 
       final prefs = await SharedPreferences.getInstance();
       final userStr = prefs.getString('user_data');
@@ -140,38 +143,41 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
       // Determine which files to delete
       final filesToDelete = existingFilePaths.where((path) => !keptFilePaths.contains(path)).toList();
       for (final path in filesToDelete) {
-        await apiClient.dio.delete('/upload/task-file', queryParameters: {'path': path});
+        await apiClient.dio.delete('/upload/task-file', data: {'path': path});
         // Let API handle db deletion
       }
 
       // Upload new files
-      final newFiles = _files.where((f) => f.path == null || !f.path!.startsWith('${widget.taskId}/')).toList();
+      final newFiles = _files.where((f) => f.path == null || !existingFilePaths.contains(f.path)).toList();
       for (final file in newFiles) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-        final path = '${widget.taskId}/$fileName';
         bool uploadSuccess = false;
+        String? serverFileUrl;
 
         if (file.bytes != null) {
           final formData = FormData.fromMap({
             'file': MultipartFile.fromBytes(file.bytes!, filename: file.name),
-            'path': path,
           });
-          await apiClient.dio.post('/upload/task-file', data: formData);
-          uploadSuccess = true;
+          final response = await apiClient.dio.post('/upload/task-file', data: formData);
+          if (response.statusCode == 200) {
+            serverFileUrl = response.data['url'];
+            uploadSuccess = true;
+          }
         } else if (file.path != null) {
           final formData = FormData.fromMap({
             'file': await MultipartFile.fromFile(file.path!, filename: file.name),
-            'path': path,
           });
-          await apiClient.dio.post('/upload/task-file', data: formData);
-          uploadSuccess = true;
+          final response = await apiClient.dio.post('/upload/task-file', data: formData);
+          if (response.statusCode == 200) {
+            serverFileUrl = response.data['url'];
+            uploadSuccess = true;
+          }
         }
 
-        if (uploadSuccess) {
+        if (uploadSuccess && serverFileUrl != null) {
            await apiClient.dio.post('/tasks/${widget.taskId}/files', data: {
             'task_id': widget.taskId,
             'file_name': file.name,
-            'file_path': path,
+            'file_path': serverFileUrl,
             'file_type': file.extension,
             'file_size': file.size,
             'uploaded_by': uploadedById,

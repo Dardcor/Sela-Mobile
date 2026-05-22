@@ -999,7 +999,8 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                               radius: 28,
                               backgroundImage:
                                   m['avatar_url'] != null &&
-                                      m['avatar_url'].toString().isNotEmpty
+                                      m['avatar_url'].toString().isNotEmpty &&
+                                      !m['avatar_url'].toString().endsWith('/')
                                   ? NetworkImage(m['avatar_url'])
                                         as ImageProvider
                                   : const AssetImage(

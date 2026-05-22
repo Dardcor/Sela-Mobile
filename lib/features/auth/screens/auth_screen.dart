@@ -280,16 +280,16 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => isLoading = true);
     try {
-      final res = await ApiClient().register({
+      await ApiClient().register({
         'username': username,
         'email': email,
         'password': password,
       });
 
-      if (mounted && (res.statusCode == 201 || res.statusCode == 200)) {
+      // Success — navigate to OTP verification
+      if (mounted) {
         _usernameRegisterController.clear();
         _passwordRegisterController.clear();
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -306,6 +306,7 @@ class _AuthScreenState extends State<AuthScreen> {
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.connectionError ||
           isNetworkErrorMessage(e.message ?? '')) {
+        // Network error — do NOT navigate
         showNoInternetSnackBar(context);
       } else {
         String msg = e.message ?? 'Kesalahan tidak diketahui';
@@ -315,18 +316,39 @@ class _AuthScreenState extends State<AuthScreen> {
           msg = 'Kesalahan Server: ${e.response?.statusCode}';
         }
 
-        if (msg.contains('User already registered') ||
-            msg.contains('The email has already been taken')) {
-          msg = 'Email ini sudah terdaftar. Silakan login.';
-        } else if (msg.contains('Database error saving new user') ||
+        // Check if user/email already exists — do NOT navigate
+        final bool isAlreadyRegistered = msg.contains('User already registered') ||
+            msg.contains('The email has already been taken') ||
+            msg.contains('Database error saving new user') ||
             msg.contains('username already exists') ||
-            msg.contains('The username has already been taken')) {
-          msg = 'Username atau Email sudah digunakan. Silakan pilih yang lain.';
-        } else if (e.response?.data is Map<String, dynamic> &&
-            e.response?.data?['errors'] != null) {
-          msg = "Form tidak valid: ${e.response?.data['errors'].toString()}";
+            msg.contains('The username has already been taken');
+
+        final bool isValidationError = e.response?.data is Map<String, dynamic> &&
+            e.response?.data?['errors'] != null;
+
+        if (isAlreadyRegistered) {
+          if (msg.contains('User already registered') ||
+              msg.contains('The email has already been taken')) {
+            _showError('Email ini sudah terdaftar. Silakan login.');
+          } else {
+            _showError('Username atau Email sudah digunakan. Silakan pilih yang lain.');
+          }
+        } else if (isValidationError) {
+          _showError("Form tidak valid: ${e.response?.data['errors'].toString()}");
+        } else {
+          // Server error but OTP likely sent — navigate to OTP screen
+          if (mounted) {
+            _usernameRegisterController.clear();
+            _passwordRegisterController.clear();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RegisterOTPVerifyScreen(email: email),
+              ),
+            );
+            _emailRegisterController.clear();
+          }
         }
-        _showError(msg);
       }
     } catch (e) {
       debugPrint('🔥 REGISTER GENERIC ERROR: $e');
@@ -334,7 +356,18 @@ class _AuthScreenState extends State<AuthScreen> {
       if (msg == noInternetMessage) {
         showNoInternetSnackBar(context);
       } else {
-        _showError(msg);
+        // Non-network generic error — still navigate since OTP may have been sent
+        if (mounted) {
+          _usernameRegisterController.clear();
+          _passwordRegisterController.clear();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RegisterOTPVerifyScreen(email: email),
+            ),
+          );
+          _emailRegisterController.clear();
+        }
       }
     } finally {
       if (mounted) setState(() => isLoading = false);

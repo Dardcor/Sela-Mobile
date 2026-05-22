@@ -59,7 +59,7 @@ class MemberAvatarStack extends StatelessWidget {
               ),
               child: CircleAvatar(
                 radius: avatarRadius,
-                backgroundImage: avatarUrl != null && avatarUrl.toString().isNotEmpty
+                backgroundImage: avatarUrl != null && avatarUrl.toString().isNotEmpty && !avatarUrl.toString().endsWith('/')
                     ? NetworkImage(avatarUrl) as ImageProvider
                     : const AssetImage('assets/images/default_profile.png'),
               ),

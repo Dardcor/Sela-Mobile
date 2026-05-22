@@ -143,7 +143,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                   radius: 20,
                                   backgroundColor: Colors.white,
                                   child: ClipOval(
-                                    child: _profile?['avatar_url'] != null
+                                    child: _profile?['avatar_url'] != null && !_profile!['avatar_url'].toString().endsWith('/')
                                         ? Image.network(
                                             _profile!['avatar_url'],
                                             width: 40,

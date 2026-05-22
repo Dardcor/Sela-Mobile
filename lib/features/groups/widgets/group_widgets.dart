@@ -130,7 +130,8 @@ class GroupCard extends StatelessWidget {
                                 members[idx]['avatar_url'] != null &&
                                     members[idx]['avatar_url']
                                         .toString()
-                                        .startsWith('http')
+                                        .startsWith('http') &&
+                                    !members[idx]['avatar_url'].toString().endsWith('/')
                                 ? Image.network(
                                     members[idx]['avatar_url'],
                                     fit: BoxFit.cover,
@@ -1867,7 +1868,8 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
               radius: 18,
               backgroundImage:
                   widget.member['avatar_url'] != null &&
-                      widget.member['avatar_url'].toString().isNotEmpty
+                      widget.member['avatar_url'].toString().isNotEmpty &&
+                      !widget.member['avatar_url'].toString().endsWith('/')
                   ? NetworkImage(widget.member['avatar_url']) as ImageProvider
                   : const AssetImage('assets/images/default_profile.png'),
             ),

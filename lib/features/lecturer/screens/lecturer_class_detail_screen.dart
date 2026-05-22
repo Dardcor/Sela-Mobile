@@ -556,7 +556,8 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
           child:
               (avatarUrl != null &&
                   (avatarUrl.startsWith('http') ||
-                      avatarUrl.startsWith('https')))
+                      avatarUrl.startsWith('https')) &&
+                  !avatarUrl.endsWith('/'))
               ? Image.network(
                   avatarUrl,
                   fit: BoxFit.cover,

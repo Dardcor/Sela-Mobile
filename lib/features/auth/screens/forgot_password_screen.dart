@@ -54,6 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       // Use ApiClient to send forgot password request
       await ApiClient().forgotPassword(email);
 
+      // Success — navigate to OTP verification
       if (mounted) {
         Navigator.push(
           context,
@@ -64,18 +65,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } on DioException catch (e) {
       if (mounted) {
-        if (isNetworkErrorMessage(e.message ?? '')) {
+        if (e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionError ||
+            isNetworkErrorMessage(e.message ?? '')) {
+          // Network error — do NOT navigate
           showNoInternetSnackBar(context);
         } else {
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                duration: const Duration(milliseconds: 1500),
-                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
-                backgroundColor: Colors.red,
-              ),
-            );
+          // Server error but OTP likely sent — navigate to OTP screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OTPVerifyScreen(email: email),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -84,15 +87,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (message == noInternetMessage) {
           showNoInternetSnackBar(context);
         } else {
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(
-              SnackBar(
-                duration: const Duration(milliseconds: 1500),
-                content: Text(message),
-                backgroundColor: Colors.red,
-              ),
-            );
+          // Non-network generic error — still navigate since OTP may have been sent
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OTPVerifyScreen(email: email),
+            ),
+          );
         }
       }
     } finally {

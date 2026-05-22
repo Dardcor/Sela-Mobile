@@ -442,7 +442,8 @@ class UserInfoCard extends StatelessWidget {
               backgroundColor: AppColors.lightTealBg,
               backgroundImage:
                   profile?['avatar_url'] != null &&
-                      profile!['avatar_url'].toString().isNotEmpty
+                      profile!['avatar_url'].toString().isNotEmpty &&
+                      !profile!['avatar_url'].toString().endsWith('/')
                   ? NetworkImage(profile!['avatar_url']) as ImageProvider
                   : const AssetImage('assets/images/default_profile.png'),
             ),
@@ -759,7 +760,6 @@ class _EditProfileModalState extends State<EditProfileModal> {
                     final ImagePicker picker = ImagePicker();
                     final XFile? image = await picker.pickImage(
                       source: ImageSource.gallery,
-                      imageQuality: 70, // Optimize image size
                     );
                     if (image != null && mounted) {
                       Navigator.pop(context); // Close modal after selection BEFORE photo upload starts
@@ -789,7 +789,8 @@ class _EditProfileModalState extends State<EditProfileModal> {
                             widget.profile?['avatar_url'] != null &&
                                 widget.profile!['avatar_url']
                                     .toString()
-                                    .isNotEmpty
+                                    .isNotEmpty &&
+                                !widget.profile!['avatar_url'].toString().endsWith('/')
                             ? NetworkImage(widget.profile!['avatar_url'])
                                   as ImageProvider
                             : const AssetImage(

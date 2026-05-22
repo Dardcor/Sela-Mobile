@@ -130,7 +130,6 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                       final ImagePicker picker = ImagePicker();
                       final XFile? image = await picker.pickImage(
                         source: ImageSource.gallery,
-                        imageQuality: 70,
                       );
                       if (image != null && mounted) {
                         widget.onPhotoChange(image.path);
