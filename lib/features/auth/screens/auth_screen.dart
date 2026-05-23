@@ -188,19 +188,33 @@ class _AuthScreenState extends State<AuthScreen> {
         showNoInternetSnackBar(context);
       } else {
         String msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
-        if (e.response?.data is Map && e.response!.data['message'] != null) {
-          String backendMessage = e.response!.data['message']
-              .toString()
-              .toLowerCase();
-          if (backendMessage.contains('unauthorized') ||
-              backendMessage.contains('not found') ||
-              backendMessage.contains('invalid') ||
-              backendMessage.contains('incorrect') ||
-              backendMessage.contains('credential')) {
+        if (e.response?.data is Map) {
+          String backendMessage = '';
+          
+          // Check for errors object (ValidationException)
+          if (e.response?.data['errors'] != null) {
+            final errors = e.response?.data['errors'];
+            if (errors is Map && errors.values.isNotEmpty) {
+              backendMessage = errors.values.first.first.toString();
+            }
+          } else if (e.response?.data['message'] != null) {
+            backendMessage = e.response!.data['message'].toString();
+          }
+
+          String lowerMsg = backendMessage.toLowerCase();
+          if (lowerMsg.contains('unauthorized') ||
+              lowerMsg.contains('not found') ||
+              lowerMsg.contains('invalid') ||
+              lowerMsg.contains('incorrect') ||
+              lowerMsg.contains('credential') ||
+              lowerMsg.contains('password salah')) {
             msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
+            // Specifically override if it's "password salah" for more clarity if needed
+            if (lowerMsg.contains('password salah')) {
+                msg = 'Password salah.';
+            }
           } else {
-            // Jika error lain dari backend yang aman untuk ditampilkan
-            msg = e.response!.data['message'].toString();
+            msg = backendMessage;
           }
         }
 
