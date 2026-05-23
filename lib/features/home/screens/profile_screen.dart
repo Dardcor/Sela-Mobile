@@ -247,7 +247,11 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
   void _showChangePassword() {
     showDialog(
       context: context,
-      builder: (context) => ChangePasswordModal(onSave: _changePassword),
+      builder: (context) => ChangePasswordModal(
+        onSave: (oldPass, newPass) async {
+          await _changePassword(oldPass, newPass);
+        },
+      ),
     );
   }
 
@@ -273,6 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
 
     if (shouldLogout != true) return;
 
+    // Tampilkan dialog loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -294,7 +299,9 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
       await prefs.remove('user_data');
       
       if (context.mounted) {
-        Navigator.pop(context); // close loading
+        // Tutup dialog loading
+        Navigator.pop(context); 
+        // Pindah ke halaman auth dan hapus semua stack
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }
     } catch (e) {
@@ -304,7 +311,8 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
       await prefs.remove('user_data');
       
       if (context.mounted) {
-        Navigator.pop(context); // close loading
+        // Tutup dialog loading jika masih tampil
+        Navigator.pop(context); 
         Navigator.pushNamedAndRemoveUntil(context, '/auth', (route) => false);
       }
     }

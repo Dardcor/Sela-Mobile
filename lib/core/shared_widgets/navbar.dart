@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../constants/colors.dart';
 import 'app_bottom_nav_bar.dart';
 import '../../features/home/screens/dashboard_screen.dart';
@@ -114,9 +115,8 @@ class _NavbarState extends State<Navbar> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldExit = await _onWillPop();
-        if (shouldExit && context.mounted) {
-          // ignore: use_build_context_synchronously
-          Navigator.of(context).pop();
+        if (shouldExit) {
+          SystemNavigator.pop();
         }
       },
       child: Scaffold(

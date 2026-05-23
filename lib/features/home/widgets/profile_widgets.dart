@@ -204,7 +204,6 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     }
 
     if (newPass != confirmPass) {
-      _showModalToast(context, 'Kata sandi baru tidak cocok');
       return;
     }
 
@@ -214,7 +213,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
       await widget.onSave(_oldPassCtrl.text.trim(), newPass);
     } catch (e) {
       setState(() => _isLoading = false);
-      String errMsg = 'Failed to change password';
+      String errMsg = 'Gagal mengganti kata sandi';
       if (e.toString().contains('Password harus berbeda')) {
         errMsg = 'Password harus berbeda dari password lama';
       } else if (e.toString().contains('pernah digunakan')) {
@@ -226,7 +225,13 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     }
   }
 
-  Widget _buildPassField(String label, TextEditingController ctrl) {
+  Widget _buildPassField(
+    String label, 
+    TextEditingController ctrl, 
+    {String? errorText, 
+    ValueChanged<String>? onChanged}
+  ) {
+    final hasError = errorText != null && errorText.isNotEmpty;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -234,15 +239,24 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
           height: 55,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
+            border: Border.all(
+              color: hasError ? Colors.red : AppColors.primaryTeal, 
+              width: 1.2
+            ),
           ),
           child: TextField(
             controller: ctrl,
             obscureText: true,
+            onChanged: onChanged,
             style: GoogleFonts.outfit(fontSize: 15, color: Colors.grey[700]),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
+              hintText: 'Masukkan $label',
+              hintStyle: GoogleFonts.outfit(
+                color: Colors.grey.withValues(alpha: 0.5),
+                fontSize: 14,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 18),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18),
             ),
           ),
         ),
@@ -255,13 +269,22 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
             child: Text(
               label,
               style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
+                color: hasError ? Colors.red : AppColors.primaryTeal,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
             ),
           ),
         ),
+        if (hasError)
+          Positioned(
+            left: 18,
+            bottom: -18,
+            child: Text(
+              errorText,
+              style: GoogleFonts.outfit(color: Colors.red, fontSize: 11),
+            ),
+          ),
       ],
     );
   }
@@ -286,7 +309,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                     Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'Change Password',
+                        'Ganti Kata Sandi',
                         style: GoogleFonts.outfit(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -312,7 +335,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                 const SizedBox(height: 20),
                 
                 if (_step == 1) ...[
-                  _buildPassField('Old Password', _oldPassCtrl),
+                  _buildPassField('Kata Sandi Lama', _oldPassCtrl),
                   const SizedBox(height: 40),
                   GestureDetector(
                     onTap: _isLoading ? null : _verifyOldPassword,
@@ -331,7 +354,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : Text(
-                                'Next',
+                                'Lanjut',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -342,17 +365,32 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                     ),
                   ),
                 ] else ...[
-                  _buildPassField('New Password', _newPassCtrl),
+                  _buildPassField(
+                    'Kata Sandi Baru', 
+                    _newPassCtrl, 
+                    onChanged: (v) => setState(() {})
+                  ),
                   const SizedBox(height: 25),
-                  _buildPassField('Confirm Password', _confirmPassCtrl),
+                  _buildPassField(
+                    'Konfirmasi Kata Sandi', 
+                    _confirmPassCtrl, 
+                    onChanged: (v) => setState(() {}),
+                    errorText: _newPassCtrl.text != _confirmPassCtrl.text && _confirmPassCtrl.text.isNotEmpty 
+                        ? 'Kata sandi tidak cocok' 
+                        : null
+                  ),
                   const SizedBox(height: 40),
                   GestureDetector(
-                    onTap: _isLoading ? null : _submitNewPassword,
+                    onTap: _isLoading || (_newPassCtrl.text != _confirmPassCtrl.text && _confirmPassCtrl.text.isNotEmpty) 
+                        ? null 
+                        : _submitNewPassword,
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: _isLoading ? Colors.grey : AppColors.primaryTeal,
+                        color: _isLoading || (_newPassCtrl.text != _confirmPassCtrl.text && _confirmPassCtrl.text.isNotEmpty) 
+                            ? Colors.grey 
+                            : AppColors.primaryTeal,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Center(
@@ -363,7 +401,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : Text(
-                                'Update Password',
+                                'Update Kata Sandi',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -381,7 +419,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                             Navigator.pop(context);
                           },
                     child: Text(
-                      'Cancel',
+                      'Batal',
                       style: GoogleFonts.outfit(
                         color: Colors.red,
                         fontWeight: FontWeight.w600,
@@ -609,8 +647,8 @@ class _AbilityTag extends StatelessWidget {
       painter: _DashPainter(
         color: AppColors.primaryTeal,
         strokeWidth: 1.2,
-        dash: 4,
-        gap: 3,
+        dashWidth: 4,
+        dashSpace: 3,
       ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -630,15 +668,17 @@ class _AbilityTag extends StatelessWidget {
 
 class _DashPainter extends CustomPainter {
   final Color color;
+  final double borderRadius;
   final double strokeWidth;
-  final double dash;
-  final double gap;
+  final double dashWidth;
+  final double dashSpace;
 
   _DashPainter({
     required this.color,
-    required this.strokeWidth,
-    required this.dash,
-    required this.gap,
+    this.borderRadius = 18,
+    this.strokeWidth = 1.5,
+    this.dashWidth = 5,
+    this.dashSpace = 4,
   });
 
   @override
@@ -648,22 +688,23 @@ class _DashPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final RRect rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      const Radius.circular(15),
-    );
+    var path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(borderRadius),
+      ));
 
-    final Path path = Path()..addRRect(rrect);
-    final Path dashedPath = Path();
-
-    for (final PathMetric metric in path.computeMetrics()) {
+    // Mengubah path menjadi dashed path
+    PathMetrics pathMetrics = path.computeMetrics();
+    Path dashedPath = Path();
+    for (PathMetric pathMetric in pathMetrics) {
       double distance = 0.0;
-      while (distance < metric.length) {
+      while (distance < pathMetric.length) {
         dashedPath.addPath(
-          metric.extractPath(distance, distance + dash),
+          pathMetric.extractPath(distance, distance + dashWidth),
           Offset.zero,
         );
-        distance += dash + gap;
+        distance += dashWidth + dashSpace;
       }
     }
     canvas.drawPath(dashedPath, paint);
@@ -1173,57 +1214,3 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
     }
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DashedBorderPainter — Untuk menggambar border putus-putus
-// ─────────────────────────────────────────────────────────────────────────────
-class DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double borderRadius;
-  final double strokeWidth;
-  final double dashWidth;
-  final double dashSpace;
-
-  DashedBorderPainter({
-    required this.color,
-    this.borderRadius = 18,
-    this.strokeWidth = 1.5,
-    this.dashWidth = 5,
-    this.dashSpace = 4,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    var path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
-
-    // Mengubah path menjadi dashed path
-    PathMetrics pathMetrics = path.computeMetrics();
-    Path dashedPath = Path();
-    for (PathMetric pathMetric in pathMetrics) {
-      double distance = 0.0;
-      while (distance < pathMetric.length) {
-        dashedPath.addPath(
-          pathMetric.extractPath(distance, distance + dashWidth),
-          Offset.zero,
-        );
-        distance += dashWidth + dashSpace;
-      }
-    }
-
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-

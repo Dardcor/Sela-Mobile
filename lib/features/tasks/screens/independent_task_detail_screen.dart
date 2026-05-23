@@ -315,10 +315,15 @@ class _IndependentTaskDetailScreenState
   Future<void> _handleStatusChanged(String subtaskId, int progress) async {
     if (_userId == null) return;
     final userId = _userId!;
+    
+    // Simpan status sebelum diubah untuk kemungkinan revert
+    final List<dynamic> oldSubtasks = jsonDecode(jsonEncode(_taskData['subtasks']));
+
+    // 1. Optimistic UI: Update lokal segera
     setState(() {
       if (_taskData != null && _taskData['subtasks'] != null) {
         for (var st in _taskData['subtasks']) {
-          if (st['id'] == subtaskId) {
+          if (st['id'].toString() == subtaskId.toString()) {
             final progressList = st['progress_entries'] as List?;
             if (progressList != null) {
               for (var p in progressList) {
@@ -339,18 +344,21 @@ class _IndependentTaskDetailScreenState
         'progress': progress,
         'user_id': userId,
       });
-
-      _fetchFullTaskData(_taskData['id']);
+      // Sukses: Tidak perlu fetch ulang karena Optimistic UI sudah diperbarui secara lokal.
+      // Jika butuh sinkronisasi data lain, lakukan fetch di latar belakang tanpa setState yang berat.
     } catch (e) {
-      // Jika gagal, revert ke data aslinya
-      _fetchFullTaskData(_taskData['id']);
+      // 2. Revert UI jika gagal
       if (mounted) {
+        setState(() {
+          _taskData['subtasks'] = oldSubtasks;
+        });
+        
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
               duration: const Duration(milliseconds: 1500),
-              content: Text('Failed to update status: ${e.toString()}'),
+              content: Text('Gagal mengupdate status: ${e.toString()}'),
               backgroundColor: Colors.red,
             ),
           );

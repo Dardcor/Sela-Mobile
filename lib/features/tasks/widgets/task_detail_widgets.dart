@@ -405,7 +405,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
 
 /// Kartu daftar progress/subtask dari tugas mandiri.
 /// Diisolasi sehingga hanya bagian ini yang di-rebuild saat data subtask berubah.
-class TaskProgressCard extends StatelessWidget {
+class TaskProgressCard extends StatefulWidget {
   final String taskTitle;
   final List subtasks;
   final String userId;
@@ -418,6 +418,40 @@ class TaskProgressCard extends StatelessWidget {
     required this.userId,
     required this.onStatusChanged,
   });
+
+  @override
+  State<TaskProgressCard> createState() => _TaskProgressCardState();
+}
+
+class _TaskProgressCardState extends State<TaskProgressCard> {
+  // Local state untuk optimasi UI
+  late Map<String, int> _localProgresses;
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocalProgress();
+  }
+
+  @override
+  void didUpdateWidget(TaskProgressCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.subtasks != widget.subtasks) {
+      _initLocalProgress();
+    }
+  }
+
+  void _initLocalProgress() {
+    _localProgresses = {};
+    for (var st in widget.subtasks) {
+      final progressList = st['progress_entries'] as List?;
+      final progressData = progressList?.firstWhere(
+        (p) => p['user_id'].toString().toLowerCase() == widget.userId.toString().toLowerCase(),
+        orElse: () => null,
+      );
+      _localProgresses[st['id'].toString()] = (progressData?['progress'] as num?)?.toInt() ?? 0;
+    }
+  }
 
   void _showDetailDialog(
     BuildContext context,
@@ -444,7 +478,7 @@ class TaskProgressCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                taskTitle,
+                widget.taskTitle,
                 style: GoogleFonts.outfit(
                   fontSize: 14,
                   color: Colors.grey[500],
@@ -531,7 +565,7 @@ class TaskProgressCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          if (subtasks.isEmpty)
+          if (widget.subtasks.isEmpty)
             Center(
               child: Text(
                 'No progress items yet',
@@ -539,13 +573,9 @@ class TaskProgressCard extends StatelessWidget {
               ),
             )
           else
-            ...subtasks.map((st) {
-              final progressList = st['progress_entries'] as List?;
-              final progressData = progressList?.firstWhere(
-                (p) => p['user_id'].toString().toLowerCase() == userId.toString().toLowerCase(),
-                orElse: () => null,
-              );
-              final prog = (progressData?['progress'] as num?)?.toInt() ?? 0;
+            ...widget.subtasks.map((st) {
+              final subtaskId = st['id'].toString();
+              final prog = _localProgresses[subtaskId] ?? 0;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -595,11 +625,15 @@ class TaskProgressCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       onChanged: (val) {
-                        if (val == true) {
-                          onStatusChanged(st['id'], 100);
-                        } else {
-                          onStatusChanged(st['id'], 0);
-                        }
+                        final newProg = val == true ? 100 : 0;
+                        
+                        // 1. Update UI secara instan (Optimistic UI lokal)
+                        setState(() {
+                          _localProgresses[subtaskId] = newProg;
+                        });
+
+                        // 2. Kirim update ke backend tanpa menunggu proses selesai (Fire-and-forget)
+                        widget.onStatusChanged(subtaskId, newProg);
                       },
                     ),
                   ],
@@ -611,6 +645,7 @@ class TaskProgressCard extends StatelessWidget {
     );
   }
 }
+
 
 class IndependentCreateSubtaskSection extends StatefulWidget {
   final Function(String, String?, String) onCreateManual;
@@ -1550,29 +1585,6 @@ class _FileUploadSectionState extends State<FileUploadSection> {
                 const SizedBox(height: 8),
                 Text(
                   'Telusuri',
-                  style: GoogleFonts.outfit(
-                    color: AppColors.primaryTeal,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Upload your file here',
-                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'PDF · Word · Excel · PPT · Image',
-                  style: GoogleFonts.outfit(
-                    color: Colors.grey[400],
-                    fontSize: 10,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Browse',
                   style: GoogleFonts.outfit(
                     color: AppColors.primaryTeal,
                     fontWeight: FontWeight.bold,

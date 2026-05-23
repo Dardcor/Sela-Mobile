@@ -4,6 +4,7 @@ import '../../../core/services/api_client.dart';
 import 'dart:convert';
 import '../../../core/constants/colors.dart';
 import '../widgets/dashboard_widgets.dart';
+import '../../../core/shared_widgets/skeleton_loader.dart';
 
 /// Semua rendering UI didelegasikan ke [dashboard_widgets.dart]:
 /// - [DashboardHeader]        → avatar + statistik task (rebuild saat data berubah)
@@ -34,9 +35,28 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
   @override
   void initState() {
     super.initState();
+    _loadCache();
     _fetchData();
     _searchCtrl.addListener(_onSearchChanged);
   }
+
+  Future<void> _loadCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _cachedProfile = jsonDecode(prefs.getString('cache_profile') ?? '{}');
+      _cachedGroups = jsonDecode(prefs.getString('cache_groups') ?? '[]');
+      _cachedIndependent = jsonDecode(prefs.getString('cache_independent') ?? '[]');
+      if (_cachedProfile!.isNotEmpty) _isLoading = false;
+    });
+  }
+
+  Future<void> _saveCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cache_profile', jsonEncode(_cachedProfile));
+    await prefs.setString('cache_groups', jsonEncode(_cachedGroups));
+    await prefs.setString('cache_independent', jsonEncode(_cachedIndependent));
+  }
+
 
   void _onSearchChanged() {
     setState(() {}); // Rebuild with filtered lists
@@ -108,6 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
           _cachedIndependent = independentTasksList;
           _isLoading = false;
         });
+        _saveCache();
         debugPrint(
           'Dashboard: Successfully loaded ${_cachedGroups?.length} group tasks and ${_cachedIndependent?.length} independent tasks',
         );
@@ -147,12 +168,10 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading && _cachedProfile == null) {
+    if (_isLoading && (_cachedProfile == null || _cachedProfile!.isEmpty)) {
       return const Scaffold(
         backgroundColor: AppColors.bgLight,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryTeal),
-        ),
+        body: DashboardSkeleton(),
       );
     }
 
@@ -210,7 +229,8 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
               upcomingCount: upcomingCount,
               unreadCount: _unreadNotificationsCount,
               onNotificationTap: () =>
-                  Navigator.pushNamed(context, '/notifications'),
+                  Navigator.pushNamed(context, '/notifications')
+                      .then((_) => _fetchNotificationsCount()),
               onProfileTap: () {
                 if (widget.onNavigateTab != null) {
                   widget.onNavigateTab!(4); // Navigasi via navbar ke tab profil

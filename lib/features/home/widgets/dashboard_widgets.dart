@@ -164,41 +164,50 @@ class DashboardHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          // Scrollable Cards
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _OverviewCard(
-                  title: 'Semua Tugas',
+          // Ringkasan Tugas (Responsive & No Scroll)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _OverviewCard(
+                  title: 'Semua',
                   count: allTasksCount.toString(),
                   icon: Icons.list_alt_rounded,
                   color: Colors.white,
                   textColor: AppColors.primaryTeal,
                 ),
-                _OverviewCard(
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _OverviewCard(
                   title: 'Selesai',
                   count: doneTasksCount.toString(),
                   icon: Icons.check_circle_outline_rounded,
                   color: const Color(0xFFE8F5E9),
                   textColor: Colors.green[700]!,
                 ),
-                _OverviewCard(
-                  title: 'Sedang Proses',
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _OverviewCard(
+                  title: 'Proses',
                   count: inProgressCount.toString(),
                   icon: Icons.autorenew_rounded,
                   color: const Color(0xFFFFF3E0),
                   textColor: Colors.orange[800]!,
                 ),
-                _OverviewCard(
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _OverviewCard(
                   title: 'Tertunda',
                   count: upcomingCount.toString(),
                   icon: Icons.pending_actions_rounded,
                   color: const Color(0xFFFFEBEE),
                   textColor: Colors.red[700]!,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -226,10 +235,8 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 85,
     height: 84,
     padding: const EdgeInsets.all(12),
-    margin: const EdgeInsets.only(right: 12),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(15),
