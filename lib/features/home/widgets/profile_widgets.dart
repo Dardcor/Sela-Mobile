@@ -678,7 +678,7 @@ class _DashPainter extends CustomPainter {
 // ─────────────────────────────────────────────────────────────────────────────
 class EditProfileModal extends StatefulWidget {
   final Map<String, dynamic>? profile;
-  final Function(String name, String className) onSave;
+  final Future<void> Function(String name, String className) onSave;
   final Function(String path) onPhotoChange;
 
   const EditProfileModal({
@@ -696,6 +696,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
   late TextEditingController _nameCtrl;
   String? _selectedClass;
   List<String> _classes = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -800,7 +801,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Change Photo Profile',
+                      'Ubah Foto Profil',
                       style: GoogleFonts.outfit(
                         color: AppColors.primaryTeal,
                         fontSize: 13,
@@ -814,16 +815,21 @@ class _EditProfileModalState extends State<EditProfileModal> {
               _buildField('Username', _nameCtrl),
               const SizedBox(height: 25),
               _buildDropdown(
-                'Class',
+                'Kelas',
                 _selectedClass,
                 _classes,
                 (val) => setState(() => _selectedClass = val),
               ),
               const SizedBox(height: 40),
               GestureDetector(
-                onTap: () {
-                  widget.onSave(_nameCtrl.text, _selectedClass ?? '');
-                  Navigator.pop(context);
+                onTap: () async {
+                  if (_isLoading) return;
+                  setState(() => _isLoading = true);
+                  await widget.onSave(_nameCtrl.text, _selectedClass ?? '');
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    Navigator.pop(context);
+                  }
                 },
                 child: Container(
                   width: double.infinity,
@@ -833,14 +839,23 @@ class _EditProfileModalState extends State<EditProfileModal> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Center(
-                    child: Text(
-                      'Save',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
+                    child: _isLoading 
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Simpan',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
                   ),
                 ),
               ),
@@ -909,7 +924,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
       children: [
         Container(
           height: 55,
-          padding: const EdgeInsets.only(left: 18, right: 12),
+          padding: const EdgeInsets.only(left: 16, right: 26),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: AppColors.primaryTeal, width: 1.2),
@@ -919,29 +934,38 @@ class _EditProfileModalState extends State<EditProfileModal> {
             child: DropdownButton<String>(
               isExpanded: true,
               value: value,
-              hint: Text(
-                'Select $label',
-                style: GoogleFonts.outfit(
-                  color: Colors.grey[700],
-                  fontSize: 15,
+              hint: Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Text(
+                  'Pilih $label',
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[700],
+                    fontSize: 15,
+                  ),
                 ),
               ),
               items: items.map((e) {
                 return DropdownMenuItem<String>(
                   value: e,
-                  child: Text(
-                    e,
-                    style: GoogleFonts.outfit(
-                      fontSize: 15,
-                      color: Colors.grey[700],
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: Text(
+                      e,
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        color: Colors.grey[700],
+                      ),
                     ),
                   ),
                 );
               }).toList(),
               onChanged: onChanged,
-              icon: const Icon(
-                Icons.expand_more_rounded,
-                color: Colors.grey,
+              icon: Transform.translate(
+                offset: const Offset(14, 0),
+                child: const Icon(
+                  Icons.expand_more_rounded,
+                  color: Colors.grey,
+                ),
               ),
               dropdownColor: Colors.white,
               borderRadius: BorderRadius.circular(15),
@@ -975,7 +999,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
 // ─────────────────────────────────────────────────────────────────────────────
 class EditAbilityModal extends StatefulWidget {
   final List<String> abilities;
-  final Function(List<String> newAbilities) onSave;
+  final Future<void> Function(List<String> newAbilities) onSave;
 
   const EditAbilityModal({
     super.key,
@@ -990,6 +1014,7 @@ class EditAbilityModal extends StatefulWidget {
 class _EditAbilityModalState extends State<EditAbilityModal> {
   late List<String> _currentAbilities;
   final _newAbilityCtrl = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -1012,7 +1037,7 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Edit Ability',
+                'Edit Kemampuan',
                 style: GoogleFonts.outfit(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -1094,10 +1119,15 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
               ),
               const SizedBox(height: 40),
               GestureDetector(
-                onTap: () {
+                onTap: () async {
+                  if (_isLoading) return;
+                  setState(() => _isLoading = true);
                   _addAbility(); // Auto-add if text is left in the input
-                  widget.onSave(_currentAbilities);
-                  Navigator.pop(context);
+                  await widget.onSave(_currentAbilities);
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                    Navigator.pop(context);
+                  }
                 },
                 child: Container(
                   width: double.infinity,
@@ -1107,14 +1137,23 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Center(
-                    child: Text(
-                      'Save',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
+                    child: _isLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Simpan',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
                   ),
                 ),
               ),

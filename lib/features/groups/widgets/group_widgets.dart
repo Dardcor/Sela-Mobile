@@ -511,7 +511,7 @@ class GroupDropdownField extends StatelessWidget {
               children: [
                 Container(
                   height: 55,
-                  padding: const EdgeInsets.only(left: 18, right: 12),
+                  padding: const EdgeInsets.only(left: 16, right: 26),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     border: Border.all(
@@ -524,29 +524,38 @@ class GroupDropdownField extends StatelessWidget {
                     child: DropdownButton<String>(
                       isExpanded: true,
                       value: validValue,
-                      hint: Text(
-                        hint,
-                        style: GoogleFonts.outfit(
-                          color: Colors.grey[700],
-                          fontSize: 15,
+                      hint: Padding(
+                        padding: const EdgeInsets.only(left: 2),
+                        child: Text(
+                          hint,
+                          style: GoogleFonts.outfit(
+                            color: Colors.grey[700],
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                       items: items.map((String item) {
                         return DropdownMenuItem<String>(
                           value: item,
-                          child: Text(
-                            item,
-                            style: GoogleFonts.outfit(
-                              fontSize: 15,
-                              color: Colors.grey[700],
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Text(
+                              item,
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                color: Colors.grey[700],
+                              ),
                             ),
                           ),
                         );
                       }).toList(),
                       onChanged: onChanged,
-                      icon: const Icon(
-                        Icons.expand_more_rounded,
-                        color: Colors.grey,
+                      icon: Transform.translate(
+                        offset: const Offset(14, 0),
+                        child: const Icon(
+                          Icons.expand_more_rounded,
+                          color: Colors.grey,
+                        ),
                       ),
                       dropdownColor: Colors.white,
                       borderRadius: BorderRadius.circular(15),
@@ -848,8 +857,8 @@ class GroupDetailHeader extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(
         25,
         MediaQuery.of(context).padding.top + 5,
-        0,
         5,
+        10,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -858,7 +867,7 @@ class GroupDetailHeader extends StatelessWidget {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
                 color: AppColors.primaryTeal,
                 shape: BoxShape.circle,
@@ -866,7 +875,7 @@ class GroupDetailHeader extends StatelessWidget {
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
-                size: 24,
+                size: 20,
               ),
             ),
           ),
@@ -1665,7 +1674,7 @@ class _DropdownPerson extends StatelessWidget {
       children: [
         Container(
           height: 52,
-          padding: const EdgeInsets.only(left: 14, right: 8),
+          padding: const EdgeInsets.only(left: 16, right: 26),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
@@ -1678,30 +1687,42 @@ class _DropdownPerson extends StatelessWidget {
             child: DropdownButton<String>(
               isExpanded: true,
               value: value,
-              hint: Text(
-                hint,
-                style: GoogleFonts.outfit(
-                  color: Colors.grey[300],
-                  fontSize: 12,
+              hint: Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Text(
+                  hint,
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[300],
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              icon: Icon(
-                Icons.expand_more_rounded,
-                color: enabled ? Colors.grey[300] : Colors.grey[200],
+              icon: Transform.translate(
+                offset: const Offset(14, 0),
+                child: Icon(
+                  Icons.expand_more_rounded,
+                  color: enabled ? Colors.grey[300] : Colors.grey[200],
+                ),
               ),
               items: members.map((m) {
                 return DropdownMenuItem<String>(
                   value: m['id'] ?? m['user_id'],
-                  child: Text(
-                    m['full_name'] ?? m['username'] ?? 'Member',
-                    style: GoogleFonts.outfit(
-                      fontSize: 13,
-                      color: enabled ? Colors.black : Colors.grey,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: Text(
+                      m['full_name'] ?? m['username'] ?? 'Member',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        color: enabled ? Colors.black : Colors.grey,
+                      ),
                     ),
                   ),
                 );
               }).toList(),
               onChanged: enabled ? onChanged : null,
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              menuMaxHeight: 250,
             ),
           ),
         ),

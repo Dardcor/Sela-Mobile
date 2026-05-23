@@ -65,52 +65,61 @@ class DashboardHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              GestureDetector(
-                onTap: onProfileTap,
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 25,
-                      backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty && !profile!['avatar_url'].toString().endsWith('/')
-                          ? NetworkImage(profile!['avatar_url'])
-                          : const AssetImage('assets/images/default_profile.png')
-                              as ImageProvider,
-                    ),
-                    const SizedBox(width: 15),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Halo, $name!',
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            role,
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 12,
+              Expanded(
+                child: GestureDetector(
+                  onTap: onProfileTap,
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 25,
+                        backgroundImage: profile?['avatar_url'] != null && profile!['avatar_url'].toString().isNotEmpty && !profile!['avatar_url'].toString().endsWith('/')
+                            ? NetworkImage(profile!['avatar_url'])
+                            : const AssetImage('assets/images/default_profile.png')
+                                as ImageProvider,
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Halo, $name!',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                role,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
+              const SizedBox(width: 10),
               Stack(
                 children: [
                   IconButton(
@@ -417,17 +426,22 @@ class IndependentTaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String subtitleStr = 'No description';
+    String subtitleStr = 'Tidak ada deskripsi';
+    
+    final desc = task['description']?.toString().trim();
     
     // Priority 1: Show description if available
-    if (task['description'] != null && task['description'].toString().trim().isNotEmpty) {
-      subtitleStr = task['description'].toString().trim();
+    if (desc != null && desc.isNotEmpty && desc != 'null') {
+      subtitleStr = desc;
     } 
-    // Priority 2: Fallback to dates if description is empty but dates are set
-    else if (task['start_date'] != null && task['due_date'] != null) {
-      final start = DateTime.parse(task['start_date']);
-      final due = DateTime.parse(task['due_date']);
-      subtitleStr = '${_formatDate(start)} - ${_formatDate(due)}';
+    // Priority 2: Fallback to due date if description is empty
+    else if (task['due_date'] != null) {
+      try {
+        final due = DateTime.parse(task['due_date'].toString());
+        subtitleStr = 'Tenggat: ${_formatDate(due)}';
+      } catch (_) {
+        // Ignore parse error
+      }
     }
 
     return GestureDetector(

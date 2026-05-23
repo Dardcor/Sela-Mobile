@@ -19,10 +19,13 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveClientMixin {
   Map<String, dynamic>? profile;
   List<String> abilities = [];
   bool isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -308,7 +311,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    super.build(context);
+    return Scaffold(
     backgroundColor: AppColors.bgLight,
     body: RefreshIndicator(
       onRefresh: _fetchProfile,
@@ -360,5 +365,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     ),
-  );
+    );
+  }
 }

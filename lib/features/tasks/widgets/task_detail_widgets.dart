@@ -1773,12 +1773,12 @@ class IndependentTaskDetailHeader extends StatelessWidget {
         GestureDetector(
           onTap: () => Navigator.pop(context),
           child: Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: const BoxDecoration(
               color: AppColors.primaryTeal,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           ),
         ),
         const SizedBox(height: 5),
