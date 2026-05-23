@@ -62,6 +62,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
   dynamic _taskData;
   List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
+  String _aiThinkingText = '';
   String _currentUserId = '';
 
   @override
@@ -249,7 +250,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _aiThinkingText = '';
+    });
     try {
       final taskTitle = _taskData['title'] ?? 'Task';
       final taskDescription = _taskData['description'] ?? '';
@@ -320,6 +324,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         links: taskLinks,
         files: taskFiles,
         fileParts: fileParts,
+        onStream: (text) {
+          if (mounted) {
+            setState(() {
+              _aiThinkingText = text;
+            });
+          }
+        },
       );
 
       for (var sub in dividedTasks) {
@@ -352,6 +363,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
              errorMessage = 'Gagal menyimpan tugas. Terjadi masalah pada server. Silakan coba lagi nanti.';
           } else if (e.toString().contains('Server AI')) {
              errorMessage = e.toString().replaceAll('Exception: ', '');
+          } else if (e.toString().contains('VALIDATION_ERROR:')) {
+             errorMessage = e.toString().split('VALIDATION_ERROR:').last.trim();
           }
           
           ScaffoldMessenger.of(context)
@@ -632,6 +645,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                 members: members,
                 isLeader: isLeader,
                 isLoading: _isLoading,
+                aiThinkingText: _aiThinkingText,
                 onCreateManual: _handleCreateManual,
                 onCreateAutomatic: _handleCreateAutomatic,
               ),

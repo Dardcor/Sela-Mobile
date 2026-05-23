@@ -26,6 +26,7 @@ class _IndependentTaskDetailScreenState
   List<Map<String, dynamic>> _taskFiles = [];
   bool _isLoading = true;
   bool _isCreating = false;
+  String _aiThinkingText = '';
   String? _userId;
 
   @override
@@ -208,7 +209,10 @@ class _IndependentTaskDetailScreenState
       return;
     }
 
-    setState(() => _isCreating = true);
+    setState(() {
+      _isCreating = true;
+      _aiThinkingText = '';
+    });
     try {
       final taskTitle = _taskData['title'] ?? 'Task';
       final taskDescription = _taskData['description'] ?? '';
@@ -249,6 +253,13 @@ class _IndependentTaskDetailScreenState
         links: taskLinks,
         files: taskFiles,
         abilities: userAbilities,
+        onStream: (text) {
+          if (mounted) {
+            setState(() {
+              _aiThinkingText = text;
+            });
+          }
+        },
       );
 
       for (var sub in arrangedTasks) {
@@ -279,6 +290,8 @@ class _IndependentTaskDetailScreenState
            errorMessage = 'Gagal menyimpan tugas. Terjadi masalah pada server. Silakan coba lagi nanti.';
         } else if (e.toString().contains('Server AI')) {
            errorMessage = e.toString().replaceAll('Exception: ', '');
+        } else if (e.toString().contains('VALIDATION_ERROR:')) {
+           errorMessage = e.toString().split('VALIDATION_ERROR:').last.trim();
         }
 
         if (isNetworkErrorMessage(e.toString())) {
@@ -459,6 +472,7 @@ class _IndependentTaskDetailScreenState
                   const SizedBox(height: 25),
                   IndependentCreateSubtaskSection(
                     isLoading: _isCreating,
+                    aiThinkingText: _aiThinkingText,
                     onCreateManual: _handleCreateManual,
                     onCreateAutomatic: _handleCreateAutomatic,
                   ),

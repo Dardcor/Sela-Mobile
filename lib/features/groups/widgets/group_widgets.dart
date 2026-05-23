@@ -1228,6 +1228,7 @@ class CreateSubtaskSection extends StatefulWidget {
   final List members;
   final bool isLeader;
   final bool isLoading;
+  final String aiThinkingText;
   final Function(String title, String? assignedTo, String description)
   onCreateManual;
   final VoidCallback onCreateAutomatic;
@@ -1237,6 +1238,7 @@ class CreateSubtaskSection extends StatefulWidget {
     required this.members,
     required this.isLeader,
     this.isLoading = false,
+    this.aiThinkingText = '',
     required this.onCreateManual,
     required this.onCreateAutomatic,
   });
@@ -1352,7 +1354,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: SizedBox(
-              height: _activeTab == 0 ? 115 : 225,
+              height: _activeTab == 0 ? (widget.isLoading ? 180 : (widget.aiThinkingText.isNotEmpty ? 230 : 115)) : 225,
               child: PageView(
                 controller: _pageController,
                 physics: const BouncingScrollPhysics(),
@@ -1373,61 +1375,117 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
       child: Column(
         children: [
           const SizedBox(height: 10),
-          Text(
-            '*Tugas akan otomatis dibagi rata kepada setiap anggota sesuai dengan kemampuan mereka.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
-          ),
-          const SizedBox(height: 20),
-          // Tombol Create ?" hanya ini yang diblokir untuk member
-          GestureDetector(
-            onTap: () {
-              if (widget.isLoading) return;
-              if (widget.isLeader) {
-                widget.onCreateAutomatic();
-              } else {
-                _showLeaderOnlySnackBar();
-              }
-            },
-            child: Container(
+          if (widget.isLoading || widget.aiThinkingText.isNotEmpty)
+            Container(
+              height: 140,
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.all(15),
+              margin: const EdgeInsets.only(bottom: 15),
               decoration: BoxDecoration(
-                color: AppColors.primaryTeal,
+                color: AppColors.primaryTeal.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: AppColors.primaryTeal.withOpacity(0.5)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
                 children: [
-                  if (!widget.isLoading) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.isLoading) ...[
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: AppColors.primaryTeal,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ] else ...[
+                        const Icon(
+                          Icons.psychology_alt_rounded,
+                          color: AppColors.primaryTeal,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        widget.isLoading ? 'SELA Thinking...' : 'Hasil Pemikiran SELA',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryTeal,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (widget.aiThinkingText.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          widget.aiThinkingText,
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.left,
+                        ),
+                      ),
+                    ),
+                  ]
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Text(
+                '*Tugas akan otomatis dibagi rata kepada setiap anggota sesuai dengan kemampuan mereka.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
+              ),
+            ),
+          
+          if (!widget.isLoading)
+            // Tombol Create ?" hanya ini yang diblokir untuk member
+            GestureDetector(
+              onTap: () {
+                if (widget.isLoading) return;
+                if (widget.isLeader) {
+                  widget.onCreateAutomatic();
+                } else {
+                  _showLeaderOnlySnackBar();
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     const Icon(
                       Icons.auto_awesome_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
+                    Text(
+                      widget.aiThinkingText.isNotEmpty ? 'Buat Ulang dengan AI ✨' : 'Buat dengan AI ✨',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
-                  widget.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          'Buat dengan AI ✨',
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

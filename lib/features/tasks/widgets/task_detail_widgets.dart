@@ -616,12 +616,14 @@ class IndependentCreateSubtaskSection extends StatefulWidget {
   final Function(String, String?, String) onCreateManual;
   final VoidCallback onCreateAutomatic;
   final bool isLoading;
+  final String aiThinkingText;
 
   const IndependentCreateSubtaskSection({
     super.key,
     required this.onCreateManual,
     required this.onCreateAutomatic,
     this.isLoading = false,
+    this.aiThinkingText = '',
   });
 
   @override
@@ -708,7 +710,7 @@ class _IndependentCreateSubtaskSectionState
             curve: Curves.easeInOut,
             child: SizedBox(
               // Menyesuaikan dengan tinggi masing-masing tab internal seperti di Group Task
-              height: _activeTab == 0 ? 115 : 245,
+              height: _activeTab == 0 ? (widget.isLoading ? 180 : (widget.aiThinkingText.isNotEmpty ? 230 : 115)) : 245,
               child: PageView(
                 controller: _pageController,
                 physics: const BouncingScrollPhysics(),
@@ -721,59 +723,114 @@ class _IndependentCreateSubtaskSectionState
                     child: Column(
                       children: [
                         const SizedBox(height: 10),
-                        Text(
-                          '*tugas akan dibagi otomatis sesuai dengan kemampuan Anda',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: widget.isLoading
-                              ? null
-                              : widget.onCreateAutomatic,
-                          child: Container(
+                        if (widget.isLoading || widget.aiThinkingText.isNotEmpty)
+                          Container(
+                            height: 140,
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.all(15),
+                            margin: const EdgeInsets.only(bottom: 15),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryTeal,
+                              color: AppColors.primaryTeal.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: AppColors.primaryTeal.withOpacity(0.5)),
                             ),
-                            child: Center(
-                              child: widget.isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (widget.isLoading) ...[
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          color: AppColors.primaryTeal,
+                                          strokeWidth: 2,
+                                        ),
                                       ),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.auto_awesome,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Buat dengan AI ✨',
-                                          style: GoogleFonts.outfit(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
+                                      const SizedBox(width: 10),
+                                    ] else ...[
+                                      const Icon(
+                                        Icons.psychology_alt_rounded,
+                                        color: AppColors.primaryTeal,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      widget.isLoading ? 'SELA Thinking...' : 'Hasil Pemikiran SELA',
+                                      style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryTeal,
+                                        fontSize: 14,
+                                      ),
                                     ),
+                                  ],
+                                ),
+                                if (widget.aiThinkingText.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      child: Text(
+                                        widget.aiThinkingText,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 11,
+                                          color: Colors.grey[700],
+                                        ),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ),
+                                  ),
+                                ]
+                              ],
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Text(
+                              '*tugas akan dibagi otomatis sesuai dengan kemampuan Anda',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
+                        
+                        if (!widget.isLoading)
+                          GestureDetector(
+                            onTap: widget.onCreateAutomatic,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryTeal,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.auto_awesome,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      widget.aiThinkingText.isNotEmpty ? 'Buat Ulang dengan AI ✨' : 'Buat dengan AI ✨',
+                                      style: GoogleFonts.outfit(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

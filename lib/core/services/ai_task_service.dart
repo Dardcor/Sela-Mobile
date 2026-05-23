@@ -1,22 +1,37 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'api_client.dart';
 
 class AutomaticTaskDivision {
   static const _modelName = 'gemini-2.5-flash';
 
-  static GenerativeModel _createModel() {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not defined in .env');
+  static Future<GenerativeModel> _createModel() async {
+    try {
+      final response = await ApiClient().dio.get('/gemini-key');
+      final apiKey = response.data['key'];
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('Failed to retrieve valid API key from backend');
+      }
+      return GenerativeModel(model: _modelName, apiKey: apiKey);
+    } catch (e) {
+      final apiKeyString = dotenv.env['GEMINI_API_KEY'];
+      if (apiKeyString == null || apiKeyString.isEmpty) {
+        throw Exception('GEMINI_API_KEY is not defined in .env and backend failed: $e');
+      }
+      final keys = apiKeyString.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (keys.isEmpty) {
+        throw Exception('No valid API keys found in .env fallback');
+      }
+      final apiKey = keys[DateTime.now().microsecond % keys.length];
+      return GenerativeModel(model: _modelName, apiKey: apiKey);
     }
-
-    return GenerativeModel(model: _modelName, apiKey: apiKey);
   }
 
   static Future<List<Map<String, dynamic>>> _generateTasks(
     String prompt, {
     List<DataPart>? fileParts,
+    void Function(String)? onStream,
   }) async {
     final parts = <Part>[TextPart(prompt)];
     if (fileParts != null && fileParts.isNotEmpty) {
@@ -24,28 +39,53 @@ class AutomaticTaskDivision {
     }
 
     try {
-      final response = await _createModel().generateContent([
+      final model = await _createModel();
+      final responseStream = model.generateContentStream([
         Content.multi(parts),
       ]);
 
-      final text = response.text;
-      if (text == null || text.isEmpty) {
+      String fullText = '';
+      await for (final chunk in responseStream) {
+        fullText += chunk.text ?? '';
+        if (onStream != null) {
+          var display = fullText;
+          if (display.contains('[PEMIKIRAN]')) {
+             display = display.split('[PEMIKIRAN]').last;
+          }
+          if (display.contains('[HASIL]')) {
+             display = display.split('[HASIL]').first;
+          }
+          onStream(display.trimLeft());
+        }
+      }
+
+      if (fullText.isEmpty) {
         throw Exception('Server AI sedang sibuk. Silakan coba beberapa saat lagi.');
       }
 
-      final dynamic decoded = jsonDecode(_stripMarkdownFence(text));
+      String jsonText = fullText;
+      if (fullText.contains('[HASIL]')) {
+         jsonText = fullText.split('[HASIL]').last;
+      }
+
+      final dynamic decoded = jsonDecode(_stripMarkdownFence(jsonText));
       if (decoded is! List) {
         throw Exception('Server AI gagal memproses data dengan benar. Silakan coba lagi.');
       }
 
-      return List<Map<String, dynamic>>.from(decoded);
+      final list = List<Map<String, dynamic>>.from(decoded);
+      if (list.isEmpty) {
+        throw Exception('VALIDATION_ERROR: Judul, Deskripsi, link atau file yang Anda upload tidak sesuai untuk membagikan tugas.');
+      }
+
+      return list;
     } on GenerativeAIException catch (e) {
-      throw Exception('Server AI sedang sibuk atau kelebihan muatan. Silakan coba beberapa saat lagi.');
+      throw Exception('Server AI sedang sibuk atau kelebihan muatan. Detail: ${e.message}');
     } catch (e) {
       if (e.toString().contains('Server AI')) {
         rethrow;
       }
-      throw Exception('Terjadi gangguan koneksi dengan sistem AI. Pastikan internet stabil lalu coba lagi.');
+      throw Exception('Terjadi gangguan koneksi dengan sistem AI. Pastikan internet stabil lalu coba lagi. Detail: $e');
     }
   }
 
@@ -73,6 +113,7 @@ class AutomaticTaskDivision {
     List<String>? links,
     List<String>? files,
     List<DataPart>? fileParts,
+    void Function(String)? onStream,
   }) async {
     // Bangun daftar anggota beserta kemampuannya
     final membersList = members
@@ -110,23 +151,28 @@ DAFTAR ANGGOTA & KEAHLIAN MEREKA (JSON):
 ${jsonEncode(membersList)}
 
 INSTRUKSI WAJIB UNTUKMU:
-1. Pahami dengan sangat detail apa konteks dari tugas utama ini (berdasarkan judul, deskripsi, tautan, dan file). Jangan asal menebak.
-2. Pecah tugas utama tersebut menjadi beberapa sub-tugas yang SPESIFIK dan BISA DIKERJAKAN.
-3. Cocokkan sifat dari setiap sub-tugas dengan keahlian (abilities) spesifik yang dimiliki anggota di daftar JSON tersebut.
-4. JIKA ada anggota yang ahli desain, beri dia tugas mendesain. JIKA ada yang ahli coding, beri dia tugas programming.
-5. SETIAP ANGGOTA WAJIB MENDAPATKAN MINIMAL SATU TUGAS. Jangan ada yang menganggur.
+1. Mulailah dengan tag [PEMIKIRAN]. Di bawah tag ini, berikan 1-2 paragraf singkat berisi pemikiran/analisis kamu tentang tugas ini menggunakan bahasa Indonesia yang rapi (seperti sedang mengetik).
+2. VALIDASI INPUT: JIKA input (Judul, Deskripsi, tautan, atau file) asal-asalan, tidak nyambung, atau tidak masuk akal untuk dijadikan tugas, nyatakan dengan jelas di bagian pemikiranmu: "Judul, Deskripsi, link atau file yang Anda upload tidak sesuai untuk membagikan tugas."
+3. Jika input tidak valid, setelah tag [PEMIKIRAN], berikan tag [HASIL] lalu berikan array JSON kosong [].
+4. Jika input valid dan masuk akal, setelah tag [PEMIKIRAN], berikan tag [HASIL] dan pecah tugas utama menjadi beberapa sub-tugas yang SPESIFIK dan BISA DIKERJAKAN. Cocokkan dengan keahlian anggota, pastikan semua anggota mendapat tugas.
 
-Kembalikan HANYA format array JSON yang valid persis seperti di bawah ini tanpa blok teks markdown apa pun.
+FORMAT WAJIB HASILMU (Jangan ubah format tag ini):
+[PEMIKIRAN]
+(analisismu di sini...)
+
+[HASIL]
+```json
 [
   {
     "title": "Judul spesifik sub-tugas",
-    "description": "Langkah detail apa yang harus dia kerjakan berdasarkan tautan/file",
-    "user_id": "masukkan id anggota yang cocok dari json di atas"
+    "description": "Langkah detail apa yang harus dia kerjakan",
+    "user_id": "masukkan id anggota"
   }
 ]
+```
 """;
 
-    return _generateTasks(prompt, fileParts: fileParts);
+    return _generateTasks(prompt, fileParts: fileParts, onStream: onStream);
   }
 
   /// Menyusun urutan pengerjaan tugas mandiri secara otomatis.
@@ -138,6 +184,7 @@ Kembalikan HANYA format array JSON yang valid persis seperti di bawah ini tanpa 
     List<String>? links,
     List<String>? files,
     List<String>? abilities,
+    void Function(String)? onStream,
   }) async {
     final abilitiesText = (abilities != null && abilities.isNotEmpty)
         ? 'Kemampuan pengguna: ${abilities.join(', ')}'
@@ -153,28 +200,29 @@ ${links != null && links.isNotEmpty ? "Link referensi:\n${links.join('\n')}\n" :
 ${files != null && files.isNotEmpty ? "File yang dilampirkan:\n${files.join('\n')}\n" : ""}
 $abilitiesText
 
-Tugasmu adalah menyusun subtask-subtask dari tugas ini secara otomatis berdasarkan deskripsi, link referensi, dan file yang dilampirkan. Urutkan subtask mulai dari yang harus dikerjakan terlebih dahulu (urutan prioritas logis). Pertimbangkan kemampuan pengguna jika tersedia.
+Tugasmu adalah menyusun subtask-subtask dari tugas ini secara otomatis. 
+INSTRUKSI WAJIB UNTUKMU:
+1. Mulailah dengan tag [PEMIKIRAN]. Di bawah tag ini, berikan 1-2 paragraf singkat berisi pemikiran/analisis kamu tentang tugas ini menggunakan bahasa Indonesia yang rapi (seperti sedang mengetik).
+2. VALIDASI INPUT: JIKA input (Judul, Deskripsi, tautan, atau file) asal-asalan, tidak nyambung, atau tidak masuk akal untuk dijadikan tugas, nyatakan dengan jelas di bagian pemikiranmu: "Judul, Deskripsi, link atau file yang Anda upload tidak sesuai untuk membagikan tugas."
+3. Jika input tidak valid, setelah tag [PEMIKIRAN], berikan tag [HASIL] lalu berikan array JSON kosong [].
+4. Jika input valid dan masuk akal, setelah tag [PEMIKIRAN], berikan tag [HASIL] dan berikan array JSON berisi subtask-subtask yang diurutkan secara logis.
 
-Kembalikan HANYA array JSON yang valid tanpa blok markdown. Tiap objek berisi:
-- "title": judul singkat subtask dalam Bahasa Indonesia
-- "description": penjelasan subtask dalam Bahasa Indonesia
-- "user_id": "$userId"
+FORMAT WAJIB HASILMU:
+[PEMIKIRAN]
+(analisismu di sini...)
 
-Contoh output:
+[HASIL]
+```json
 [
   {
     "title": "Riset dan Pengumpulan Data",
-    "description": "Mengumpulkan referensi dan data yang dibutuhkan untuk tugas ini",
-    "user_id": "$userId"
-  },
-  {
-    "title": "Membuat Kerangka",
-    "description": "Menyusun outline atau kerangka pengerjaan tugas",
+    "description": "Mengumpulkan referensi dan data",
     "user_id": "$userId"
   }
 ]
+```
 """;
 
-    return _generateTasks(prompt);
+    return _generateTasks(prompt, onStream: onStream);
   }
 }
