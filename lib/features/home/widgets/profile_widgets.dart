@@ -757,6 +757,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
   Future<void> _loadClasses() async {
     try {
       final response = await ApiClient().dio.get('classes');
+      debugPrint('DEBUG: Response data kelas = ${response.data}');
       final data = response.data;
       List<dynamic> rawList;
       if (data is Map && data.containsKey('data')) {
@@ -769,6 +770,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
       if (mounted) {
         setState(() {
           _classes = rawList.map((e) => e['name']?.toString() ?? e['class_name']?.toString() ?? e.toString()).toList();
+          debugPrint('DEBUG: Jumlah kelas yang dimuat = ${_classes.length}');
           // Jika kelas dari DB tidak ada di API, tambahkan sementara agar tidak kosong di dropdown
           if (_selectedClass != null && 
               _selectedClass!.isNotEmpty && 
@@ -784,9 +786,7 @@ class _EditProfileModalState extends State<EditProfileModal> {
 
   @override
   Widget build(BuildContext context) {
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-      child: Dialog(
+    return Dialog(
         backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.symmetric(horizontal: 25),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
@@ -903,7 +903,6 @@ class _EditProfileModalState extends State<EditProfileModal> {
             ],
           ),
         ),
-      ),
     );
   }
 
@@ -960,77 +959,57 @@ class _EditProfileModalState extends State<EditProfileModal> {
     List<String> items,
     Function(String?) onChanged,
   ) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 55,
-          padding: const EdgeInsets.only(left: 16, right: 26),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: AppColors.primaryTeal, width: 1.2),
-            color: Colors.transparent,
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              hint: Padding(
-                padding: const EdgeInsets.only(left: 2),
-                child: Text(
-                  'Pilih $label',
-                  style: GoogleFonts.outfit(
-                    color: Colors.grey[700],
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-              items: items.map((e) {
-                return DropdownMenuItem<String>(
-                  value: e,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 2),
-                    child: Text(
-                      e,
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-              onChanged: onChanged,
-              icon: Transform.translate(
-                offset: const Offset(14, 0),
-                child: const Icon(
-                  Icons.expand_more_rounded,
-                  color: Colors.grey,
-                ),
-              ),
-              dropdownColor: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              menuMaxHeight: 250,
+    return DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.outfit(
+          color: AppColors.primaryTeal,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: AppColors.primaryTeal, width: 1.2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: AppColors.primaryTeal, width: 1.2),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: AppColors.primaryTeal, width: 1.2),
+        ),
+      ),
+      hint: Text(
+        'Pilih $label',
+        style: GoogleFonts.outfit(
+          color: Colors.grey[700],
+          fontSize: 15,
+        ),
+      ),
+      items: items.map((e) {
+        return DropdownMenuItem<String>(
+          value: e,
+          child: Text(
+            e,
+            style: GoogleFonts.outfit(
+              fontSize: 15,
+              color: Colors.grey[700],
             ),
           ),
-        ),
-        Positioned(
-          left: 15,
-          top: -11,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              label,
-              style: GoogleFonts.outfit(
-                color: AppColors.primaryTeal,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      ],
+        );
+      }).toList(),
+      onChanged: onChanged,
+      icon: const Icon(
+        Icons.expand_more_rounded,
+        color: Colors.grey,
+      ),
+      dropdownColor: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      menuMaxHeight: 250,
     );
   }
 }
@@ -1132,7 +1111,7 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
                               controller: _newAbilityCtrl,
                               maxLength: 50,
                               decoration: InputDecoration(
-                                hintText: 'Type new ability',
+                                hintText: 'Masukkan kemampuan baru',
                                 hintStyle: GoogleFonts.outfit(
                                   color: Colors.grey[400],
                                   fontSize: 16,

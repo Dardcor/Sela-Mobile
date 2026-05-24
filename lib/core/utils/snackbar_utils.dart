@@ -13,7 +13,7 @@ void showUndoSnackBar(
   scaffoldMessenger.clearSnackBars();
   
   final snackBar = SnackBar(
-    duration: const Duration(seconds: 10),
+    duration: const Duration(seconds: 3),
     content: Text(
       message,
       style: GoogleFonts.outfit(color: Colors.white),
@@ -35,4 +35,11 @@ void showUndoSnackBar(
   );
   
   scaffoldMessenger.showSnackBar(snackBar);
+  
+  // Tambahan: Force hide setelah 5 detik sebagai fallback
+  Future.delayed(const Duration(seconds: 5), () {
+    if (scaffoldMessenger.mounted) {
+      scaffoldMessenger.hideCurrentSnackBar();
+    }
+  });
 }

@@ -14,6 +14,7 @@ import '../widgets/auth_buttons.dart';
 import '../../../core/utils/network_utils.dart';
 import 'forgot_password_screen.dart';
 import 'register_otp_verify_screen.dart';
+import 'onboarding_screen.dart';
 import '../../../core/services/connectivity_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -157,6 +158,9 @@ class _AuthScreenState extends State<AuthScreen> {
         // Register FCM device token
         await NotificationService.registerDeviceToken();
 
+        final String email = res.data['user']['email'];
+        final userRole = res.data['user']['role'];
+
         if (_rememberMe) {
           await _secureStorage.write(key: 'remember_me', value: 'true');
           await _secureStorage.write(key: 'remembered_email', value: email);
@@ -170,11 +174,16 @@ class _AuthScreenState extends State<AuthScreen> {
           await _secureStorage.delete(key: 'remembered_password');
         }
 
-        final userRole = res.data['user']['role'];
-        if (userRole == 'lecturer') {
-          Navigator.pushReplacementNamed(context, '/lecturer_navbar');
+        final hasSeenOnboarding = prefs.getBool('has_seen_onboarding_$email') ?? false;
+
+        if (!hasSeenOnboarding) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OnboardingScreen()));
         } else {
-          Navigator.pushReplacementNamed(context, '/dashboard');
+          if (userRole == 'lecturer') {
+            Navigator.pushReplacementNamed(context, '/lecturer_navbar');
+          } else {
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          }
         }
       }
     } on DioException catch (e) {

@@ -98,16 +98,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     final earlyResult = await Future.any([
-      Future.delayed(const Duration(seconds: 10), () => false),
+      Future.delayed(const Duration(seconds: 3), () => false),
       completer.future,
     ]);
     
     _pendingDeletes.remove(completer);
     if (isUndone || earlyResult) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    }
 
     try {
       await ApiClient().dio.post('/notifications/delete-multiple', data: {'ids': selectedIds});
@@ -193,16 +189,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
 
     final earlyResult = await Future.any([
-      Future.delayed(const Duration(seconds: 5), () => false),
+      Future.delayed(const Duration(seconds: 3), () => false),
       completer.future,
     ]);
 
     _pendingDeletes.remove(completer);
     if (isUndone || earlyResult) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    }
 
     try {
       // Menjalankan API asli di belakang layar setelah jeda Undo berakhir

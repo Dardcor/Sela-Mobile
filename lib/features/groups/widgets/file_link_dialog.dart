@@ -43,6 +43,13 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
   List<PlatformFile> _files = [];
   
   bool _isLoading = false;
+  bool _isDirty = false;
+  
+  late String _originalTitle;
+  late String _originalDesc;
+  late String _originalDate;
+  late List<String> _originalLinks;
+  late List<String> _originalFilePaths;
 
   @override
   void initState() {
@@ -50,6 +57,10 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
     _titleCtrl = TextEditingController(text: widget.currentTask['title'] ?? '');
     _descCtrl = TextEditingController(text: widget.currentTask['description'] ?? '');
     
+    // Store original values for dirty checking
+    _originalTitle = _titleCtrl.text;
+    _originalDesc = _descCtrl.text;
+
     // Convert existing due_date
     String dateText = '';
     if (widget.currentTask['due_date'] != null) {
@@ -59,22 +70,58 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
       } catch (_) {}
     }
     _dateCtrl = TextEditingController(text: dateText);
+    _originalDate = dateText;
     
     // Convert existing links
     _links = widget.currentLinks.map((l) => l['url'] as String).toList();
+    _originalLinks = List.from(_links);
     
     // Convert existing files to PlatformFile representation
     _files = widget.currentFiles.map<PlatformFile>((f) {
       return PlatformFile(
         name: f['name'] ?? 'file',
         size: f['size'] ?? 0,
-        path: f['path'], // Using path to store Supabase path for existing files
+        path: f['path'],
       );
     }).toList();
+    _originalFilePaths = _files.map((f) => f.path ?? '').toList();
+
+    _titleCtrl.addListener(_checkDirty);
+    _descCtrl.addListener(_checkDirty);
+    _dateCtrl.addListener(_checkDirty);
+  }
+
+  void _checkDirty() {
+    final isDirty = _titleCtrl.text != _originalTitle ||
+                    _descCtrl.text != _originalDesc ||
+                    _dateCtrl.text != _originalDate ||
+                    !_listEquals(_links, _originalLinks) ||
+                    !_filesMatchOriginal();
+
+    if (_isDirty != isDirty) {
+      setState(() => _isDirty = isDirty);
+    }
+  }
+
+  bool _listEquals(List a, List b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) if (a[i] != b[i]) return false;
+    return true;
+  }
+
+  bool _filesMatchOriginal() {
+    if (_files.length != _originalFilePaths.length) return false;
+    for (int i = 0; i < _files.length; i++) {
+      if ((_files[i].path ?? '') != _originalFilePaths[i]) return false;
+    }
+    return true;
   }
 
   @override
   void dispose() {
+    _titleCtrl.removeListener(_checkDirty);
+    _descCtrl.removeListener(_checkDirty);
+    _dateCtrl.removeListener(_checkDirty);
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _dateCtrl.dispose();
@@ -235,7 +282,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Edit Task',
+                    'Edit Tugas',
                     style: GoogleFonts.outfit(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -260,16 +307,16 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     LabeledInputField(
-                      label: 'Title',
-                      hint: 'Enter a task title',
+                      label: 'Judul',
+                      hint: 'Masukkan judul tugas',
                       controller: _titleCtrl,
                       bgColor: Colors.white,
                       inputFormatters: [NoLeadingSpaceFormatter()],
                     ),
                     const SizedBox(height: 10),
                     LabeledInputField(
-                      label: 'Due Date',
-                      hint: 'mm/dd/yyyy',
+                      label: 'Tenggat Waktu',
+                      hint: 'hh/bb/tttt',
                       controller: _dateCtrl,
                       icon: Icons.calendar_month_rounded,
                       bgColor: Colors.white,
@@ -287,8 +334,8 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                     ),
                     const SizedBox(height: 10),
                     LabeledInputField(
-                      label: 'Description',
-                      hint: 'Description',
+                      label: 'Deskripsi',
+                      hint: 'Masukkan deskripsi',
                       controller: _descCtrl,
                       lines: 4,
                       bgColor: Colors.white,
@@ -301,7 +348,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Text(
-                            'Support',
+                            'Pendukung',
                             style: GoogleFonts.outfit(
                               color: Colors.grey[400],
                               fontSize: 13,
@@ -314,32 +361,42 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                     const SizedBox(height: 5),
                     LinkListSection(
                       links: _links,
-                      onLinksChanged: (updated) => setState(() => _links = updated),
+                      onLinksChanged: (updated) {
+                        setState(() {
+                          _links = updated;
+                          _checkDirty();
+                        });
+                      },
                       bgColor: Colors.white,
                     ),
                     const SizedBox(height: 10),
                     FileUploadSection(
                       files: _files,
-                      onFilesChanged: (updated) => setState(() => _files = updated),
+                      onFilesChanged: (updated) {
+                        setState(() {
+                          _files = updated;
+                          _checkDirty();
+                        });
+                      },
                     ),
                     const SizedBox(height: 15),
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _updateTask,
+                        onPressed: (_isLoading || !_isDirty) ? null : _updateTask,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryTeal,
+                          backgroundColor: _isDirty ? AppColors.primaryTeal : Colors.grey,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          elevation: 5,
-                          shadowColor: AppColors.primaryTeal.withValues(alpha: 0.3),
+                          elevation: _isDirty ? 5 : 0,
+                          shadowColor: _isDirty ? AppColors.primaryTeal.withValues(alpha: 0.3) : Colors.transparent,
                         ),
                         child: _isLoading
                             ? const CircularProgressIndicator(color: Colors.white)
                             : Text(
-                                'Update',
+                                'Perbarui',
                                 style: GoogleFonts.outfit(
                                   fontSize: 18,
                                   color: Colors.white,

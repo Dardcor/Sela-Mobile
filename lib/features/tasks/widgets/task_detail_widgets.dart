@@ -385,7 +385,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Edit Task',
+                      'Edit Tugas',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -876,8 +876,8 @@ class _IndependentCreateSubtaskSectionState
                       children: [
                         const SizedBox(height: 10),
                         _CreateSubtaskField(
-                          label: 'Subtask title',
-                          hint: 'subtask title',
+                          label: 'Judul sub-tugas',
+                          hint: 'Judul sub-tugas',
                           controller: _titleCtrl,
                           inputFormatters: [NoLeadingSpaceFormatter()],
                         ),

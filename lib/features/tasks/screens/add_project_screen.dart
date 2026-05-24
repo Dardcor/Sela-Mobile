@@ -229,6 +229,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bgLight,
       body: Stack(
         children: [

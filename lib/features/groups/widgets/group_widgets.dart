@@ -1212,7 +1212,7 @@ class _GroupMainCardState extends State<GroupMainCard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Edit Task',
+                      'Edit Tugas',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -1531,7 +1531,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     child: AbsorbPointer(
                       absorbing: !widget.isLeader,
                       child: _DropdownPerson(
-                        label: 'Tugaskan ke',
+                        label: 'Tugaskan',
                         hint: 'Pilih anggota',
                         value: _selectedMemberId,
                         members: widget.members,
