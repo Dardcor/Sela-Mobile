@@ -465,12 +465,12 @@ class _TaskCard extends StatelessWidget {
                     height: 1.3,
                   ),
                   children: const [
-                    TextSpan(text: 'Are you sure you want\nto '),
+                    TextSpan(text: 'Apakah Anda yakin ingin\n'),
                     TextSpan(
-                      text: 'delete',
+                      text: 'menghapus',
                       style: TextStyle(color: AppColors.primaryTeal),
                     ),
-                    TextSpan(text: ' this task?'),
+                    TextSpan(text: ' tugas ini?'),
                   ],
                 ),
               ),
@@ -499,7 +499,7 @@ class _TaskCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            'Cancel',
+                            'Batal',
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.w600,
                               color: Colors.grey[500],
@@ -523,7 +523,7 @@ class _TaskCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            'Accept',
+                            'Ya',
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
@@ -581,7 +581,7 @@ class _TaskCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 content: Text(
-                  'Only the task creator can delete this task',
+                  'Hanya pembuat tugas yang dapat menghapus tugas ini',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,

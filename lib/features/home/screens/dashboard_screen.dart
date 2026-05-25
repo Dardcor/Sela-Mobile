@@ -290,11 +290,11 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
             Icon(Icons.assignment_outlined, color: Colors.grey[300], size: 40),
             const SizedBox(height: 8),
             Text(
-              'No group tasks yet',
+              'Belum ada tugas kelompok',
               style: TextStyle(color: Colors.grey[400], fontSize: 12),
             ),
             Text(
-              'Create a group & add tasks first',
+              'Buat kelompok & tugas terlebih dahulu',
               style: TextStyle(color: Colors.grey[300], fontSize: 11),
             ),
           ],
@@ -335,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
             height: 80,
             alignment: Alignment.center,
             child: Text(
-              'No independent tasks yet',
+              'Belum ada tugas mandiri',
               style: TextStyle(color: Colors.grey.shade500),
             ),
           ),

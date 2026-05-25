@@ -72,7 +72,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load data';
+        _error = 'Gagal memuat data';
         _isLoading = false;
       });
       debugPrint('LecturerDashboard fetch error: $e');
@@ -91,11 +91,11 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Good Morning!';
+      return 'Selamat Pagi!';
     } else if (hour < 18) {
-      return 'Good Afternoon!';
+      return 'Selamat Siang!';
     } else {
-      return 'Good Evening!';
+      return 'Selamat Malam!';
     }
   }
 
@@ -290,7 +290,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
                 child: SearchBarWithButton(
                   controller: _searchController,
-                  hintText: 'Search a class...',
+                  hintText: 'Cari kelas...',
                   onChanged: (v) => setState(() => _searchQuery = v),
                 ),
               ),
@@ -303,7 +303,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                   vertical: 10,
                 ),
                 child: Text(
-                  'Class',
+                  'Kelas',
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -365,8 +365,8 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _searchQuery.isNotEmpty
-                              ? 'No results for "$_searchQuery"'
-                              : 'No classes yet',
+                              ? 'Tidak ada hasil untuk "$_searchQuery"'
+                              : 'Belum ada kelas',
                           style: GoogleFonts.outfit(
                             color: Colors.grey[600],
                             fontSize: 16,
@@ -375,7 +375,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                         if (_searchQuery.isEmpty) ...[
                           const SizedBox(height: 8),
                           Text(
-                            'Pick classes from your profile',
+                            'Pilih kelas dari profil Anda',
                             style: GoogleFonts.outfit(
                               color: Colors.grey[400],
                               fontSize: 12,
@@ -455,7 +455,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     size: 18,
                   ),
                 ),
-                Container(
+                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -465,7 +465,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${classData['total_groups'] ?? 0} Group',
+                    '${classData['total_groups'] ?? 0} Grup',
                     style: GoogleFonts.outfit(
                       color: AppColors.primaryTeal,
                       fontSize: 10,
@@ -478,7 +478,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
             const SizedBox(height: 10),
             // Class name
             Text(
-              classData['name']?.toString() ?? 'Class Name',
+              classData['name']?.toString() ?? 'Nama Kelas',
               style: GoogleFonts.outfit(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -490,7 +490,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
             const SizedBox(height: 3),
             // Task count subtitle
             Text(
-              '${classData['total_tasks'] ?? 0} Tasks',
+              '${classData['total_tasks'] ?? 0} Tugas',
               maxLines: 2,
               style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[500]),
               overflow: TextOverflow.ellipsis,
@@ -506,7 +506,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'updated:',
+                        'diperbarui:',
                         style: GoogleFonts.outfit(
                           fontSize: 9,
                           color: Colors.grey[400],
@@ -536,7 +536,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    'detail',
+                    'Detail',
                     maxLines: 1,
                     style: GoogleFonts.outfit(
                       color: Colors.white,

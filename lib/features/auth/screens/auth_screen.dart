@@ -196,20 +196,37 @@ class _AuthScreenState extends State<AuthScreen> {
           isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        String msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
-        if (e.response?.data is Map) {
-          String backendMessage = '';
-          
-          // Check for errors object (ValidationException)
-          if (e.response?.data['errors'] != null) {
-            final errors = e.response?.data['errors'];
-            if (errors is Map && errors.values.isNotEmpty) {
-              backendMessage = errors.values.first.first.toString();
-            }
-          } else if (e.response?.data['message'] != null) {
-            backendMessage = e.response!.data['message'].toString();
+        String msg = 'Email atau Password salah. Silakan coba lagi.';
+        String backendMessage = '';
+        
+        try {
+          dynamic responseData = e.response?.data;
+          if (responseData is String) {
+            try {
+              responseData = json.decode(responseData);
+            } catch (_) {}
           }
+          if (responseData is Map) {
+            if (responseData['errors'] != null) {
+              final errors = responseData['errors'];
+              if (errors is Map && errors.values.isNotEmpty) {
+                final firstError = errors.values.first;
+                if (firstError is List && firstError.isNotEmpty) {
+                  backendMessage = firstError.first.toString();
+                } else {
+                  backendMessage = firstError.toString();
+                }
+              }
+            }
+            if (backendMessage.isEmpty && responseData['message'] != null) {
+              backendMessage = responseData['message'].toString();
+            }
+          }
+        } catch (err) {
+          debugPrint('Error parsing backend validation message: $err');
+        }
 
+        if (backendMessage.isNotEmpty) {
           String lowerMsg = backendMessage.toLowerCase();
           if (lowerMsg.contains('unauthorized') ||
               lowerMsg.contains('not found') ||
@@ -217,10 +234,9 @@ class _AuthScreenState extends State<AuthScreen> {
               lowerMsg.contains('incorrect') ||
               lowerMsg.contains('credential') ||
               lowerMsg.contains('password salah')) {
-            msg = 'Email atau Kata Sandi salah. Silakan coba lagi.';
-            // Specifically override if it's "password salah" for more clarity if needed
+            msg = 'Email atau Password salah. Silakan coba lagi.';
             if (lowerMsg.contains('password salah')) {
-                msg = 'Password salah.';
+              msg = 'Password salah.';
             }
           } else {
             msg = backendMessage;
@@ -288,7 +304,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     if (password.isEmpty) {
-      _showError('Kata sandi tidak boleh kosong');
+      _showError('Password tidak boleh kosong');
       return;
     }
     if (password.length < 6) {
@@ -333,10 +349,15 @@ class _AuthScreenState extends State<AuthScreen> {
         showNoInternetSnackBar(context);
       } else {
         String msg = e.message ?? 'Kesalahan tidak diketahui';
-        if (e.response?.data is Map<String, dynamic>) {
+        if (e.response?.data is Map) {
           msg = e.response?.data?['message'] ?? msg;
         } else if (e.response?.data is String) {
           msg = 'Kesalahan Server: ${e.response?.statusCode}';
+        }
+
+        if (e.response?.statusCode == 429) {
+          _showError(msg);
+          return;
         }
 
         // Check if user/email already exists — do NOT navigate
@@ -357,7 +378,20 @@ class _AuthScreenState extends State<AuthScreen> {
             _showError('Username atau Email sudah digunakan. Silakan pilih yang lain.');
           }
         } else if (isValidationError) {
-          _showError("Form tidak valid: ${e.response?.data['errors'].toString()}");
+          final errors = e.response?.data['errors'];
+          if (errors is Map) {
+            final List<String> messages = [];
+            errors.forEach((key, value) {
+              if (value is List) {
+                messages.addAll(value.map((e) => e.toString()));
+              } else {
+                messages.add(value.toString());
+              }
+            });
+            _showError(messages.join('\n'));
+          } else {
+            _showError("Form tidak valid");
+          }
         } else {
           // Server error but OTP likely sent — navigate to OTP screen
           if (mounted) {
@@ -672,8 +706,8 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: 16),
         AuthPasswordField(
           controller: passwordController,
-          label: 'Kata Sandi',
-          hint: 'Masukkan kata sandi',
+          label: 'Password',
+          hint: 'Masukkan password',
           obscure: obscurePassword,
           onToggle: onToggleObscure,
         ),
@@ -694,7 +728,7 @@ class _LoginForm extends StatelessWidget {
             TextButton(
               onPressed: onForgotPassword,
               child: Text(
-                'Lupa Kata Sandi?',
+                'Lupa Password?',
                 style: GoogleFonts.outfit(
                   color: AppColors.primaryTeal,
                   fontWeight: FontWeight.w600,
@@ -776,7 +810,7 @@ class _RegisterForm extends StatelessWidget {
         const SizedBox(height: 20),
         AuthPasswordField(
           controller: passwordController,
-          label: 'Kata Sandi',
+          label: 'Password',
           hint: 'Minimal 6 karakter',
           obscure: obscurePassword,
           onToggle: onToggleObscure,

@@ -6,7 +6,7 @@ Aplikasi ini terhubung secara langsung dengan `sela-backend` (Laravel Sanctum & 
 
 ## 🚀 Fitur Utama
 
-- **Autentikasi Terintegrasi:** Mendukung login standar (Email/Password) dan login akademik terintegrasi via **ETHOL PENS**.
+- **Autentikasi Terintegrasi:** Mendukung login standar (Email/Password).
 - **Manajemen Tugas Lengkap:** Pisahkan pekerjaan Anda ke dalam *Independent Task* (Pribadi) dan *Group Task* (Tim).
 - **AI Task Automation:** Membagi dan menyusun subtask secara otomatis berdasarkan *deskripsi, link, file dokumen (PDF), dan abilities (kemampuan)* pengguna menggunakan integrasi **Google Gemini AI**.
 - **Pelacakan Progres:** Pantau status penyelesaian subtask secara *real-time* dengan indikator visual.

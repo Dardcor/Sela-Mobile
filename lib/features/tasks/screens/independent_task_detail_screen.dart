@@ -179,7 +179,7 @@ class _IndependentTaskDetailScreenState
       await _fetchFullTaskData(_taskData['id']);
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Failed: ${e.toString()}';
+        String errorMessage = 'Gagal: ${e.toString()}';
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
@@ -418,7 +418,7 @@ class _IndependentTaskDetailScreenState
         ..showSnackBar(
           const SnackBar(
             duration: Duration(milliseconds: 1500),
-            content: Text('Failed to open file preview'),
+            content: Text('Gagal membuka pratinjau file'),
             backgroundColor: Colors.red,
           ),
         );

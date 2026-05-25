@@ -12,7 +12,7 @@ class SearchBarWithButton extends StatelessWidget {
   const SearchBarWithButton({
     super.key,
     required this.controller,
-    this.hintText = 'Search a task...',
+    this.hintText = 'Cari tugas...',
     this.onSearchTap,
     this.onChanged,
   });

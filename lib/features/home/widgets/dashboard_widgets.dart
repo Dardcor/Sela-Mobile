@@ -384,7 +384,7 @@ class GroupTaskCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    'detail',
+                    'Detail',
                     maxLines: 1,
                     style: GoogleFonts.outfit(
                       color: Colors.white,
@@ -419,14 +419,14 @@ class IndependentTaskItem extends StatelessWidget {
       'Feb',
       'Mar',
       'Apr',
-      'May',
+      'Mei',
       'Jun',
       'Jul',
-      'Aug',
+      'Agu',
       'Sep',
-      'Oct',
+      'Okt',
       'Nov',
-      'Dec',
+      'Des',
     ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
@@ -553,7 +553,7 @@ class DashboardSearchBar extends StatelessWidget {
             textAlignVertical: TextAlignVertical.center,
             decoration: InputDecoration(
               counterText: '',
-              hintText: 'Search a task...',
+              hintText: 'Cari tugas...',
               hintStyle: GoogleFonts.outfit(color: Colors.grey),
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               prefixIconConstraints: const BoxConstraints(

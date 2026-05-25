@@ -166,12 +166,12 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     fontWeight: FontWeight.bold,
                   ),
                   children: const [
-                    TextSpan(text: 'Are you sure you want to '),
+                    TextSpan(text: 'Apakah Anda yakin ingin '),
                     TextSpan(
-                      text: 'delete',
+                      text: 'menghapus',
                       style: TextStyle(color: AppColors.primaryTeal),
                     ),
-                    TextSpan(text: ' this group?'),
+                    TextSpan(text: ' grup ini?'),
                   ],
                 ),
               ),
@@ -196,7 +196,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: Text(
-                        'Cancel',
+                        'Batal',
                         style: GoogleFonts.outfit(
                           color: Colors.grey[700],
                           fontWeight: FontWeight.bold,
@@ -257,7 +257,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: Text(
-                        'Accept',
+                        'Ya',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -357,12 +357,12 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     fontWeight: FontWeight.bold,
                   ),
                   children: const [
-                    TextSpan(text: 'Are you sure you want to '),
+                    TextSpan(text: 'Apakah Anda yakin ingin '),
                     TextSpan(
-                      text: 'leave',
+                      text: 'keluar dari',
                       style: TextStyle(color: Colors.red),
                     ),
-                    TextSpan(text: ' this group?'),
+                    TextSpan(text: ' grup ini?'),
                   ],
                 ),
               ),
@@ -387,7 +387,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: Text(
-                        'Cancel',
+                        'Batal',
                         style: GoogleFonts.outfit(
                           color: Colors.grey[700],
                           fontWeight: FontWeight.bold,
@@ -441,7 +441,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                         padding: const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: Text(
-                        'Leave',
+                        'Keluar',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -601,7 +601,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
 
                                 if (c.isEmpty) {
                                   setS(() {
-                                    joinCodeError = 'Please enter the group code first';
+                                    joinCodeError = 'Silakan masukkan kode grup terlebih dahulu';
                                     inProcJoin = false;
                                   });
                                   return;
@@ -616,12 +616,12 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                   Navigator.pop(ctx);
                                   _fetch();
                                   showAlert(
-                                    'Successfully joined group! ✅',
+                                    'Berhasil bergabung dengan grup! ✅',
                                     isSuccess: true,
                                   );
                                 } catch (e) {
                                   showAlert(
-                                    'Failed to join. Invalid code or already a member.',
+                                    'Gagal bergabung. Kode tidak valid atau Anda sudah menjadi anggota.',
                                   );
                                 } finally {
                                   if (ctx.mounted) {
@@ -936,7 +936,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Maks: ${team['member_limit'] ?? 4} people',
+                      'Maks: ${team['member_limit'] ?? 4} orang',
                       style: GoogleFonts.outfit(
                         color: Colors.grey[400],
                         fontSize: 13,
@@ -945,7 +945,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     const SizedBox(height: 20),
                     // Invitation code section
                     Text(
-                      'Invitation code',
+                      'Kode undangan',
                       style: GoogleFonts.outfit(
                         color: AppColors.primaryTeal,
                         fontWeight: FontWeight.bold,
@@ -982,7 +982,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                     ),
                     const SizedBox(height: 35),
                     Text(
-                      'Member list:',
+                      'Daftar anggota:',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
@@ -1041,7 +1041,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                             ),
                                           ),
                                           child: const Text(
-                                            'Leader',
+                                            'Ketua',
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 9,
@@ -1101,17 +1101,17 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                                 children: [
                                                   const TextSpan(
                                                     text:
-                                                        'Are you sure you want to ',
+                                                        'Apakah Anda yakin ingin ',
                                                   ),
                                                   const TextSpan(
-                                                    text: 'kick',
+                                                    text: 'mengeluarkan',
                                                     style: TextStyle(
                                                       color:
                                                           AppColors.primaryTeal,
                                                     ),
                                                   ),
                                                   const TextSpan(
-                                                    text: ' this member?',
+                                                    text: ' anggota ini?',
                                                   ),
                                                 ],
                                               ),
@@ -1141,7 +1141,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                                           ),
                                                     ),
                                                     child: Text(
-                                                      'Cancel',
+                                                      'Batal',
                                                       style: GoogleFonts.outfit(
                                                         color: Colors.grey[700],
                                                         fontWeight:
@@ -1176,7 +1176,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                                                           ),
                                                     ),
                                                     child: Text(
-                                                      'Accept',
+                                                      'Ya',
                                                       style: GoogleFonts.outfit(
                                                         color: Colors.white,
                                                         fontWeight:
@@ -1222,7 +1222,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Delete group',
+                                'Hapus grup',
                                 style: GoogleFonts.outfit(
                                   color: AppColors.primaryTeal,
                                   fontWeight: FontWeight.bold,
@@ -1417,7 +1417,7 @@ class _GroupScreenState extends State<GroupScreen> with AutomaticKeepAliveClient
                   textAlignVertical: TextAlignVertical.center,
                   decoration: InputDecoration(
                     counterText: '',
-                    hintText: 'Search',
+                    hintText: 'Cari',
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,

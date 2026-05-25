@@ -100,7 +100,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                     Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'Edit Profile',
+                        'Ubah Profil',
                         style: GoogleFonts.outfit(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -192,7 +192,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Change Photo Profile',
+                        'Ubah Foto Profil',
                         style: GoogleFonts.outfit(
                           color: AppColors.primaryTeal,
                           fontSize: 13,
@@ -225,7 +225,7 @@ class _LecturerEditProfileModalState extends State<LecturerEditProfileModal> {
                     ),
                     child: Center(
                       child: Text(
-                        'Save Profile',
+                        'Simpan Profil',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -321,7 +321,7 @@ class _LecturerPickClassModalState extends State<LecturerPickClassModal> {
                   Align(
                     alignment: Alignment.center,
                     child: Text(
-                      'Pick Class',
+                      'Pilih Kelas',
                       style: GoogleFonts.outfit(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -354,7 +354,7 @@ class _LecturerPickClassModalState extends State<LecturerPickClassModal> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 30),
                   child: Text(
-                    'No classes available',
+                    'Tidak ada kelas tersedia',
                     style:
                         GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
                   ),
@@ -417,7 +417,7 @@ class _LecturerPickClassModalState extends State<LecturerPickClassModal> {
                   ),
                   child: Center(
                     child: Text(
-                      'Save',
+                      'Simpan',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

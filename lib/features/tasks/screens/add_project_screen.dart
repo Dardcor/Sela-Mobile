@@ -211,7 +211,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
           showNoInternetSnackBar(context);
         }
       } else {
-        String errorMessage = 'Error: $e';
+        String errorMessage = 'Gagal: $e';
         if (mounted) {
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
@@ -299,6 +299,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               controller: titleCtrl,
               errorText: titleError,
               inputFormatters: [NoLeadingSpaceFormatter()],
+              maxLength: 150,
               onChanged: (val) {
                 if (titleError != null) setState(() => titleError = null);
               },
@@ -400,6 +401,7 @@ class _AddProjectScreenState extends State<AddProjectScreen> {
               lines: 4,
               errorText: descError,
               inputFormatters: [NoLeadingSpaceFormatter()],
+              maxLength: 1000,
               onChanged: (val) {
                 if (descError != null) setState(() => descError = null);
               },

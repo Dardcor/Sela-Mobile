@@ -69,10 +69,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             e.type == DioExceptionType.receiveTimeout ||
             e.type == DioExceptionType.connectionError ||
             isNetworkErrorMessage(e.message ?? '')) {
-          // Network error — do NOT navigate
           showNoInternetSnackBar(context);
         } else {
-          // Server error but OTP likely sent — navigate to OTP screen
+          final statusCode = e.response?.statusCode;
+          String msg = 'Gagal mengirim kode reset password. Silakan coba lagi.';
+          if (e.response?.data is Map) {
+            msg = e.response?.data['message'] ?? msg;
+          }
+
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(msg),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+
+          // If status is 404 (not registered) or 429 (rate limit), do NOT navigate
+          if (statusCode == 404 || statusCode == 429) {
+            return;
+          }
+
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -87,13 +106,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (message == noInternetMessage) {
           showNoInternetSnackBar(context);
         } else {
-          // Non-network generic error — still navigate since OTP may have been sent
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OTPVerifyScreen(email: email),
-            ),
-          );
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                duration: const Duration(milliseconds: 1500),
+                content: Text(message),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
         }
       }
     } finally {
@@ -114,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Image.asset('assets/images/forgot_pass.png', height: 250),
             const SizedBox(height: 40),
             Text(
-              'Forgot Password',
+              'Lupa Password',
               style: GoogleFonts.outfit(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -123,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              "Don't worry, we'll help you reset quickly.",
+              "Jangan khawatir, kami akan membantu Anda mengatur ulang password Anda dengan cepat.",
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
             ),
@@ -132,7 +153,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                labelText: 'Your Email Address',
+                labelText: 'Alamat Email Anda',
                 labelStyle: GoogleFonts.outfit(color: Colors.grey),
                 hintText: 'contoh@it.student.pens.ac.id',
                 hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
@@ -170,7 +191,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Reset Password',
+                        'Atur Ulang Password',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -188,7 +209,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const Icon(Icons.arrow_back, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    'Back to Login',
+                    'Kembali ke Login',
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,

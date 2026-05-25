@@ -248,7 +248,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
         if (isNetworkErrorMessage(e.toString())) {
           showNoInternetSnackBar(context);
         } else {
-          String errorMessage = 'Error updating task: $e';
+          String errorMessage = 'Gagal memperbarui tugas: $e';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
@@ -312,6 +312,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                       controller: _titleCtrl,
                       bgColor: Colors.white,
                       inputFormatters: [NoLeadingSpaceFormatter()],
+                      maxLength: 150,
                     ),
                     const SizedBox(height: 10),
                     LabeledInputField(
@@ -340,6 +341,7 @@ class _FileLinkDialogState extends State<FileLinkDialog> {
                       lines: 4,
                       bgColor: Colors.white,
                       inputFormatters: [NoLeadingSpaceFormatter()],
+                      maxLength: 1000,
                     ),
                     const SizedBox(height: 15),
                     Row(

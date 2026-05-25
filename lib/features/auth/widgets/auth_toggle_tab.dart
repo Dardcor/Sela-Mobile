@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Tab toggle Login / Register di layar autentikasi.
@@ -30,14 +30,14 @@ class AuthToggleTab extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(15),
               onTap: onLoginTap,
-              child: _TabButton(label: 'Login', active: isLogin),
+              child: _TabButton(label: 'Masuk', active: isLogin),
             ),
           ),
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(15),
               onTap: onRegisterTap,
-              child: _TabButton(label: 'Register', active: !isLogin),
+              child: _TabButton(label: 'Daftar', active: !isLogin),
             ),
           ),
         ],

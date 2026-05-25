@@ -55,7 +55,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
         backgroundColor: AppColors.bgLight,
         body: Center(
           child: Text(
-            'Failed to load task overview',
+            'Gagal memuat ringkasan tugas',
             style: GoogleFonts.outfit(color: Colors.black87),
           ),
         ),
@@ -141,7 +141,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25.0),
                         child: Text(
-                          taskData['task_name'] ?? taskData['title'] ?? 'Task Name',
+                          taskData['task_name'] ?? taskData['title'] ?? 'Nama Tugas',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.outfit(
                             color: Colors.white,
@@ -210,9 +210,9 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                     child: Row(
                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                        children: [
-                         _buildStatItem('completed task', taskData['completed_tasks']?.toString() ?? '0', 'Task'),
+                         _buildStatItem('Tugas selesai', taskData['completed_tasks']?.toString() ?? '0', 'Tugas'),
                          Container(width: 1, height: 60, color: Colors.grey.withOpacity(0.3)),
-                         _buildStatItem('unfinished task', taskData['unfinished_tasks']?.toString() ?? '0', 'Task'),
+                         _buildStatItem('Tugas belum selesai', taskData['unfinished_tasks']?.toString() ?? '0', 'Tugas'),
                        ],
                     ),
                   ),
@@ -270,11 +270,11 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInfoRow('Countdown:', '${taskData['countdown'] ?? 0} Days'),
+                        _buildInfoRow('Hitung mundur:', '${taskData['countdown'] ?? 0} Hari'),
                         const SizedBox(height: 15),
-                        _buildInfoRow('Top Contributor:', taskData['top_contributors']?.toString() ?? '-'),
+                        _buildInfoRow('Kontributor Teratas:', taskData['top_contributors']?.toString() ?? '-'),
                         const SizedBox(height: 15),
-                        _buildInfoRow('Recent Update:', taskData['recent_update']?.toString() ?? '-'),
+                        _buildInfoRow('Pembaruan Terkini:', taskData['recent_update']?.toString() ?? '-'),
                       ],
                     ),
                   ),
@@ -302,7 +302,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Member & Progres',
+                      'Anggota & Progres',
                       style: GoogleFonts.outfit(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -314,7 +314,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.all(20.0),
-                          child: Text('No members found', style: GoogleFonts.outfit(color: Colors.grey)),
+                          child: Text('Tidak ada anggota ditemukan', style: GoogleFonts.outfit(color: Colors.grey)),
                         ),
                       )
                     else
@@ -334,8 +334,8 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                                 });
                               },
                               child: _buildMemberItem(
-                                name: member['name']?.toString() ?? 'Member',
-                                taskCount: member['task_count']?.toString() ?? '0 subtasks',
+                                name: member['name']?.toString() ?? 'Anggota',
+                                taskCount: member['task_count']?.toString() ?? '0 subtugas',
                                 avatar: member['avatar_url']?.toString(),
                                 isExpanded: isExpanded,
                                 subtasks: isExpanded && member['subtasks'] != null
@@ -451,7 +451,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
             ),
             const SizedBox(height: 20),
             Text(
-              'Member Progress',
+              'Progres Anggota',
               style: GoogleFonts.outfit(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -502,7 +502,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      member['name']?.toString() ?? 'Member',
+                                      member['name']?.toString() ?? 'Anggota',
                                       style: GoogleFonts.outfit(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
@@ -631,7 +631,7 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                   children: [
                     Expanded(
                       child: Text(
-                        task['name']?.toString() ?? 'Subtask',
+                        task['name']?.toString() ?? 'Subtugas',
                         style: GoogleFonts.outfit(
                           fontSize: 12,
                           color: Colors.black87,
@@ -640,7 +640,13 @@ class _LecturerTaskOverviewScreenState extends State<LecturerTaskOverviewScreen>
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      task['status']?.toString() ?? '',
+                      task['status'] == 'Done'
+                          ? 'Selesai'
+                          : task['status'] == 'Upcoming'
+                              ? 'Akan Datang'
+                              : task['status'] == 'In Progress'
+                                  ? 'Sedang Berjalan'
+                                  : (task['status']?.toString() ?? ''),
                       style: GoogleFonts.outfit(
                         fontSize: 10,
                         color: task['status'] == 'Done' 

@@ -142,7 +142,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                       ),
                       const SizedBox(height: 15),
                       Text(
-                        widget.classData['name'] ?? 'Class Name',
+                        widget.classData['name'] ?? 'Name Kelas',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 22,
@@ -170,7 +170,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '${widget.classData['total_groups'] ?? 0} Group',
+                                  '${widget.classData['total_groups'] ?? 0} Grup',
                                   style: GoogleFonts.outfit(
                                     color: AppColors.primaryTeal,
                                     fontSize: 12,
@@ -199,7 +199,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '${widget.classData['total_tasks'] ?? 0} Task',
+                                  '${widget.classData['total_tasks'] ?? 0} Tugas',
                                   style: GoogleFonts.outfit(
                                     color: AppColors.primaryTeal,
                                     fontSize: 12,
@@ -256,7 +256,7 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                                 Icons.search,
                                 color: Colors.grey,
                               ),
-                              hintText: 'Search a task...',
+                              hintText: 'Cari tugas...',
                               hintStyle: GoogleFonts.outfit(color: Colors.grey),
                               border: InputBorder.none,
                               suffixIcon: _searchQuery.isNotEmpty
@@ -291,8 +291,8 @@ class _LecturerClassDetailScreenState extends State<LecturerClassDetailScreen> {
                             ? Center(
                                 child: Text(
                                   _searchQuery.isNotEmpty
-                                      ? 'No results for "$_searchQuery"'
-                                      : 'No tasks found for this class',
+                                      ? 'Tidak ada hasil untuk "$_searchQuery"'
+                                      : 'Tidak ada tugas untuk kelas ini',
                                   style: GoogleFonts.outfit(color: Colors.grey),
                                 ),
                               )

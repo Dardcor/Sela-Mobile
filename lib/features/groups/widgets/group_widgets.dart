@@ -99,8 +99,8 @@ class GroupCard extends StatelessWidget {
           Text(
             team['course_name'] != null &&
                     team['course_name'].toString().isNotEmpty
-                ? '$totalMember Member | ${team['course_name']}'
-                : '$totalMember Member',
+                ? '$totalMember Anggota | ${team['course_name']}'
+                : '$totalMember Anggota',
             style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 15),
@@ -373,6 +373,8 @@ class GroupInputField extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+  final bool showCounter;
 
   const GroupInputField({
     super.key,
@@ -385,6 +387,8 @@ class GroupInputField extends StatelessWidget {
     this.errorText,
     this.onChanged,
     this.inputFormatters,
+    this.maxLength,
+    this.showCounter = true,
   });
 
   @override
@@ -417,6 +421,8 @@ class GroupInputField extends StatelessWidget {
                   controller: controller,
                   enabled: enabled,
                   onChanged: onChanged,
+                  maxLength: maxLength,
+                  buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                   keyboardType: isNum
                       ? TextInputType.number
                       : TextInputType.text,
@@ -458,12 +464,37 @@ class GroupInputField extends StatelessWidget {
               ),
             ],
           ),
-          if (hasError)
+          if (hasError || (maxLength != null && showCounter))
             Padding(
-              padding: const EdgeInsets.only(top: 8, left: 16),
-              child: Text(
-                errorText!,
-                style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+              padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: hasError
+                        ? Text(
+                            errorText!,
+                            style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  if (maxLength != null && showCounter)
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: controller,
+                      builder: (context, value, child) {
+                        final currentLength = value.text.length;
+                        return Text(
+                          '$currentLength/$maxLength',
+                          style: GoogleFonts.outfit(
+                            color: currentLength >= maxLength! ? Colors.red : Colors.grey[500],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      },
+                    ),
+                ],
               ),
             ),
         ],
@@ -647,7 +678,7 @@ class YourProgressSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Your Progres',
+                'Progres Anda',
                 style: GoogleFonts.outfit(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -662,7 +693,7 @@ class YourProgressSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Text(
-                  'No assigned subtasks',
+                  'Belum ada tugas yang ditugaskan',
                   style: GoogleFonts.outfit(color: Colors.grey[400]),
                 ),
               ),
@@ -746,7 +777,7 @@ class _YourSubtaskItem extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 description.isEmpty
-                    ? 'No description available for this subtask.'
+                    ? 'Tidak ada deskripsi untuk subtugas ini.'
                     : description,
                 style: GoogleFonts.outfit(
                   fontSize: 12,
@@ -767,7 +798,7 @@ class _YourSubtaskItem extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: Text(
-                    'Close',
+                    'Tutup',
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -886,7 +917,7 @@ class GroupDetailHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Group Task', // Berubah dari Work in Group
+                  'Tugas Kelompok', // Berubah dari Work in Group
                   style: GoogleFonts.outfit(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,
@@ -944,7 +975,7 @@ class _GroupMainCardState extends State<GroupMainCard> {
     if (s == null) return '';
     try {
       final dt = DateTime.parse(s);
-      return '${dt.day} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.month - 1]}';
+      return '${dt.day} ${['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][dt.month - 1]}';
     } catch (_) {
       return '';
     }
@@ -1084,7 +1115,7 @@ class _GroupMainCardState extends State<GroupMainCard> {
                     ),
                     if (isLongDesc)
                       TextSpan(
-                        text: _isDescExpanded ? ' see less' : ' see more...',
+                        text: _isDescExpanded ? ' sembunyikan' : ' selengkapnya...',
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryTeal,
@@ -1278,7 +1309,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
       ..showSnackBar(
         const SnackBar(
           duration: Duration(milliseconds: 1500),
-          content: Text('Only group leaders can create subtasks'),
+          content: Text('Hanya ketua grup yang dapat membuat subtugas'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1419,7 +1450,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                         const SizedBox(width: 6),
                       ],
                       Text(
-                        widget.isLoading ? 'SELA Thinking...' : 'Hasil Pemikiran SELA',
+                        widget.isLoading ? 'SELA sedang berpikir...' : 'Hasil Pemikiran SELA',
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryTeal,
@@ -1518,6 +1549,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     controller: _titleCtrl,
                     enabled: widget.isLeader,
                     inputFormatters: [NoLeadingSpaceFormatter()],
+                    maxLength: 150,
+                    showCounter: false,
                   ),
                 ),
               ),
@@ -1531,8 +1564,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     child: AbsorbPointer(
                       absorbing: !widget.isLeader,
                       child: _DropdownPerson(
-                        label: 'Tugaskan',
-                        hint: 'Pilih anggota',
+                        label: 'Assign to',
+                        hint: 'Pilih',
                         value: _selectedMemberId,
                         members: widget.members,
                         enabled: widget.isLeader,
@@ -1555,6 +1588,8 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               controller: _descCtrl,
               enabled: widget.isLeader,
               inputFormatters: [NoLeadingSpaceFormatter()],
+              maxLength: 1000,
+              showCounter: false,
             ),
           ),
           const SizedBox(height: 20),
@@ -1687,10 +1722,32 @@ class _DropdownPerson extends StatelessWidget {
             child: DropdownButton<String>(
               isExpanded: true,
               value: value,
-              hint: Padding(
-                padding: const EdgeInsets.only(left: 2),
+              selectedItemBuilder: (BuildContext context) {
+                return members.map<Widget>((m) {
+                  final rawName = (m['full_name'] ?? m['username'] ?? 'Member').toString();
+                  final displayName = rawName.length > 4 ? '${rawName.substring(0, 4)}...' : rawName;
+                  return Container(
+                    alignment: Alignment.center,
+                    child: Text(
+                      displayName,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        color: enabled ? Colors.black : Colors.grey,
+                      ),
+                    ),
+                  );
+                }).toList();
+              },
+              hint: Container(
+                alignment: Alignment.center,
                 child: Text(
                   hint,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
                     color: Colors.grey[300],
                     fontSize: 12,
@@ -1705,12 +1762,17 @@ class _DropdownPerson extends StatelessWidget {
                 ),
               ),
               items: members.map((m) {
+                final rawName = (m['full_name'] ?? m['username'] ?? 'Member').toString();
+                final displayName = rawName.length > 6 ? '${rawName.substring(0, 6)}...' : rawName;
                 return DropdownMenuItem<String>(
                   value: m['id'] ?? m['user_id'],
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 2),
+                  child: Container(
+                    alignment: Alignment.center,
                     child: Text(
-                      m['full_name'] ?? m['username'] ?? 'Member',
+                      displayName,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.outfit(
                         fontSize: 13,
                         color: enabled ? Colors.black : Colors.grey,
@@ -1780,7 +1842,7 @@ class GroupMemberSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Member & Progress',
+            'Anggota & Progres',
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -1834,7 +1896,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     String userId,
   ) {
     if (userSubtasks.isEmpty) {
-      return (text: 'No Task', color: Colors.grey);
+      return (text: 'Tidak Ada Tugas', color: Colors.grey);
     }
 
     int doneCount = 0;
@@ -1855,11 +1917,11 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
     }
 
     if (doneCount == userSubtasks.length) {
-      return (text: 'Done', color: AppColors.primaryTeal);
+      return (text: 'Selesai', color: AppColors.primaryTeal);
     } else if (inProgressCount > 0 || doneCount > 0) {
-      return (text: 'In Progress', color: AppColors.accentTeal);
+      return (text: 'Sedang Dikerjakan', color: AppColors.accentTeal);
     }
-    return (text: 'Pending', color: Color(0xFF1597AF));
+    return (text: 'Tertunda', color: Color(0xFF1597AF));
   }
 
   void _showDeleteConfirmation(
@@ -1990,7 +2052,7 @@ class _GroupMemberProgressTileState extends State<GroupMemberProgressTile> {
             ],
           ),
           subtitle: Text(
-            '${userSubtasks.length} SubTask',
+            '${userSubtasks.length} Subtugas',
             style: GoogleFonts.outfit(
               fontSize: 12,
               color: _isExpanded ? Colors.white.withOpacity(0.8) : Colors.grey,
@@ -2102,7 +2164,7 @@ class WorkInGroupHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Group Task',
+                  'Tugas Kelompok',
                   style: GoogleFonts.outfit(
                     fontSize: 34,
                     fontWeight: FontWeight.bold,

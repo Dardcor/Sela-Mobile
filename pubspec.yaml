@@ -55,12 +55,5 @@ flutter:
 
 flutter_launcher_icons:
   android: true
-  ios: false
   image_path: 'assets/images/App_Logo.png'
   min_sdk_android: 21
-  web:
-    generate: false
-  windows:
-    generate: false
-  macos:
-    generate: false

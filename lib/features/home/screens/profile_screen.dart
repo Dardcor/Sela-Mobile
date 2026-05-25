@@ -150,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Kesalahan: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -190,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
           showNoInternetSnackBar(context);
         } else {
           ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(duration: const Duration(milliseconds: 1500), content: Text('Kesalahan: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -230,12 +230,12 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
       if (context.mounted) {
         Navigator.pop(context); // Close modal
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kata sandi berhasil diperbarui!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Password berhasil diperbarui!'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (e is DioException && e.response?.data != null) {
-        final errMsg = e.response!.data['message'] ?? 'Failed to change password';
+        final errMsg = e.response!.data['message'] ?? 'Gagal mengubah password';
         // Stop propagation so modal doesn't close on failure if thrown inside widgets
         throw Exception(errMsg); 
       } else {
@@ -348,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
                     onPressed: _showChangePassword,
                     icon: const Icon(Icons.lock_outline_rounded, color: Colors.white),
                     label: Text(
-                      'Ganti Kata Sandi',
+                      'Ganti Password',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

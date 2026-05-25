@@ -196,7 +196,7 @@ class _CalendarScreenState extends State<CalendarScreen> with AutomaticKeepAlive
             }
 
             return <String, dynamic>{
-              'title': t['title'] ?? 'Untitled Task',
+              'title': t['title'] ?? 'Tugas Tanpa Judul',
               'date_label': dateLabel,
               'status_label': statusLabel,
               'due_date': dueDate,
@@ -286,18 +286,18 @@ class _CalendarScreenState extends State<CalendarScreen> with AutomaticKeepAlive
 
   String _getMonthName(int month) {
     const months = [
-      'January',
-      'February',
-      'March',
+      'Januari',
+      'Februari',
+      'Maret',
       'April',
-      'May',
-      'June',
-      'July',
-      'August',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
       'September',
-      'October',
+      'Oktober',
       'November',
-      'December',
+      'Desember',
     ];
     return months[month - 1];
   }

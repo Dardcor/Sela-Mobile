@@ -179,14 +179,14 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Kata sandi berhasil diperbarui!'),
+              content: Text('Password berhasil diperbarui!'),
               backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (e is DioException && e.response?.data != null) {
         final errMsg =
-            e.response!.data['message'] ?? 'Failed to change password';
+            e.response!.data['message'] ?? 'Gagal mengubah password';
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
@@ -197,7 +197,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Gagal mengganti kata sandi: $e'),
+                content: Text('Gagal mengganti password: $e'),
                 backgroundColor: Colors.red),
           );
         }
@@ -420,7 +420,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                 ),
                                 const SizedBox(height: 15),
                                 Text(
-                                  _profile['name'] ?? 'User Name',
+                                  _profile['name'] ?? 'Nama Pengguna',
                                   style: GoogleFonts.outfit(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -508,7 +508,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 10),
                                       child: Text(
-                                        'Your class',
+                                        'Kelas Anda',
                                         style: GoogleFonts.outfit(
                                           color: AppColors.primaryTeal,
                                           fontSize: 18,
@@ -549,7 +549,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                             size: 14),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Pick class',
+                                          'Pilih kelas',
                                           style: GoogleFonts.outfit(
                                             color: Colors.white,
                                             fontSize: 12,
@@ -576,7 +576,7 @@ class _LecturerProfileScreenState extends State<LecturerProfileScreen> {
                                 Icons.lock_outline_rounded,
                                 color: Colors.white),
                             label: Text(
-                              'Change Password',
+                              'Ganti Password',
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,

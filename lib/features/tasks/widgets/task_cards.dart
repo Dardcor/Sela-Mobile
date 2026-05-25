@@ -216,7 +216,7 @@ class IndependentTaskCard extends StatelessWidget {
                     const Icon(Icons.access_time_rounded, size: 16, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
-                      '$daysLeft days left',
+                      '$daysLeft hari lagi',
                       style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
                     ),
                   ],

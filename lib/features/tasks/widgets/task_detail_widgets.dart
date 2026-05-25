@@ -880,14 +880,16 @@ class _IndependentCreateSubtaskSectionState
                           hint: 'Judul sub-tugas',
                           controller: _titleCtrl,
                           inputFormatters: [NoLeadingSpaceFormatter()],
+                          maxLength: 150,
                         ),
                         const SizedBox(height: 20),
                         _CreateSubtaskField(
-                          label: 'Description',
-                          hint: 'description',
+                          label: 'Deskripsi',
+                          hint: 'Masukkan deskripsi',
                           controller: _descCtrl,
                           lines: 3,
                           inputFormatters: [NoLeadingSpaceFormatter()],
+                          maxLength: 1000,
                         ),
                         const SizedBox(height: 20),
                         GestureDetector(
@@ -990,6 +992,7 @@ class _CreateSubtaskField extends StatelessWidget {
   final TextEditingController controller;
   final int lines;
   final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
 
   const _CreateSubtaskField({
     required this.label,
@@ -997,6 +1000,7 @@ class _CreateSubtaskField extends StatelessWidget {
     required this.controller,
     this.lines = 1,
     this.inputFormatters,
+    this.maxLength,
   });
 
   @override
@@ -1013,6 +1017,8 @@ class _CreateSubtaskField extends StatelessWidget {
           child: TextField(
             controller: controller,
             maxLines: lines,
+            maxLength: maxLength,
+            buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
             inputFormatters: inputFormatters,
             decoration: InputDecoration(
               hintText: hint,
@@ -1126,6 +1132,7 @@ class LabeledInputField extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
 
   const LabeledInputField({
     super.key,
@@ -1139,6 +1146,7 @@ class LabeledInputField extends StatelessWidget {
     this.errorText,
     this.onChanged,
     this.inputFormatters,
+    this.maxLength,
   });
 
   @override
@@ -1164,6 +1172,8 @@ class LabeledInputField extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 maxLines: lines,
+                maxLength: maxLength,
+                buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                 readOnly: onTap != null,
                 onTap: onTap,
                 onChanged: onChanged,
@@ -1207,12 +1217,37 @@ class LabeledInputField extends StatelessWidget {
             ),
           ],
         ),
-        if (hasError)
+        if (hasError || maxLength != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8, left: 16),
-            child: Text(
-              errorText!,
-              style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+            padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: hasError
+                      ? Text(
+                          errorText!,
+                          style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                if (maxLength != null)
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: controller,
+                    builder: (context, value, child) {
+                      final currentLength = value.text.length;
+                      return Text(
+                        '$currentLength/$maxLength',
+                        style: GoogleFonts.outfit(
+                          color: currentLength >= maxLength! ? Colors.red : Colors.grey[500],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
+              ],
             ),
           ),
       ],

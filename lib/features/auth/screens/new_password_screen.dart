@@ -35,15 +35,15 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (password.isEmpty) {
-      _showError('Please enter a new password');
+      _showError('Silakan masukkan password baru');
       return;
     }
     if (password != confirmPassword) {
-      _showError('Passwords do not match');
+      _showError('Password tidak cocok');
       return;
     }
     if (password.length < 6) {
-      _showError('Password must be at least 6 characters');
+      _showError('Password minimal 6 karakter');
       return;
     }
 
@@ -67,7 +67,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       if (isNetworkErrorMessage(e.message ?? '')) {
         showNoInternetSnackBar(context);
       } else {
-        _showError(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
+        _showError(e.response?.data?['message'] ?? e.message ?? 'Kesalahan tidak diketahui');
       }
     } catch (e) {
       final msg = mapAuthErrorMessage(e);
@@ -107,7 +107,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             Image.asset('assets/images/new_pass.png', height: 250),
             const SizedBox(height: 40),
             Text(
-              'Set new password',
+              'Atur password baru',
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 28,
@@ -117,14 +117,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              "New password must be unique from your old ones.",
+              "Password baru harus berbeda dari password lama Anda.",
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 50),
             _buildPasswordField(
               controller: _passwordController,
-              label: 'Password',
+              label: 'Password Baru',
               hint: '',
               obscure: _obscurePass,
               onToggle: () => setState(() => _obscurePass = !_obscurePass),
@@ -132,7 +132,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
             const SizedBox(height: 20),
             _buildPasswordField(
               controller: _confirmPasswordController,
-              label: 'Confirm password',
+              label: 'Konfirmasi Password',
               hint: '',
               obscure: _obscureConfirm,
               onToggle: () =>
@@ -154,7 +154,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Reset Password',
+                        'Atur Ulang Password',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -172,7 +172,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   const Icon(Icons.arrow_back, size: 20),
                   const SizedBox(width: 10),
                   Text(
-                    'Back to Login',
+                    'Kembali ke Login',
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,

@@ -115,7 +115,7 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Independent\nTask',
+                              'Tugas\nMandiri',
                               style: GoogleFonts.outfit(
                                 fontSize: 34,
                                 fontWeight: FontWeight.bold,
@@ -175,7 +175,7 @@ class _IndependentTaskScreenState extends State<IndependentTaskScreen> {
           child: Padding(
             padding: const EdgeInsets.all(50),
             child: Text(
-              'No independent tasks available',
+              'Belum ada tugas mandiri',
               style: GoogleFonts.outfit(color: Colors.grey),
             ),
           ),

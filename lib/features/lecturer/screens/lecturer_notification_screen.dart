@@ -204,7 +204,7 @@ class _LecturerNotificationScreenState extends State<LecturerNotificationScreen>
                                 Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey[300]),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No notifications yet',
+                                  'Belum ada notifikasi',
                                   style: GoogleFonts.outfit(color: Colors.grey[400]),
                                 ),
                               ],

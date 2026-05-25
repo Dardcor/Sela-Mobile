@@ -105,7 +105,7 @@ class _RegisterOTPVerifyScreenState extends State<RegisterOTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Kesalahan tidak diketahui'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -163,7 +163,7 @@ class _RegisterOTPVerifyScreenState extends State<RegisterOTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Kesalahan tidak diketahui'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -218,7 +218,7 @@ class _RegisterOTPVerifyScreenState extends State<RegisterOTPVerifyScreen> {
               Image.asset('assets/images/otp.png', height: 250),
               const SizedBox(height: 40),
               Text(
-                'Check your email',
+                'Cek email kamu',
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,

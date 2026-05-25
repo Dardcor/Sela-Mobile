@@ -160,7 +160,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
   Future<void> _verifyOldPassword() async {
     final oldPass = _oldPassCtrl.text.trim();
     if (oldPass.isEmpty) {
-      _showModalToast(context, 'Silakan masukkan kata sandi lama Anda');
+      _showModalToast(context, 'Silakan masukkan password lama Anda');
       return;
     }
 
@@ -199,7 +199,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
     }
 
     if (newPass.length < 6) {
-      _showModalToast(context, 'Kata sandi baru minimal 6 karakter');
+      _showModalToast(context, 'Password baru minimal 6 karakter');
       return;
     }
 
@@ -213,7 +213,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
       await widget.onSave(_oldPassCtrl.text.trim(), newPass);
     } catch (e) {
       setState(() => _isLoading = false);
-      String errMsg = 'Gagal mengganti kata sandi';
+      String errMsg = 'Gagal mengganti password';
       if (e.toString().contains('Password harus berbeda')) {
         errMsg = 'Password harus berbeda dari password lama';
       } else if (e.toString().contains('pernah digunakan')) {
@@ -309,7 +309,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                     Align(
                       alignment: Alignment.center,
                       child: Text(
-                        'Ganti Kata Sandi',
+                        'Ganti Password',
                         style: GoogleFonts.outfit(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -335,7 +335,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                 const SizedBox(height: 20),
                 
                 if (_step == 1) ...[
-                  _buildPassField('Kata Sandi Lama', _oldPassCtrl),
+                  _buildPassField('Password Lama', _oldPassCtrl),
                   const SizedBox(height: 40),
                   GestureDetector(
                     onTap: _isLoading ? null : _verifyOldPassword,
@@ -366,17 +366,17 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                   ),
                 ] else ...[
                   _buildPassField(
-                    'Kata Sandi Baru', 
+                    'Password Baru', 
                     _newPassCtrl, 
                     onChanged: (v) => setState(() {})
                   ),
                   const SizedBox(height: 25),
                   _buildPassField(
-                    'Konfirmasi Kata Sandi', 
+                    'Konfirmasi Password', 
                     _confirmPassCtrl, 
                     onChanged: (v) => setState(() {}),
                     errorText: _newPassCtrl.text != _confirmPassCtrl.text && _confirmPassCtrl.text.isNotEmpty 
-                        ? 'Kata sandi tidak cocok' 
+                        ? 'Password tidak cocok' 
                         : null
                   ),
                   const SizedBox(height: 40),
@@ -401,7 +401,7 @@ class _ChangePasswordModalState extends State<ChangePasswordModal> {
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : Text(
-                                'Update Kata Sandi',
+                                'Update Password',
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -518,7 +518,7 @@ class UserInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            profile?['class_name'] ?? 'Class Name',
+            profile?['class_name'] ?? 'Nama Kelas',
             style: GoogleFonts.outfit(
               fontSize: 15,
               color: Colors.grey[400],

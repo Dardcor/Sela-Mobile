@@ -166,6 +166,30 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         );
       return;
     }
+    if (title.length > 150) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Judul tidak boleh lebih dari 150 karakter'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      return;
+    }
+    if (description.length > 1000) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(milliseconds: 1500),
+            content: Text('Deskripsi tidak boleh lebih dari 1000 karakter'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      return;
+    }
     if (assignedTo == null) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()

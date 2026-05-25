@@ -106,14 +106,14 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
       'Feb',
       'Mar',
       'Apr',
-      'May',
+      'Mei',
       'Jun',
       'Jul',
-      'Aug',
+      'Agu',
       'Sep',
-      'Oct',
+      'Okt',
       'Nov',
-      'Dec',
+      'Des',
     ];
     return '${dt.day} ${months[dt.month - 1]}';
   }
@@ -175,12 +175,12 @@ class _WorkInGroupScreenState extends State<WorkInGroupScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No group tasks yet',
+                  'Belum ada tugas kelompok',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Add a task using the + button',
+                  'Tambah tugas dengan tombol +',
                   style: TextStyle(color: Colors.grey[400], fontSize: 12),
                 ),
               ],

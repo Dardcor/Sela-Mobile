@@ -95,7 +95,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Kesalahan tidak diketahui'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -152,7 +152,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(milliseconds: 1500),
-                content: Text(e.response?.data?['message'] ?? e.message ?? 'Unknown error'),
+                content: Text(e.response?.data?['message'] ?? e.message ?? 'Kesalahan tidak diketahui'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -207,7 +207,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
               Image.asset('assets/images/otp.png', height: 250),
               const SizedBox(height: 40),
               Text(
-                'Check your email',
+                'Cek email kamu',
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -218,7 +218,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
               Column(
                 children: [
                   Text(
-                    'We send a password reset code to',
+                    'Kami telah mengirim kode verifikasi email ke',
                     style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 5),
@@ -260,7 +260,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          'Verify email',
+                          'Verifikasi Email',
                           style: GoogleFonts.outfit(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -274,13 +274,13 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Didn't receive the code? ",
+                    "Belum menerima kode? ",
                     style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey),
                   ),
                   GestureDetector(
                     onTap: _canResend ? _handleResendOTP : null,
                     child: Text(
-                      _canResend ? 'Resend again' : 'Resend again (${_countdown}s)',
+                      _canResend ? 'Kirim ulang' : 'Kirim ulang (${_countdown}s)',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         color: _canResend ? const Color(0xFF1597AF) : Colors.grey.shade400,
@@ -299,7 +299,7 @@ class _OTPVerifyScreenState extends State<OTPVerifyScreen> {
                     const Icon(Icons.arrow_back, size: 20),
                     const SizedBox(width: 10),
                     Text(
-                      'Back to Login',
+                      'Kembali ke Login',
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,

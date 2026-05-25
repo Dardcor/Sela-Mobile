@@ -76,7 +76,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     TextButton(
                       onPressed: _finishOnboarding,
                       child: Text(
-                        "Skip",
+                        "Lewati",
                         style: GoogleFonts.poppins(
                           color: AppColors.primaryTeal,
                           fontWeight: FontWeight.w600,

@@ -20,7 +20,7 @@ class SuccessScreen extends StatelessWidget {
               Image.asset('assets/images/success.png', height: 250),
               const SizedBox(height: 40),
               Text(
-                'Success',
+                'Berhasil',
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -29,7 +29,7 @@ class SuccessScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'your password has been changed. Please log in \nagain with a new password',
+                'Password Anda telah diubah. Silakan masuk\nkembali dengan password baru Anda.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
               ),
@@ -51,7 +51,7 @@ class SuccessScreen extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Go to Login',
+                    'Kembali ke Login',
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
