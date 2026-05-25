@@ -611,13 +611,25 @@ class _AuthScreenState extends State<AuthScreen> {
                                                       val ?? false,
                                                 ),
                                             onLogin: _handleLogin,
-                                            onForgotPassword: () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const ForgotPasswordScreen(),
-                                              ),
-                                            ),
+                                            onForgotPassword: () async {
+                                              final result = await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const ForgotPasswordScreen(),
+                                                ),
+                                              );
+                                              if (result == 'register' && mounted) {
+                                                setState(() {
+                                                  isLogin = false;
+                                                });
+                                                _pageController.animateToPage(
+                                                  1,
+                                                  duration: const Duration(milliseconds: 400),
+                                                  curve: Curves.easeInOut,
+                                                );
+                                              }
+                                            },
                                           ),
                                         ),
                                         Padding(

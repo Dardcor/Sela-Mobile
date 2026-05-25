@@ -24,6 +24,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  void _showUnregisteredError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          duration: Duration(milliseconds: 1500),
+          content: Text('Akun tidak ditemukan'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+  }
+
   Future<void> _handleResetPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -77,6 +90,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             msg = e.response?.data['message'] ?? msg;
           }
 
+          if (statusCode == 404 ||
+              msg.toLowerCase().contains('not found') ||
+              msg.toLowerCase().contains('belum terdaftar') ||
+              msg.toLowerCase().contains('tidak ditemukan')) {
+            _showUnregisteredError();
+            return;
+          }
+
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(
@@ -87,8 +108,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             );
 
-          // If status is 404 (not registered) or 429 (rate limit), do NOT navigate
-          if (statusCode == 404 || statusCode == 429) {
+          // If status is 429 (rate limit), do NOT navigate
+          if (statusCode == 429) {
             return;
           }
 
