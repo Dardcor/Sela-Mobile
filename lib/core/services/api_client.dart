@@ -52,7 +52,7 @@ class ApiClient {
 
             if (hasToken && !_isNavigatingToAuth) {
               _isNavigatingToAuth = true;
-              
+
               await prefs.remove('auth_token');
               await prefs.remove('user_data');
 
@@ -74,7 +74,11 @@ class ApiClient {
     );
   }
 
-  Future<Response> login(String email, String password, {bool rememberMe = false}) async {
+  Future<Response> login(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     return await dio.post(
       '/login',
       data: {'email': email, 'password': password, 'remember_me': rememberMe},
@@ -94,20 +98,30 @@ class ApiClient {
   }
 
   Future<Response> verifyRegisterOTP(String email, String otp) async {
-    return await dio.post('/verify-register-otp', data: {'email': email, 'otp': otp});
+    return await dio.post(
+      '/verify-register-otp',
+      data: {'email': email, 'otp': otp},
+    );
   }
 
   Future<Response> resendRegisterOTP(String email) async {
     return await dio.post('/resend-register-otp', data: {'email': email});
   }
 
-  Future<Response> resetPassword(String email, String otp, String password) async {
-    return await dio.post('/reset-password', data: {
-      'email': email,
-      'otp': otp,
-      'password': password,
-      'password_confirmation': password,
-    });
+  Future<Response> resetPassword(
+    String email,
+    String otp,
+    String password,
+  ) async {
+    return await dio.post(
+      '/reset-password',
+      data: {
+        'email': email,
+        'otp': otp,
+        'password': password,
+        'password_confirmation': password,
+      },
+    );
   }
 
   Future<Response> logout() async {

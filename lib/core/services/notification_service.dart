@@ -246,7 +246,6 @@ class NotificationService {
           priority: Priority.high,
           ticker: 'ticker',
           icon: '@mipmap/ic_launcher',
-          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           color: AppColors.primaryTeal,
           colorized: true,
           playSound: true,

@@ -131,7 +131,9 @@ class GroupCard extends StatelessWidget {
                                     members[idx]['avatar_url']
                                         .toString()
                                         .startsWith('http') &&
-                                    !members[idx]['avatar_url'].toString().endsWith('/')
+                                    !members[idx]['avatar_url']
+                                        .toString()
+                                        .endsWith('/')
                                 ? Image.network(
                                     members[idx]['avatar_url'],
                                     fit: BoxFit.cover,
@@ -375,6 +377,10 @@ class GroupInputField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final bool showCounter;
+  final TextCapitalization textCapitalization;
+  final int? maxLines;
+  final int? minLines;
+  final double? height;
 
   const GroupInputField({
     super.key,
@@ -389,6 +395,10 @@ class GroupInputField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.showCounter = true,
+    this.textCapitalization = TextCapitalization.none,
+    this.maxLines = 1,
+    this.minLines,
+    this.height,
   });
 
   @override
@@ -404,7 +414,7 @@ class GroupInputField extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Container(
-                height: 52,
+                height: height ?? 52,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
@@ -422,10 +432,21 @@ class GroupInputField extends StatelessWidget {
                   enabled: enabled,
                   onChanged: onChanged,
                   maxLength: maxLength,
-                  buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-                  keyboardType: isNum
-                      ? TextInputType.number
-                      : TextInputType.text,
+                  maxLines: maxLines,
+                  minLines: minLines,
+                  expands: maxLines == null && height != null,
+                  textAlignVertical: (maxLines == null || (maxLines ?? 1) > 1) ? TextAlignVertical.top : TextAlignVertical.center,
+                  buildCounter:
+                      (
+                        context, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) => null,
+                  keyboardType: (maxLines == null || (maxLines ?? 1) > 1)
+                      ? TextInputType.multiline
+                      : (isNum ? TextInputType.number : TextInputType.text),
+                  textCapitalization: textCapitalization,
                   inputFormatters:
                       inputFormatters ??
                       (isNum ? [FilteringTextInputFormatter.digitsOnly] : null),
@@ -435,7 +456,7 @@ class GroupInputField extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: hint,
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     hintStyle: GoogleFonts.outfit(
                       color: enabled ? Colors.grey[300] : Colors.grey[200],
                     ),
@@ -475,7 +496,10 @@ class GroupInputField extends StatelessWidget {
                     child: hasError
                         ? Text(
                             errorText!,
-                            style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
+                            style: GoogleFonts.outfit(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
                           )
                         : const SizedBox.shrink(),
                   ),
@@ -487,7 +511,9 @@ class GroupInputField extends StatelessWidget {
                         return Text(
                           '$currentLength/$maxLength',
                           style: GoogleFonts.outfit(
-                            color: currentLength >= maxLength! ? Colors.red : Colors.grey[500],
+                            color: currentLength >= maxLength!
+                                ? Colors.red
+                                : Colors.grey[500],
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -499,6 +525,19 @@ class GroupInputField extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }
@@ -1115,7 +1154,9 @@ class _GroupMainCardState extends State<GroupMainCard> {
                     ),
                     if (isLongDesc)
                       TextSpan(
-                        text: _isDescExpanded ? ' sembunyikan' : ' selengkapnya...',
+                        text: _isDescExpanded
+                            ? ' sembunyikan'
+                            : ' selengkapnya...',
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryTeal,
@@ -1394,7 +1435,11 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: SizedBox(
-              height: _activeTab == 0 ? (widget.isLoading ? 180 : (widget.aiThinkingText.isNotEmpty ? 230 : 115)) : 225,
+              height: _activeTab == 0
+                  ? (widget.isLoading
+                        ? 180
+                        : (widget.aiThinkingText.isNotEmpty ? 230 : 115))
+                  : 295,
               child: PageView(
                 controller: _pageController,
                 physics: const BouncingScrollPhysics(),
@@ -1424,7 +1469,9 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               decoration: BoxDecoration(
                 color: AppColors.primaryTeal.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppColors.primaryTeal.withOpacity(0.5)),
+                border: Border.all(
+                  color: AppColors.primaryTeal.withOpacity(0.5),
+                ),
               ),
               child: Column(
                 children: [
@@ -1450,7 +1497,9 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                         const SizedBox(width: 6),
                       ],
                       Text(
-                        widget.isLoading ? 'SELA sedang berpikir...' : 'Hasil Pemikiran SELA',
+                        widget.isLoading
+                            ? 'SELA sedang berpikir...'
+                            : 'Hasil Pemikiran SELA',
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryTeal,
@@ -1473,7 +1522,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                         ),
                       ),
                     ),
-                  ]
+                  ],
                 ],
               ),
             )
@@ -1483,10 +1532,13 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               child: Text(
                 '*Tugas akan otomatis dibagi rata kepada setiap anggota sesuai dengan kemampuan mereka.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[400]),
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  color: Colors.grey[400],
+                ),
               ),
             ),
-          
+
           if (!widget.isLoading)
             // Tombol Create ?" hanya ini yang diblokir untuk member
             GestureDetector(
@@ -1515,7 +1567,9 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.aiThinkingText.isNotEmpty ? 'Buat Ulang dengan AI ✨' : 'Buat dengan AI ✨',
+                      widget.aiThinkingText.isNotEmpty
+                          ? 'Buat Ulang dengan AI ✨'
+                          : 'Buat dengan AI ✨',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -1536,7 +1590,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
       physics: const NeverScrollableScrollPhysics(),
       child: Column(
         children: [
-          const SizedBox(height: 10),
+          const SizedBox(height: 5),
           Row(
             children: [
               Expanded(
@@ -1564,7 +1618,7 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
                     child: AbsorbPointer(
                       absorbing: !widget.isLeader,
                       child: _DropdownPerson(
-                        label: 'Assign to',
+                        label: 'Tugaskan',
                         hint: 'Pilih',
                         value: _selectedMemberId,
                         members: widget.members,
@@ -1588,8 +1642,10 @@ class _CreateSubtaskSectionState extends State<CreateSubtaskSection> {
               controller: _descCtrl,
               enabled: widget.isLeader,
               inputFormatters: [NoLeadingSpaceFormatter()],
-              maxLength: 1000,
+              maxLength: 500,
               showCounter: false,
+              maxLines: null,
+              height: 120,
             ),
           ),
           const SizedBox(height: 20),
@@ -1724,8 +1780,11 @@ class _DropdownPerson extends StatelessWidget {
               value: value,
               selectedItemBuilder: (BuildContext context) {
                 return members.map<Widget>((m) {
-                  final rawName = (m['full_name'] ?? m['username'] ?? 'Member').toString();
-                  final displayName = rawName.length > 4 ? '${rawName.substring(0, 4)}...' : rawName;
+                  final rawName = (m['full_name'] ?? m['username'] ?? 'Member')
+                      .toString();
+                  final displayName = rawName.length > 4
+                      ? '${rawName.substring(0, 4)}...'
+                      : rawName;
                   return Container(
                     alignment: Alignment.center,
                     child: Text(
@@ -1762,8 +1821,11 @@ class _DropdownPerson extends StatelessWidget {
                 ),
               ),
               items: members.map((m) {
-                final rawName = (m['full_name'] ?? m['username'] ?? 'Member').toString();
-                final displayName = rawName.length > 6 ? '${rawName.substring(0, 6)}...' : rawName;
+                final rawName = (m['full_name'] ?? m['username'] ?? 'Member')
+                    .toString();
+                final displayName = rawName.length > 6
+                    ? '${rawName.substring(0, 6)}...'
+                    : rawName;
                 return DropdownMenuItem<String>(
                   value: m['id'] ?? m['user_id'],
                   child: Container(

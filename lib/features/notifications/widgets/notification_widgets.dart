@@ -30,7 +30,12 @@ class NotificationHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(25, MediaQuery.of(context).padding.top + 20, 25, 10),
+      padding: EdgeInsets.fromLTRB(
+        25,
+        MediaQuery.of(context).padding.top + 20,
+        25,
+        10,
+      ),
       child: Column(
         children: [
           // Top row: back + title (or selection info)
@@ -41,7 +46,9 @@ class NotificationHeader extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isSelectionMode ? AppColors.primaryTeal : Colors.white,
+                    color: isSelectionMode
+                        ? AppColors.primaryTeal
+                        : Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: isSelectionMode
                         ? null
@@ -55,7 +62,9 @@ class NotificationHeader extends StatelessWidget {
                   ),
                   child: Icon(
                     isSelectionMode ? Icons.close_rounded : Icons.arrow_back,
-                    color: isSelectionMode ? Colors.white : const Color(0xFF003D4C),
+                    color: isSelectionMode
+                        ? Colors.white
+                        : const Color(0xFF003D4C),
                     size: 24,
                   ),
                 ),
@@ -72,7 +81,10 @@ class NotificationHeader extends StatelessWidget {
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 35,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
@@ -98,7 +110,10 @@ class NotificationHeader extends StatelessWidget {
                 GestureDetector(
                   onTap: onSelectAll,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: selectedCount == totalCount
                           ? AppColors.primaryTeal
@@ -110,7 +125,9 @@ class NotificationHeader extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      selectedCount == totalCount ? 'Batal Semua' : 'Pilih Semua',
+                      selectedCount == totalCount
+                          ? 'Batal Semua'
+                          : 'Pilih Semua',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -230,7 +247,9 @@ class NotificationCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
   final VoidCallback? onDismissed; // Tambahan untuk efek geser hapus
-  
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
+
   const NotificationCard({
     super.key,
     required this.notification,
@@ -239,6 +258,8 @@ class NotificationCard extends StatelessWidget {
     this.onLongPress,
     this.onTap,
     this.onDismissed,
+    this.onAccept,
+    this.onReject,
   });
 
   String _getTimeAgo(DateTime dateTime) {
@@ -247,7 +268,8 @@ class NotificationCard extends StatelessWidget {
 
     if (difference.inDays > 0) return '${difference.inDays} hari yang lalu';
     if (difference.inHours > 0) return '${difference.inHours} jam yang lalu';
-    if (difference.inMinutes > 0) return '${difference.inMinutes} menit yang lalu';
+    if (difference.inMinutes > 0)
+      return '${difference.inMinutes} menit yang lalu';
     return 'Baru saja';
   }
 
@@ -256,6 +278,7 @@ class NotificationCard extends StatelessWidget {
     final createdAt = DateTime.parse(notification['created_at']).toLocal();
     final isUnread = notification['is_read'] == false;
     final isTask = notification['type'] == 'task';
+    final isJoinRequest = notification['type'] == 'join_request';
 
     final card = GestureDetector(
       onLongPress: onLongPress,
@@ -294,10 +317,14 @@ class NotificationCard extends StatelessWidget {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primaryTeal : Colors.transparent,
+                      color: isSelected
+                          ? AppColors.primaryTeal
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(7),
                       border: Border.all(
-                        color: isSelected ? AppColors.primaryTeal : Colors.grey[300]!,
+                        color: isSelected
+                            ? AppColors.primaryTeal
+                            : Colors.grey[300]!,
                         width: 2,
                       ),
                     ),
@@ -312,18 +339,18 @@ class NotificationCard extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 15),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isUnread 
-                      ? AppColors.lightTealBg 
-                      : Colors.grey[50],
+                  color: isUnread ? AppColors.lightTealBg : Colors.grey[50],
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isTask ? Icons.assignment_rounded : Icons.notifications_rounded,
+                  isTask
+                      ? Icons.assignment_rounded
+                      : Icons.notifications_rounded,
                   color: isUnread ? AppColors.primaryTeal : Colors.grey[400],
                   size: 24,
                 ),
               ),
-            
+
             // Konten
             Expanded(
               child: Column(
@@ -337,7 +364,9 @@ class NotificationCard extends StatelessWidget {
                           notification['title'] ?? 'Tanpa Judul',
                           style: GoogleFonts.outfit(
                             fontSize: 16,
-                            fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
+                            fontWeight: isUnread
+                                ? FontWeight.bold
+                                : FontWeight.w600,
                             color: isUnread ? Colors.black87 : Colors.black54,
                           ),
                         ),
@@ -357,7 +386,7 @@ class NotificationCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    notification['body'] ?? '',
+                    notification['message'] ?? notification['body'] ?? '',
                     style: GoogleFonts.outfit(
                       fontSize: 13,
                       color: Colors.grey[600],
@@ -366,12 +395,58 @@ class NotificationCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (isJoinRequest) const SizedBox(height: 12),
+                  if (isJoinRequest)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: onReject,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[50],
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            child: Text(
+                              'Tolak',
+                              style: GoogleFonts.outfit(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: onAccept,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryTeal,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            child: Text(
+                              'Terima',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 10),
                   Text(
                     _getTimeAgo(createdAt),
                     style: GoogleFonts.outfit(
                       fontSize: 11,
-                      fontWeight: FontWeight.w500,
                       color: Colors.grey[400],
                     ),
                   ),

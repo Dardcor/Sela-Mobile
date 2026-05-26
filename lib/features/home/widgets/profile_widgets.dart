@@ -1141,8 +1141,11 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
               GestureDetector(
                 onTap: () async {
                   if (_isLoading) return;
+                  
+                  // Try to add pending text. If it fails (duplicate), stop saving.
+                  if (!_addAbility()) return;
+                  
                   setState(() => _isLoading = true);
-                  _addAbility(); // Auto-add if text is left in the input
                   await widget.onSave(_currentAbilities);
                   if (mounted) {
                     setState(() => _isLoading = false);
@@ -1184,12 +1187,23 @@ class _EditAbilityModalState extends State<EditAbilityModal> {
     );
   }
 
-  void _addAbility() {
-    if (_newAbilityCtrl.text.isNotEmpty) {
+  bool _addAbility() {
+    final newAbility = _newAbilityCtrl.text.trim();
+    if (newAbility.isNotEmpty) {
+      final isDuplicate = _currentAbilities.any(
+        (ability) => ability.toLowerCase() == newAbility.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        _showModalToast(context, 'Kemampuan "$newAbility" sudah ditambahkan');
+        return false;
+      }
+
       setState(() {
-        _currentAbilities.add(_newAbilityCtrl.text);
+        _currentAbilities.add(newAbility);
         _newAbilityCtrl.clear();
       });
     }
+    return true;
   }
 }

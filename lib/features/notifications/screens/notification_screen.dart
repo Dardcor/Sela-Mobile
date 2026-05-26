@@ -63,7 +63,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (_selectedNotificationIds.length == _notifications.length) {
         _selectedNotificationIds.clear();
       } else {
-        _selectedNotificationIds = _notifications.map((n) => n['id'].toString()).toSet();
+        _selectedNotificationIds = _notifications
+            .map((n) => n['id'].toString())
+            .toSet();
       }
     });
   }
@@ -71,14 +73,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _deleteSelected() async {
     final selectedIds = _selectedNotificationIds.toList();
     _cancelSelection();
-    
+
     // Backup data
-    final backup = _notifications.where((n) => selectedIds.contains(n['id'].toString())).toList();
-    
+    final backup = _notifications
+        .where((n) => selectedIds.contains(n['id'].toString()))
+        .toList();
+
     setState(() {
-      _notifications.removeWhere((n) => selectedIds.contains(n['id'].toString()));
+      _notifications.removeWhere(
+        (n) => selectedIds.contains(n['id'].toString()),
+      );
     });
-    
+
     bool isUndone = false;
     final completer = Completer<bool>();
     _pendingDeletes.add(completer);
@@ -91,7 +97,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
           setState(() {
             _notifications.insertAll(0, backup);
             // Assuming we still have created_at from backend.
-            _notifications.sort((a, b) => DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at'])));
+            _notifications.sort(
+              (a, b) => DateTime.parse(
+                b['created_at'],
+              ).compareTo(DateTime.parse(a['created_at'])),
+            );
           });
         }
       });
@@ -101,12 +111,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
       Future.delayed(const Duration(seconds: 3), () => false),
       completer.future,
     ]);
-    
+
     _pendingDeletes.remove(completer);
     if (isUndone || earlyResult) return;
 
     try {
-      await ApiClient().dio.post('/notifications/delete-multiple', data: {'ids': selectedIds});
+      await ApiClient().dio.post(
+        '/notifications/delete-multiple',
+        data: {'ids': selectedIds},
+      );
     } catch (e) {
       debugPrint('Err Delete Selected: $e');
       if (mounted) _fetchNotifications();
@@ -116,7 +129,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _markReadSelected() async {
     final selectedIds = _selectedNotificationIds.toList();
     _cancelSelection();
-    
+
     setState(() {
       for (var n in _notifications) {
         if (selectedIds.contains(n['id'].toString())) {
@@ -126,7 +139,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
 
     try {
-      await ApiClient().dio.put('/notifications/mark-read-multiple', data: {'ids': selectedIds});
+      await ApiClient().dio.put(
+        '/notifications/mark-read-multiple',
+        data: {'ids': selectedIds},
+      );
     } catch (e) {
       debugPrint('Err Mark Read Selected: $e');
     }
@@ -151,6 +167,55 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _handleJoinRequest(
+    String reqId,
+    String notifId,
+    bool isAccept,
+  ) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primaryTeal),
+        ),
+      );
+
+      final action = isAccept ? 'accept' : 'reject';
+      await ApiClient().dio.post('/group-join-requests/$reqId/$action');
+
+      // Delete the notification so it doesn't stay there
+      await ApiClient().dio.delete('/notifications/$notifId');
+
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        setState(() {
+          _notifications.removeWhere((n) => n['id'].toString() == notifId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isAccept
+                  ? 'Permintaan bergabung diterima'
+                  : 'Permintaan bergabung ditolak',
+            ),
+            backgroundColor: isAccept ? AppColors.primaryTeal : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memproses permintaan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _markAllAsRead() async {
     try {
       await ApiClient().dio.put('/notifications/mark-all-read');
@@ -162,11 +227,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _deleteSingleNotification(String notificationId) async {
     // Backup data untuk fitur URUNGKAN (Undo)
-    final indexToRestore = _notifications.indexWhere((n) => n['id'].toString() == notificationId);
+    final indexToRestore = _notifications.indexWhere(
+      (n) => n['id'].toString() == notificationId,
+    );
     if (indexToRestore == -1) return;
-    
+
     final backupData = _notifications[indexToRestore];
-    
+
     // Hapus sementara dari layar (Optimistic UI)
     setState(() {
       _notifications.removeAt(indexToRestore);
@@ -198,7 +265,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     try {
       // Menjalankan API asli di belakang layar setelah jeda Undo berakhir
-      await ApiClient().dio.post('/notifications/delete-multiple', data: {'ids': [notificationId]});
+      await ApiClient().dio.post(
+        '/notifications/delete-multiple',
+        data: {
+          'ids': [notificationId],
+        },
+      );
     } catch (e) {
       debugPrint('Err Delete Single: $e');
       if (mounted) _fetchNotifications();
@@ -207,7 +279,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _markSingleAsRead(String notificationId) async {
     try {
-      await ApiClient().dio.put('/notifications/$notificationId', data: {'is_read': true});
+      await ApiClient().dio.put(
+        '/notifications/$notificationId',
+        data: {'is_read': true},
+      );
       await NotificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('Err Mark Single As Read: $e');
@@ -239,65 +314,92 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 onEnterSelectionMode: _enterSelectionMode,
               ),
             ),
-            
+
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
               sliver: _isLoading
                   ? const SliverFillRemaining(
                       hasScrollBody: false,
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
                     )
                   : _notifications.isEmpty
-                      ? SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey[300]),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Belum ada notifikasi',
-                                  style: GoogleFonts.outfit(color: Colors.grey[400]),
-                                ),
-                              ],
+                  ? SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_none_rounded,
+                              size: 64,
+                              color: Colors.grey[300],
                             ),
-                          ),
-                        )
-                      : SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) => NotificationCard(
-                              notification: _notifications[index],
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: _selectedNotificationIds.contains(_notifications[index]['id'].toString()),
-                              onLongPress: () {
-                                if (!_isSelectionMode) {
-                                  _enterSelectionMode();
-                                  setState(() {
-                                    _selectedNotificationIds.add(_notifications[index]['id'].toString());
-                                  });
-                                }
-                              },
-                              onTap: () {
-                                if (_isSelectionMode) {
-                                  setState(() {
-                                    final id = _notifications[index]['id'].toString();
-                                    if (_selectedNotificationIds.contains(id)) {
-                                      _selectedNotificationIds.remove(id);
-                                    } else {
-                                      _selectedNotificationIds.add(id);
-                                    }
-                                  });
-                                }
-                              },
-                              onDismissed: () {
-                                // Eksekusi fungsi hapus tunggal
-                                _deleteSingleNotification(_notifications[index]['id'].toString());
-                              },
+                            const SizedBox(height: 16),
+                            Text(
+                              'Belum ada notifikasi',
+                              style: GoogleFonts.outfit(
+                                color: Colors.grey[400],
+                              ),
                             ),
-                            childCount: _notifications.length,
-                          ),
+                          ],
                         ),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final notif = _notifications[index];
+                        return NotificationCard(
+                          notification: notif,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedNotificationIds.contains(
+                            notif['id'].toString(),
+                          ),
+                          onAccept: () {
+                            _handleJoinRequest(
+                              notif['related_id'].toString(),
+                              notif['id'].toString(),
+                              true,
+                            );
+                          },
+                          onReject: () {
+                            _handleJoinRequest(
+                              notif['related_id'].toString(),
+                              notif['id'].toString(),
+                              false,
+                            );
+                          },
+                          onLongPress: () {
+                            if (!_isSelectionMode) {
+                              _enterSelectionMode();
+                              setState(() {
+                                _selectedNotificationIds.add(
+                                  notif['id'].toString(),
+                                );
+                              });
+                            }
+                          },
+                          onTap: () {
+                            if (_isSelectionMode) {
+                              setState(() {
+                                final id = notif['id'].toString();
+                                if (_selectedNotificationIds.contains(id)) {
+                                  _selectedNotificationIds.remove(id);
+                                } else {
+                                  _selectedNotificationIds.add(id);
+                                }
+                              });
+                            }
+                          },
+                          onDismissed: () {
+                            _deleteSingleNotification(notif['id'].toString());
+                          },
+                        );
+                      }, childCount: _notifications.length),
+                    ),
             ),
             // Bottom spacing similar to dashboard
             const SliverToBoxAdapter(child: SizedBox(height: 110)),
