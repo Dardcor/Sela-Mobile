@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/services/api_client.dart';
@@ -22,25 +25,39 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   int _unreadNotificationsCount = 0;
+  StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+    _fcmSubscription = FirebaseMessaging.onMessage.listen((
+      RemoteMessage message,
+    ) {
+      if (!mounted) return;
+      setState(() {
+        _unreadNotificationsCount++;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _fcmSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchUnreadNotificationsCount() async {
     try {
-      final res = await ApiClient().dio.get('/notifications', queryParameters: {'is_read': false});
+      final res = await ApiClient().dio.get(
+        '/notifications',
+        queryParameters: {'is_read': false},
+      );
       if (mounted) {
         setState(() {
-          _unreadNotificationsCount = (res.data['notifications'] as List).length;
+          _unreadNotificationsCount =
+              (res.data['notifications'] as List).length;
         });
       }
     } catch (e) {
@@ -143,7 +160,11 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                                   radius: 20,
                                   backgroundColor: Colors.white,
                                   child: ClipOval(
-                                    child: _profile?['avatar_url'] != null && !_profile!['avatar_url'].toString().endsWith('/')
+                                    child:
+                                        _profile?['avatar_url'] != null &&
+                                            !_profile!['avatar_url']
+                                                .toString()
+                                                .endsWith('/')
                                         ? Image.network(
                                             _profile!['avatar_url'],
                                             width: 40,
@@ -287,7 +308,10 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
             // Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25.0,
+                  vertical: 10,
+                ),
                 child: SearchBarWithButton(
                   controller: _searchController,
                   hintText: 'Cari kelas...',
@@ -455,7 +479,7 @@ class _LecturerDashboardScreenState extends State<LecturerDashboardScreen> {
                     size: 18,
                   ),
                 ),
-                 Container(
+                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,

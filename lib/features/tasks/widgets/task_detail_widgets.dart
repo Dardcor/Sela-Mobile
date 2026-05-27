@@ -149,7 +149,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
       dateRange =
           '${_formatDateShort(DateTime.parse(task['start_date']))} - ${_formatDateShort(DateTime.parse(task['due_date']))}';
     }
-    
+
     final description = (task['description'] as String?) ?? '';
     final isLongDesc = description.length > _descThreshold;
 
@@ -202,14 +202,13 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
               color: Colors.black,
             ),
           ),
-          
+
           if (task['category'] != null || task['subject'] != null) ...[
             const SizedBox(height: 5),
             Text(
-              [
-                task['category'],
-                task['subject'],
-              ].where((x) => x != null && (x?.toString() ?? '').isNotEmpty).join(' | '),
+              [task['category'], task['subject']]
+                  .where((x) => x != null && (x?.toString() ?? '').isNotEmpty)
+                  .join(' | '),
               style: GoogleFonts.outfit(
                 fontSize: 12,
                 color: Colors.grey[500],
@@ -217,7 +216,7 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
               ),
             ),
           ],
-          
+
           const SizedBox(height: 10),
           // Description dengan see more / see less
           if (description.isNotEmpty) ...[
@@ -322,7 +321,9 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: widget.onFileTap == null ? null : () => widget.onFileTap!(file),
+                    onTap: widget.onFileTap == null
+                        ? null
+                        : () => widget.onFileTap!(file),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -369,7 +370,10 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
               Expanded(
                 child: Text(
                   dateRange,
-                  style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey[400]),
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: Colors.grey[400],
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -379,7 +383,10 @@ class _TaskDetailCardState extends State<TaskDetailCard> {
                 GestureDetector(
                   onTap: widget.onEditTap,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryTeal,
                       borderRadius: BorderRadius.circular(12),
@@ -446,10 +453,13 @@ class _TaskProgressCardState extends State<TaskProgressCard> {
     for (var st in widget.subtasks) {
       final progressList = st['progress_entries'] as List?;
       final progressData = progressList?.firstWhere(
-        (p) => p['user_id'].toString().toLowerCase() == widget.userId.toString().toLowerCase(),
+        (p) =>
+            p['user_id'].toString().toLowerCase() ==
+            widget.userId.toString().toLowerCase(),
         orElse: () => null,
       );
-      _localProgresses[st['id'].toString()] = (progressData?['progress'] as num?)?.toInt() ?? 0;
+      _localProgresses[st['id'].toString()] =
+          (progressData?['progress'] as num?)?.toInt() ?? 0;
     }
   }
 
@@ -626,7 +636,7 @@ class _TaskProgressCardState extends State<TaskProgressCard> {
                       ),
                       onChanged: (val) {
                         final newProg = val == true ? 100 : 0;
-                        
+
                         // 1. Update UI secara instan (Optimistic UI lokal)
                         setState(() {
                           _localProgresses[subtaskId] = newProg;
@@ -645,7 +655,6 @@ class _TaskProgressCardState extends State<TaskProgressCard> {
     );
   }
 }
-
 
 class IndependentCreateSubtaskSection extends StatefulWidget {
   final Function(String, String?, String) onCreateManual;
@@ -745,7 +754,11 @@ class _IndependentCreateSubtaskSectionState
             curve: Curves.easeInOut,
             child: SizedBox(
               // Menyesuaikan dengan tinggi masing-masing tab internal seperti di Group Task
-              height: _activeTab == 0 ? (widget.isLoading ? 180 : (widget.aiThinkingText.isNotEmpty ? 230 : 115)) : 245,
+              height: _activeTab == 0
+                  ? (widget.isLoading
+                        ? 180
+                        : (widget.aiThinkingText.isNotEmpty ? 230 : 115))
+                  : 245,
               child: PageView(
                 controller: _pageController,
                 physics: const BouncingScrollPhysics(),
@@ -758,7 +771,8 @@ class _IndependentCreateSubtaskSectionState
                     child: Column(
                       children: [
                         const SizedBox(height: 10),
-                        if (widget.isLoading || widget.aiThinkingText.isNotEmpty)
+                        if (widget.isLoading ||
+                            widget.aiThinkingText.isNotEmpty)
                           Container(
                             height: 140,
                             width: double.infinity,
@@ -767,7 +781,9 @@ class _IndependentCreateSubtaskSectionState
                             decoration: BoxDecoration(
                               color: AppColors.primaryTeal.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: AppColors.primaryTeal.withOpacity(0.5)),
+                              border: Border.all(
+                                color: AppColors.primaryTeal.withOpacity(0.5),
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -793,7 +809,9 @@ class _IndependentCreateSubtaskSectionState
                                       const SizedBox(width: 6),
                                     ],
                                     Text(
-                                      widget.isLoading ? 'SELA Thinking...' : 'Hasil Pemikiran SELA',
+                                      widget.isLoading
+                                          ? 'SELA Thinking...'
+                                          : 'Hasil Pemikiran SELA',
                                       style: GoogleFonts.outfit(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.primaryTeal,
@@ -816,7 +834,7 @@ class _IndependentCreateSubtaskSectionState
                                       ),
                                     ),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           )
@@ -832,7 +850,7 @@ class _IndependentCreateSubtaskSectionState
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        
+
                         if (!widget.isLoading)
                           GestureDetector(
                             onTap: widget.onCreateAutomatic,
@@ -854,7 +872,9 @@ class _IndependentCreateSubtaskSectionState
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      widget.aiThinkingText.isNotEmpty ? 'Buat Ulang dengan AI ✨' : 'Buat dengan AI ✨',
+                                      widget.aiThinkingText.isNotEmpty
+                                          ? 'Buat Ulang dengan AI ✨'
+                                          : 'Buat dengan AI ✨',
                                       style: GoogleFonts.outfit(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
@@ -1018,7 +1038,13 @@ class _CreateSubtaskField extends StatelessWidget {
             controller: controller,
             maxLines: lines,
             maxLength: maxLength,
-            buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+            buildCounter:
+                (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
             inputFormatters: inputFormatters,
             decoration: InputDecoration(
               hintText: hint,
@@ -1047,7 +1073,6 @@ class _CreateSubtaskField extends StatelessWidget {
     );
   }
 }
-
 
 /// Toggle Group / Individual di AddProjectScreen.
 class TaskTypeToggle extends StatelessWidget {
@@ -1128,6 +1153,9 @@ class LabeledInputField extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onTap;
   final int lines;
+  final int? maxLines;
+  final int? minLines;
+  final double? height;
   final Color bgColor;
   final String? errorText;
   final ValueChanged<String>? onChanged;
@@ -1142,6 +1170,9 @@ class LabeledInputField extends StatelessWidget {
     this.icon,
     this.onTap,
     this.lines = 1,
+    this.maxLines,
+    this.minLines,
+    this.height,
     this.bgColor = AppColors.bgLight,
     this.errorText,
     this.onChanged,
@@ -1152,6 +1183,7 @@ class LabeledInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasError = errorText != null && errorText!.isNotEmpty;
+    final isMultiLine = lines > 1 || (maxLines == null || (maxLines ?? 1) > 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1160,7 +1192,7 @@ class LabeledInputField extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: lines == 1 ? 45 : null,
+              height: height ?? (lines == 1 ? 52 : null),
               padding: const EdgeInsets.only(left: 16, right: 0),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
@@ -1168,16 +1200,29 @@ class LabeledInputField extends StatelessWidget {
                   color: hasError ? Colors.red : AppColors.primaryTeal,
                   width: 1.2,
                 ),
+                color: Colors.transparent,
               ),
               child: TextField(
                 controller: controller,
-                maxLines: lines,
                 maxLength: maxLength,
-                buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                maxLines: maxLines ?? lines,
+                minLines: minLines,
+                expands: maxLines == null && height != null,
+                textAlignVertical: isMultiLine
+                    ? TextAlignVertical.top
+                    : TextAlignVertical.center,
+                buildCounter:
+                    (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
                 readOnly: onTap != null,
                 onTap: onTap,
                 onChanged: onChanged,
                 inputFormatters: inputFormatters,
+                style: GoogleFonts.outfit(color: Colors.black),
                 decoration: InputDecoration(
                   hintText: hint,
                   border: InputBorder.none,
@@ -1187,8 +1232,8 @@ class LabeledInputField extends StatelessWidget {
                   ),
                   contentPadding: EdgeInsets.only(
                     right: icon == null ? 16 : 0,
-                    top: lines > 1 ? 16 : 14, // Adjusted for single line vertical centering
-                    bottom: lines > 1 ? 16 : 14, // Adjusted for single line vertical centering
+                    top: 14,
+                    bottom: 14,
                   ),
                   suffixIcon: icon != null
                       ? Transform.translate(
@@ -1217,37 +1262,12 @@ class LabeledInputField extends StatelessWidget {
             ),
           ],
         ),
-        if (hasError || maxLength != null)
+        if (hasError)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: hasError
-                      ? Text(
-                          errorText!,
-                          style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                if (maxLength != null)
-                  ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: controller,
-                    builder: (context, value, child) {
-                      final currentLength = value.text.length;
-                      return Text(
-                        '$currentLength/$maxLength',
-                        style: GoogleFonts.outfit(
-                          color: currentLength >= maxLength! ? Colors.red : Colors.grey[500],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      );
-                    },
-                  ),
-              ],
+            child: Text(
+              errorText!,
+              style: GoogleFonts.outfit(color: Colors.red, fontSize: 12),
             ),
           ),
       ],
@@ -1285,7 +1305,7 @@ class _LinkListSectionState extends State<LinkListSection> {
       setState(() => _error = 'Link is required');
       return;
     }
-    
+
     final updated = [...widget.links, text];
     widget.onLinksChanged(updated);
     _ctrl.clear();
@@ -1723,13 +1743,22 @@ class AddTaskGroupDropdown extends StatelessWidget {
                     },
                     trailingIcon: Transform.translate(
                       offset: const Offset(4, 0),
-                      child: Icon(Icons.expand_more_rounded, color: Colors.grey[400]),
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        color: Colors.grey[400],
+                      ),
                     ),
                     selectedTrailingIcon: Transform.translate(
                       offset: const Offset(4, 0),
-                      child: Icon(Icons.expand_less_rounded, color: Colors.grey[400]),
+                      child: Icon(
+                        Icons.expand_less_rounded,
+                        color: Colors.grey[400],
+                      ),
                     ),
-                    textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 13),
+                    textStyle: GoogleFonts.outfit(
+                      color: Colors.black,
+                      fontSize: 13,
+                    ),
                     menuStyle: MenuStyle(
                       backgroundColor: WidgetStateProperty.all(Colors.white),
                       shape: WidgetStateProperty.all(
@@ -1746,7 +1775,10 @@ class AddTaskGroupDropdown extends StatelessWidget {
                         color: Colors.grey[400],
                         fontSize: 14,
                       ),
-                      contentPadding: const EdgeInsets.only(left: 16, bottom: 8),
+                      contentPadding: const EdgeInsets.only(
+                        left: 16,
+                        bottom: 8,
+                      ),
                     ),
                     hintText: 'Select a group',
                     dropdownMenuEntries: userGroups
@@ -1756,7 +1788,10 @@ class AddTaskGroupDropdown extends StatelessWidget {
                             value: e['id'] as String,
                             label: e['name'] ?? '',
                             style: MenuItemButton.styleFrom(
-                              textStyle: GoogleFonts.outfit(color: Colors.black, fontSize: 13),
+                              textStyle: GoogleFonts.outfit(
+                                color: Colors.black,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         )
@@ -1825,7 +1860,11 @@ class IndependentTaskDetailHeader extends StatelessWidget {
               color: AppColors.primaryTeal,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
         ),
         const SizedBox(height: 5),

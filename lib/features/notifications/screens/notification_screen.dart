@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/constants/colors.dart';
 import '../widgets/notification_widgets.dart';
 import '../../../core/utils/snackbar_utils.dart';
@@ -18,6 +19,7 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   List<dynamic> _notifications = [];
+  StreamSubscription<RemoteMessage>? _messageSubscription;
 
   bool _isSelectionMode = false;
   Set<String> _selectedNotificationIds = {};
@@ -37,10 +39,45 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     _fetchNotifications();
+
+    _messageSubscription = FirebaseMessaging.onMessage.listen((
+      RemoteMessage message,
+    ) {
+      if (!mounted) return;
+
+      // Optimistically prepend from FCM payload for instant UI update
+      final notification = message.notification;
+      final data = message.data;
+      if (notification != null) {
+        final optimistic = {
+          'id': data['notification_id'] ?? message.hashCode.toString(),
+          'title': notification.title ?? 'Sela',
+          'message': notification.body ?? '',
+          'type': data['type'] ?? 'system',
+          'related_id': data['related_id'],
+          'is_read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        };
+
+        setState(() {
+          // Avoid duplicate if already present
+          final exists = _notifications.any(
+            (n) => n['id'].toString() == optimistic['id'].toString(),
+          );
+          if (!exists) {
+            _notifications.insert(0, optimistic);
+          }
+        });
+      }
+
+      // Background sync to get authoritative data from server
+      _fetchNotifications();
+    });
   }
 
   @override
   void dispose() {
+    _messageSubscription?.cancel();
     super.dispose();
   }
 

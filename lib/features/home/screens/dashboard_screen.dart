@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/services/api_client.dart';
 import 'dart:convert';
 import '../../../core/constants/colors.dart';
@@ -20,7 +22,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAliveClientMixin {
+class _DashboardScreenState extends State<DashboardScreen>
+    with AutomaticKeepAliveClientMixin {
   Map<String, dynamic>? _cachedProfile;
   List<dynamic>? _cachedGroups;
   List<dynamic>? _cachedIndependent;
@@ -28,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
   bool _isLoading = true;
   final _searchCtrl = TextEditingController();
   int _unreadNotificationsCount = 0;
+  StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   @override
   bool get wantKeepAlive => true; // Mencegah rebuild saat swipe PageView
@@ -38,6 +42,17 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
     _loadCache();
     _fetchData();
     _searchCtrl.addListener(_onSearchChanged);
+
+    // Listen for FCM messages to update badge count instantly
+    _fcmSubscription = FirebaseMessaging.onMessage.listen((
+      RemoteMessage message,
+    ) {
+      if (mounted) {
+        setState(() {
+          _unreadNotificationsCount++;
+        });
+      }
+    });
   }
 
   Future<void> _loadCache() async {
@@ -45,7 +60,9 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
     setState(() {
       _cachedProfile = jsonDecode(prefs.getString('cache_profile') ?? '{}');
       _cachedGroups = jsonDecode(prefs.getString('cache_groups') ?? '[]');
-      _cachedIndependent = jsonDecode(prefs.getString('cache_independent') ?? '[]');
+      _cachedIndependent = jsonDecode(
+        prefs.getString('cache_independent') ?? '[]',
+      );
       if (_cachedProfile!.isNotEmpty) _isLoading = false;
     });
   }
@@ -57,13 +74,13 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
     await prefs.setString('cache_independent', jsonEncode(_cachedIndependent));
   }
 
-
   void _onSearchChanged() {
     setState(() {}); // Rebuild with filtered lists
   }
 
   @override
   void dispose() {
+    _fcmSubscription?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -87,7 +104,8 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
 
       if (mounted) {
         setState(() {
-          _unreadNotificationsCount = (res.data['notifications'] as List).length;
+          _unreadNotificationsCount =
+              (res.data['notifications'] as List).length;
         });
       }
     } catch (e) {
@@ -112,10 +130,11 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
       try {
         final resTasks = await ApiClient().dio.get('/tasks/user/$userId');
         final allTasks = resTasks.data['tasks'] as List? ?? [];
-        
+
         groupTasksList = allTasks.where((t) => t['is_group'] == true).toList();
-        independentTasksList = allTasks.where((t) => t['is_group'] == false || t['is_group'] == null).toList();
-        
+        independentTasksList = allTasks
+            .where((t) => t['is_group'] == false || t['is_group'] == null)
+            .toList();
       } catch (e, stack) {
         debugPrint('Dashboard tasks fetch err: $e');
         debugPrint(stack.toString());
@@ -144,7 +163,7 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
       // Backend (Laravel) already calculates this for us via TaskService -> getTasksByUser!
       return ((task['progress'] as num).toDouble() / 100).clamp(0.0, 1.0);
     }
-    
+
     if (task['subtasks'] == null || (task['subtasks'] as List).isEmpty) {
       return 0.0;
     }
@@ -228,9 +247,10 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
               inProgressCount: inProgressCount,
               upcomingCount: upcomingCount,
               unreadCount: _unreadNotificationsCount,
-              onNotificationTap: () =>
-                  Navigator.pushNamed(context, '/notifications')
-                      .then((_) => _fetchNotificationsCount()),
+              onNotificationTap: () => Navigator.pushNamed(
+                context,
+                '/notifications',
+              ).then((_) => _fetchNotificationsCount()),
               onProfileTap: () {
                 if (widget.onNavigateTab != null) {
                   widget.onNavigateTab!(4); // Navigasi via navbar ke tab profil
@@ -257,7 +277,9 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 15)),
-          SliverToBoxAdapter(child: _buildWorkInGroupList(groups.take(5).toList())),
+          SliverToBoxAdapter(
+            child: _buildWorkInGroupList(groups.take(5).toList()),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 25)),
           SliverToBoxAdapter(
             child: DashboardSectionHeader(
