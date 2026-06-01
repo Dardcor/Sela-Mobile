@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/colors.dart';
@@ -20,22 +21,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "title": "Tugas kelompok\nsering tidak merata?",
       "subtitle": "Kelola dan bagi tugas dengan lebih mudah bersama SELA.",
-      "image": "assets/images/onboarding_1.png"
+      "image": "assets/images/onboarding_1.svg"
     },
     {
       "title": "Bagikan tugas dengan\nbantuan AI",
       "subtitle": "AI membagi tugas secara otomatis agar lebih adil dan sesuai kemampuan setiap anggota.",
-      "image": "assets/images/onboarding_2.png"
+      "image": "assets/images/onboarding_2.svg"
     },
     {
       "title": "Pantau progres tim\nsecara real-time",
       "subtitle": "Pantau progres dan keaktifan tim secara transparan.",
-      "image": "assets/images/onboarding_3.png"
+      "image": "assets/images/onboarding_3.svg"
     },
     {
       "title": "Kerja tim tanpa drama\ndan lebih teratur",
       "subtitle": "Mulai kelola tugas kelompokmu dengan cara yang lebih adil, cepat, dan efisien.",
-      "image": "assets/images/onboarding_4.png"
+      "image": "assets/images/onboarding_4.svg"
     },
   ];
 
@@ -254,28 +255,10 @@ class OnboardingContent extends StatelessWidget {
         children: [
           const Spacer(flex: 2),
           // Gambar Ilustrasi
-          Image.asset(
+          SvgPicture.asset(
             image,
             height: 280,
             fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                height: 280,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(16)
-                ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.image, size: 80, color: Colors.grey),
-                    SizedBox(height: 10),
-                    Text("Tambahkan\nAsset Gambar Disini", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))
-                  ],
-                ),
-              );
-            },
           ),
           const Spacer(flex: 1),
           const SizedBox(height: 20),

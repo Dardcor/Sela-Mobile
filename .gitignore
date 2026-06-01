@@ -66,4 +66,5 @@ android/app/release/
 
 # Symbolication / obfuscation
 app.*.symbols
-app.*.map.json
+app.*.map.jsonAGENTS.md
+**/AGENTS.md
